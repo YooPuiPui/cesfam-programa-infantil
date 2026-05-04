@@ -1,0 +1,10 @@
+# Usar la imagen oficial de PostgreSQL
+FROM postgres:15-alpine
+
+# Configurar las variables de entorno por defecto
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=admin
+ENV POSTGRES_DB=cesfam_db
+
+# Exponer el puerto
+EXPOSE 5432
