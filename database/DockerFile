@@ -1,10 +1,14 @@
 # Usar la imagen oficial de PostgreSQL
 FROM postgres:15-alpine
 
-# Configurar las variables de entorno por defecto
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=admin
+# Configurar variables de entorno (Usuario, Contraseña y Nombre de la BD)
+ENV POSTGRES_USER=root
+ENV POSTGRES_PASSWORD=admin123
 ENV POSTGRES_DB=cesfam_db
 
-# Exponer el puerto
-EXPOSE 5432
+# Copiar el script de inicialización
+# Docker ejecuta automáticamente cualquier .sql que esté en esta carpeta al iniciar por primera vez
+COPY init.sql /docker-entrypoint-initdb.d/
+
+# Exponer el puerto por defecto de PostgreSQL
+EXPOSE 5433

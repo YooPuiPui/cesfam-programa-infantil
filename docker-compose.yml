@@ -1,50 +1,46 @@
 version: '3.8'
 
 services:
-  # Instancia 1: Frontend (Ubuntu)
-  frontend:
+  database:
     build: 
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: ./database
+    container_name: cesfam-db-container
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-root}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin123}
+      POSTGRES_DB: ${DB_NAME:-cesfam_db}
+    networks:
+      - cesfam-net
 
-  # Instancia 2: Backend (Ubuntu)
   backend:
     build: 
       context: ./backend
-      dockerfile: Dockerfile
+    container_name: mi-servidor-backend
     ports:
-      - "3000:3000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - "${BACKEND_PORT:-3000}:3000"
     environment:
       - DB_HOST=database
-      - DB_USER=postgres
-      - DB_PASSWORD=admin
-      - DB_NAME=cesfam_db
-      - DB_PORT=5432
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-admin123}
+      - DB_NAME=${DB_NAME:-cesfam_db}
     depends_on:
       - database
+    networks:
+      - cesfam-net
 
-  
-  database:
-    image: postgres:15-alpine
-    restart: always
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
-      - POSTGRES_DB=cesfam_db
+  frontend:
+    build: 
+      context: ./frontend
+    container_name: mi-servidor-frontend
     ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - "${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      - backend
+    networks:
+      - cesfam-net
 
-volumes:
-  pgdata:
+networks:
+  cesfam-net:
+    driver: bridge

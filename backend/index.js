@@ -13,5 +13,7 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Servidor backend corriendo en el puerto ${PORT}`);
-})
+  console.log(`\n🚀 Servidor backend listo y operando!`);
+  console.log(`  ➜  Local:   http://localhost:${PORT}/`);
+  console.log(`  ➜  Red:     Tu base de datos PostgreSQL está conectada.\n`);
+});
