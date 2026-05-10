@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -13,7 +14,14 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 Servidor backend listo y operando!`);
-  console.log(`  ➜  Local:   http://localhost:${PORT}/`);
-  console.log(`  ➜  Red:     Tu base de datos PostgreSQL está conectada.\n`);
+
+  const reset = "\x1b[0m";
+  const cyan = "\x1b[36m";
+  const green = "\x1b[32m";
+  const bold = "\x1b[1m";
+
+  console.log(`\n  ${green}${bold}🏥 CESFAM BACKEND${reset} listo y operando de forma segura`);
+  console.log(`\n  ${cyan}➜${reset}  ${bold}Local:${reset}      http://localhost:${PORT}/`);
+  console.log(`  ${cyan}➜${reset}  ${bold}Database:${reset}   PostgreSQL conectada exitosamente 🐘`);
+  console.log(`  ${cyan}➜${reset}  ${bold}Status:${reset}     Esperando peticiones del Frontend...\n`);
 });
