@@ -13,6 +13,13 @@ services:
       POSTGRES_DB: ${DB_NAME:-cesfam_db}
     networks:
       - cesfam-net
+    volumes:
+      - cesfam-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-root} -d ${DB_NAME:-cesfam_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: 
@@ -26,7 +33,8 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-admin123}
       - DB_NAME=${DB_NAME:-cesfam_db}
     depends_on:
-      - database
+        database:
+          condition: service_healthy
     networks:
       - cesfam-net
 
@@ -44,3 +52,6 @@ services:
 networks:
   cesfam-net:
     driver: bridge
+
+volumes:
+  cesfam-db-data:
