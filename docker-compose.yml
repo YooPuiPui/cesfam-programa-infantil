@@ -6,7 +6,7 @@ services:
       context: ./database
     container_name: cesfam-db-container
     ports:
-      - "5432:5432"
+      - "5455:5432"
     environment:
       POSTGRES_USER: ${DB_USER:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-admin123}
@@ -27,14 +27,17 @@ services:
     container_name: mi-servidor-backend
     ports:
       - "${BACKEND_PORT:-3000}:3000"
+    env_file:
+      - ./backend/.env
     environment:
       - DB_HOST=database
       - DB_USER=${DB_USER:-root}
       - DB_PASSWORD=${DB_PASSWORD:-admin123}
       - DB_NAME=${DB_NAME:-cesfam_db}
+      - DATABASE_URL=postgresql://${DB_USER:-root}:${DB_PASSWORD:-admin123}@database:5432/${DB_NAME:-cesfam_db}?schema=public
     depends_on:
-        database:
-          condition: service_healthy
+      database:
+        condition: service_healthy
     networks:
       - cesfam-net
 
