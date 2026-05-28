@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Tabla Profesionales
+model Profesional {
+  id_profesional      Int      @id @default(autoincrement())
+  rut                 String   @unique @db.VarChar(15)
+  nombre              String   @db.VarChar(100)
+  apellido            String   @db.VarChar(100)
+  estamento           String   @db.VarChar(50)
+  activo              Boolean  @default(true)
+  creado_en           DateTime @default(now())
+}
+
+// 2. Tabla Tutores
+model Tutor {
+  id_tutor            Int      @id @default(autoincrement())
+  rut                 String?  @unique @db.VarChar(12)
+  nombre              String   @db.VarChar(100)
+  apellido            String   @db.VarChar(100)
+  telefono            String   @db.VarChar(15)
+  parentesco          String   @db.VarChar(50)
+  correo              String?  @db.VarChar(100)
+  direccion           String   @db.VarChar(100)
+  sector              String?  @db.VarChar(100)
+  comuna              String @db.VarChar(100)
+  // Una relación de uno a muchos: un tutor puede tener muchos Pacientes
+  pacientes           Paciente[]
+}
+
+// 3. Tabla de Pacientes
+model Paciente {
+  id_paciente         Int      @id @default(autoincrement())
+  rut                 String   @unique @db.VarChar(15)
+  nombre             String   @db.VarChar(100)
+  apellido           String   @db.VarChar(100)
+  nombre_social       String?  @db.VarChar(100)
+  fecha_nacimiento    DateTime @db.Date
+  sexo_biologico      String   @db.VarChar(20)
+  identidad_genero    String?  @db.VarChar(50)
+  nacionalidad        String?  @default("Chilena") @db.VarChar(50)
+  direccion           String
+  sector              String?  @db.VarChar(50)
+  comuna              String @db.VarChar(50)
+
+  // Flags de riesgo social 
+  es_sename           Boolean  @default(false)
+  es_naneas_prematuro Boolean  @default(false)
+  es_poblacion_trans  Boolean  @default(false)
+  es_migrante         Boolean  @default(false)
+  creado_en           DateTime @default(now())
+
+  // Relación con el tutor
+  id_tutor_principal  Int
+  tutor               Tutor    @relation(fields: [id_tutor_principal], references: [id_tutor])
+}
