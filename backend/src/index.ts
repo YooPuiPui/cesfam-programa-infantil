@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
 import pacienteRoutes from './routes/paciente.routes';
+import profesionalRoutes from './routes/profesional.routes'
 
 
 const app = express();
@@ -17,6 +18,7 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.use('/api/pacientes', pacienteRoutes);
+app.use('/api/profesionales', profesionalRoutes);
 
 // Iniciar el servidor
 app.listen(Number(PORT), '0.0.0.0', () => {

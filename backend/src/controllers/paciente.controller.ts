@@ -2,58 +2,58 @@ import { Request, Response, RequestHandler } from 'express';
 import * as pacienteService from '../services/paciente.service';
 
 export const crearPaciente = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { paciente, tutor } = req.body;
+    try {
+        const { paciente, tutor } = req.body;
 
-    // Validación básica de supervivencia
-    if (!paciente || !tutor) {
-      res.status(400).json({ error: 'Faltan datos del paciente o del tutor en la petición' });
-      return;
-    }
+        // Validación básica de supervivencia
+        if (!paciente || !tutor) {
+            res.status(400).json({ error: 'Faltan datos del paciente o del tutor en la petición' });
+            return;
+        }
 
-    // 🛠️ MAPEO SEGURO DE PACIENTE
-    // Extraemos solo los campos que existen en tu schema y convertimos la fecha
-    const pacienteLimpio = {
-      rut: paciente.rut,
-      nombre: paciente.nombre,
-      apellido: paciente.apellido,
-      fecha_nacimiento: new Date(paciente.fecha_nacimiento), // Conversión obligatoria
-      sexo_biologico: paciente.sexo_biologico,
-      nacionalidad: paciente.nacionalidad || 'Chilena',
-      direccion: paciente.direccion,
-      sector: paciente.sector,
-      comuna: paciente.comuna
-    };
 
-    // 🛠️ MAPEO SEGURO DE TUTOR
-    const tutorLimpio = {
-      rut: tutor.rut,
-      nombre: tutor.nombre,
-      apellido: tutor.apellido,
-      telefono: tutor.telefono,
-      parentesco: tutor.parentesco,
-      correo: tutor.correo,
-      direccion: tutor.direccion,
-      comuna: tutor.comuna
-    };
+        // Extraemos solo los campos que existen en el schema
+        const pacienteLimpio = {
+            rut: paciente.rut,
+            nombre: paciente.nombre,
+            apellido: paciente.apellido,
+            fecha_nacimiento: new Date(paciente.fecha_nacimiento),
+            sexo_biologico: paciente.sexo_biologico,
+            nacionalidad: paciente.nacionalidad || 'Chilena',
+            direccion: paciente.direccion,
+            sector: paciente.sector,
+            comuna: paciente.comuna
+        };
 
-    // Mandamos los datos limpios al servicio
-    const resultado = await pacienteService.crearPacienteConTutor(pacienteLimpio, tutorLimpio);
 
-    res.status(201).json({
-        mensaje: 'Paciente y Tutor creados con éxito',
-        datos: resultado,
-    });
+        const tutorLimpio = {
+            rut: tutor.rut,
+            nombre: tutor.nombre,
+            apellido: tutor.apellido,
+            telefono: tutor.telefono,
+            parentesco: tutor.parentesco,
+            correo: tutor.correo,
+            direccion: tutor.direccion,
+            comuna: tutor.comuna
+        };
+
+        // Mandamos los datos limpios al servicio
+        const resultado = await pacienteService.crearPacienteConTutor(pacienteLimpio, tutorLimpio);
+
+        res.status(201).json({
+            mensaje: 'Paciente y Tutor creados con éxito',
+            datos: resultado,
+        });
 
     } catch (error: any) {
-    
-    console.error(' ERROR ATRAPADO EN EL CONTROLADOR ');
-    console.error('Motivo del fallo:', error.message);
 
-    
-    res.status(500).json({ 
-            error: 'Error interno en la Base de Datos', 
-            detalle: error.message 
+        console.error(' ERROR ATRAPADO EN EL CONTROLADOR ');
+        console.error('Motivo del fallo:', error.message);
+
+
+        res.status(500).json({
+            error: 'Error interno en la Base de Datos',
+            detalle: error.message
         });
     }
 };
@@ -61,27 +61,27 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
 
 export const editarPaciente = async (req: Request, res: Response): Promise<void> => {
 
-    try{
+    try {
         //* saca el id de la url
         const id = parseInt(req.params.id as string);
 
-        if(isNaN(id)){
-            res.status(400).json({ error: 'El id del paciente debe ser un numero valido en la url'});
+        if (isNaN(id)) {
+            res.status(400).json({ error: 'El id del paciente debe ser un numero valido en la url' });
             return;
         }
 
         const datos = req.body;
         const datosLimpios: any = {};
 
-        if(datos.nombre) datosLimpios.nombre = datos.nombre;
-        if(datos.apellido) datosLimpios.apellido = datos.apellido;
-        if(datos.sexo_biologico) datosLimpios.sexo_biologico = datos.sexo_biologico;
-        if(datos.direccion) datosLimpios.direccion = datos.direccion
-        if(datos.sector) datosLimpios.sector = datos.sector;
-        if(datos.comuna) datosLimpios.comuna = datos.comuna;
-        if(datos.nacionalidad) datosLimpios.nacionalidad = datos.nacionalidad;
+        if (datos.nombre) datosLimpios.nombre = datos.nombre;
+        if (datos.apellido) datosLimpios.apellido = datos.apellido;
+        if (datos.sexo_biologico) datosLimpios.sexo_biologico = datos.sexo_biologico;
+        if (datos.direccion) datosLimpios.direccion = datos.direccion
+        if (datos.sector) datosLimpios.sector = datos.sector;
+        if (datos.comuna) datosLimpios.comuna = datos.comuna;
+        if (datos.nacionalidad) datosLimpios.nacionalidad = datos.nacionalidad;
 
-        if(datos.fecha_nacimiento){
+        if (datos.fecha_nacimiento) {
             datosLimpios.fecha_nacimiento = new Date(datos.fecha_nacimiento);
         }
 
@@ -92,7 +92,7 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
             datos: resultado,
         });
 
-    }catch (error: any){
+    } catch (error: any) {
         console.error('Error al actualizar al paciente', error.message);
 
         // Prisma arroja el código P2025 cuando intentas actualizar un ID que no existe
@@ -109,26 +109,26 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
 };
 
 export const obtenerTodosLosPacientes = async (req: Request, res: Response): Promise<void> => {
-    try{
+    try {
         const pacientes = await pacienteService.obtenerTodosLosPacientes();
 
         res.status(200).json(pacientes);
-    }catch(error: any){
+    } catch (error: any) {
 
         console.error(' Error al obtener pacientas', error.message);
-        res.status(500).json({ error: 'Error interno al consultar la base de datos'});
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };
 
 // Forzamos a que TS entienda que esto es un RequestHandler oficial
 export const obtenerPacientes: RequestHandler = async (req, res) => {
-  try {
-    const pacientes = await pacienteService.obtenerTodosLosPacientes();
-    res.status(200).json(pacientes);
-  } catch (error: any) {
-    console.error('🚨 ERROR AL OBTENER PACIENTES 🚨', error.message);
-    res.status(500).json({ error: 'Error interno al consultar la base de datos' });
-  }
+    try {
+        const pacientes = await pacienteService.obtenerTodosLosPacientes();
+        res.status(200).json(pacientes);
+    } catch (error: any) {
+        console.error('🚨 ERROR AL OBTENER PACIENTES 🚨', error.message);
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
+    }
 };
 
 export const obtenerPaciente: RequestHandler = async (req, res): Promise<void> => {
@@ -158,29 +158,29 @@ export const obtenerPaciente: RequestHandler = async (req, res): Promise<void> =
 
 export const borrarPaciente: RequestHandler = async (req, res): Promise<void> => {
 
-    try{
+    try {
         const id = parseInt(req.params.id as string);
 
-        if (isNaN(id)){
-            res.status(400).json({ error: 'El id del paciente debe ser un numero valido'});
+        if (isNaN(id)) {
+            res.status(400).json({ error: 'El id del paciente debe ser un numero valido' });
             return;
         }
 
         //llama el service
         await pacienteService.eliminarPaciente(id);
 
-        res.status(200).json({ mensaje: 'EL paciente con id {id} fue eliminado'});
+        res.status(200).json({ mensaje: `EL paciente con id ${id} fue eliminado`  });
 
 
-    }catch (error: any){
+    } catch (error: any) {
         console.error(' Error al eliminar al paciente', error.message);
 
-        if(error.code === 'P2025'){
+        if (error.code === 'P2025') {
             res.status(404).json({ error: 'El paciente que intentas eliminar no existe' });
             return;
         }
 
-        res.status(500).json({ error: 'Error interno al eliminar el paciente '});
+        res.status(500).json({ error: 'Error interno al eliminar el paciente ' });
 
     }
 };
