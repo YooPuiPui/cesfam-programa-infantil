@@ -19,6 +19,6 @@ app.get('/', (req: Request, res: Response) => {
 app.use('/api/pacientes', pacienteRoutes);
 
 // Iniciar el servidor
-app.listen(Number(PORT), () => {
-  console.log(`➜  Backend: http://localhost:${PORT}/`);
+app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`➜  Backend: http://0.0.0.0:${PORT}/`);
 });
