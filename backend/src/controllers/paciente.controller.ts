@@ -22,7 +22,11 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             nacionalidad: paciente.nacionalidad || 'Chilena',
             direccion: paciente.direccion,
             sector: paciente.sector,
-            comuna: paciente.comuna
+            comuna: paciente.comuna,
+            nhc: paciente.nhc,
+            prevision: paciente.prevision,
+            activo: paciente.activo !== undefined ? paciente.activo : true,
+            fecha_inscripcion: paciente.fecha_inscripcion ? new Date(paciente.fecha_inscripcion) : undefined
         };
 
 
@@ -84,6 +88,11 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         if (datos.fecha_nacimiento) {
             datosLimpios.fecha_nacimiento = new Date(datos.fecha_nacimiento);
         }
+
+        if (datos.nhc) datosLimpios.nhc = datos.nhc;
+        if (datos.prevision) datosLimpios.prevision = datos.prevision;
+        if (datos.activo !== undefined) datosLimpios.activo = datos.activo;
+        if (datos.fecha_inscripcion) datosLimpios.fecha_inscripcion = datos.fecha_inscripcion;
 
         const resultado = await pacienteService.actualizarPaciente(id, datosLimpios);
 

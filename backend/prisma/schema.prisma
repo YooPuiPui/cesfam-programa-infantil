@@ -51,6 +51,10 @@ model Paciente {
   direccion           String
   sector              String?  @db.VarChar(50)
   comuna              String @db.VarChar(50)
+  nhc                 String? @db.VarChar(50)   // numero hostorial clinico
+  prevision           String? @db.VarChar(50)   // ej fonasa gpo-a 
+  fecha_inscripcion   DateTime @default(now())   // en que se inscribio en el cesfam
+  activo              Boolean @default(true)    
 
   // Flags de riesgo social 
   es_sename           Boolean  @default(false)
