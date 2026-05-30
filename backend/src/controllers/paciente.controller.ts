@@ -79,21 +79,18 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
 
         if (datos.nombre) datosLimpios.nombre = datos.nombre;
         if (datos.apellido) datosLimpios.apellido = datos.apellido;
+        if (datos.nombre_social) datosLimpios.nombre_social = datos.nombre_social;
+        if (datos.fecha_nacimiento) { datosLimpios.fecha_nacimiento = new Date(datos.fecha_nacimiento); }
         if (datos.sexo_biologico) datosLimpios.sexo_biologico = datos.sexo_biologico;
+        if (datos.identidad_genero) datosLimpios.identidad_genero = datos.identidad_genero;
+        if (datos.nacionalidad) datosLimpios.nacionalidad = datos.nacionalidad;
         if (datos.direccion) datosLimpios.direccion = datos.direccion
         if (datos.sector) datosLimpios.sector = datos.sector;
         if (datos.comuna) datosLimpios.comuna = datos.comuna;
-        if (datos.nacionalidad) datosLimpios.nacionalidad = datos.nacionalidad;
-
-        if (datos.fecha_nacimiento) {
-            datosLimpios.fecha_nacimiento = new Date(datos.fecha_nacimiento);
-        }
-
         if (datos.nhc) datosLimpios.nhc = datos.nhc;
         if (datos.prevision) datosLimpios.prevision = datos.prevision;
-        if (datos.activo !== undefined) datosLimpios.activo = datos.activo;
         if (datos.fecha_inscripcion) datosLimpios.fecha_inscripcion = datos.fecha_inscripcion;
-
+        if (datos.activo !== undefined) datosLimpios.activo = datos.activo;
         const resultado = await pacienteService.actualizarPaciente(id, datosLimpios);
 
         res.status(200).json({
@@ -178,7 +175,7 @@ export const borrarPaciente: RequestHandler = async (req, res): Promise<void> =>
         //llama el service
         await pacienteService.eliminarPaciente(id);
 
-        res.status(200).json({ mensaje: `EL paciente con id ${id} fue eliminado`  });
+        res.status(200).json({ mensaje: `EL paciente con id ${id} fue eliminado` });
 
 
     } catch (error: any) {
