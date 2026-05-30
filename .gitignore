@@ -3,3 +3,23 @@ node_modules/
 .env.*
 !.env.example
 .DS_Store
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Ignorar el cliente autogenerado de Prisma
+backend/src/generated/
