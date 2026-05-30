@@ -1,25 +1,22 @@
+# dependencias
 node_modules/
+
+
+# variables de entorno
 .env
 .env.*
 !.env.example
+
+# sistema
 .DS_Store
 
+# archivos Markdown
+*.md
+!README.md
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# prisma (evitar subir datos locales de prueba)
+prisma/*.db
+prisma/*.db-journal
 
 # Ignorar el cliente autogenerado de Prisma
 backend/src/generated/
