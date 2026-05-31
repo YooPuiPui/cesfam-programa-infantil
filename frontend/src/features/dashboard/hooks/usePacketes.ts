@@ -59,9 +59,9 @@ export function usePacketes(): UsePacketesReturn {
         fetchPacientes();
     }, [fetchPacientes]);
 
-    /**
-     * Calcula estadísticas con memoización para evitar recálculos
-     */
+    
+    //? Calcula estadísticas con memoización para evitar recálculos
+     
     const stats = useMemo(() => {
         return {
             totalActivos: pacientes.filter(p => p.activo).length,
