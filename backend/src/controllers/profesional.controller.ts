@@ -18,7 +18,6 @@ export const crearProfesional: RequestHandler = async (req, res): Promise<void> 
             nombre: datos.nombre,
             apellido: datos.apellido,
             estamento: datos.estamento,
-            // Si mandan "activo" lo usamos, si no, Prisma pone 'true' por defecto
             activo: datos.activo !== undefined ? datos.activo : true,
         };
 
