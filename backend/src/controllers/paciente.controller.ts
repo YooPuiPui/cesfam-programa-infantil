@@ -54,6 +54,14 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
         console.error(' ERROR ATRAPADO EN EL CONTROLADOR ');
         console.error('Motivo del fallo:', error.message);
 
+        // Validar si es un error de RUT duplicado
+        if (error.message && error.message.includes('Ya existe un paciente con el RUT')) {
+            res.status(400).json({
+                error: 'RUT duplicado',
+                detalle: error.message
+            });
+            return;
+        }
 
         res.status(500).json({
             error: 'Error interno en la Base de Datos',
