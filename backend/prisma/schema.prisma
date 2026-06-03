@@ -19,6 +19,9 @@ model Profesional {
   estamento           String   @db.VarChar(50)
   activo              Boolean  @default(true)
   creado_en           DateTime @default(now())
+
+  // relacion 
+  controlClinico      ControlClinico[]
 }
 
 // 2. Tabla Tutores
@@ -66,4 +69,45 @@ model Paciente {
   // Relación con el tutor
   id_tutor_principal  Int
   tutor               Tutor    @relation(fields: [id_tutor_principal], references: [id_tutor])
+
+  controlClinico      ControlClinico[]
+}
+
+
+model ControlClinico {
+  id_control          Int @id @default(autoincrement())
+  fecha_control       DateTime @default(now())
+
+  // medidas
+  edad_meses          Int
+  peso_kg             Float
+  talla_cm            Float
+  perimetro_cefalico  Float?
+  imc                 Float
+  presion_arterial    String? @db.VarChar(30)
+
+  // nutricion
+  diagnostico_nutricional   String? @db.VarChar(500)
+  tipo_lactancia      String? @db.VarChar(100)
+
+  // desarrollo y evaluacion
+  resultado_dpm       String? @db.VarChar(100)
+  meses_dpm_aplicado  Int?
+  score_ira           String? @db.VarChar(100)
+
+  // notas clinicas
+  problemas_diagnosticos  String? @db.Text
+  indicaciones_acuerdos   String? @db.Text
+
+  // gestion control
+  fecha_proximoControl DateTime @db.Date
+
+  // forean key - relacion
+  id_paciente       Int
+  paciente          Paciente @relation(fields: [id_paciente], references : [id_paciente])
+
+  id_profesional    Int 
+  Profesional       Profesional @relation(fields: [id_profesional], references: [id_profesional])
+
+  creado_en         DateTime  @default(now())
 }

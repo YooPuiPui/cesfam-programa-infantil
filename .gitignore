@@ -17,3 +17,4 @@ node_modules/
 # prisma (evitar subir datos locales de prueba)
 prisma/*.db
 prisma/*.db-journal
+*.sql
