@@ -24,5 +24,5 @@ app.use('/api/tutores', tutorRoutes);
 
 // Iniciar el servidor
 app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`➜  Backend: http://0.0.0.0:${PORT}/`);
+  console.log(`➜  Backend: http://localhost:${PORT}/`);
 });
