@@ -38,7 +38,8 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             parentesco: tutor.parentesco,
             correo: tutor.correo,
             direccion: tutor.direccion,
-            comuna: tutor.comuna
+            comuna: tutor.comuna,
+            rut_tutor_principal: tutor.rut
         };
 
         // Mandamos los datos limpios al servicio

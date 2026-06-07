@@ -13,7 +13,7 @@ datasource db {
 // 1. Tabla Profesionales
 model Profesional {
   id_profesional      Int      @id @default(autoincrement())
-  rut                 String   @unique @db.VarChar(15)
+  rut                 String   @unique @db.VarChar(12)
   nombre              String   @db.VarChar(100)
   apellido            String   @db.VarChar(100)
   estamento           String   @db.VarChar(50)
@@ -96,18 +96,18 @@ model ControlClinico {
   score_ira           String? @db.VarChar(100)
 
   // notas clinicas
-  problemas_diagnosticos  String? @db.Text
+  problemas_diagnosticados  String? @db.Text
   indicaciones_acuerdos   String? @db.Text
 
   // gestion control
   fecha_proximoControl DateTime @db.Date
 
   // forean key - relacion
-  id_paciente       Int
-  paciente          Paciente @relation(fields: [id_paciente], references : [id_paciente])
+  rut_paciente      String
+  paciente          Paciente @relation(fields: [rut_paciente], references : [rut])
 
-  id_profesional    Int 
-  Profesional       Profesional @relation(fields: [id_profesional], references: [id_profesional])
+  rut_profesional    String
+  Profesional        Profesional @relation(fields: [rut_profesional], references: [rut])
 
   creado_en         DateTime  @default(now())
 }
