@@ -31,12 +31,11 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
         });
 
         if (pacienteExistente) {
-            // ESCENARIO 2: El paciente YA EXISTE. Tomamos su ID secreto de la base de datos.
+            
             id_paciente_final = pacienteExistente.id_paciente;
         } else {
-            // ESCENARIO 1: El paciente NO EXISTE. 
-            // (Para mantenerlo simple por ahora, lanzaremos un error pidiendo que lo registren primero. 
-            // Más adelante podemos agregar aquí la lógica de crear al Tutor y al Niño automáticamente).
+            // el paciente no existe. 
+
             res.status(404).json({
                 error: `No se encontró ningún paciente con el RUT ${paciente.rut}. Por favor, registre al paciente en Admisión primero.`
             });
@@ -66,7 +65,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             rut_profesional: control.rut_profesional,
         };
 
-        // 4. Se lo pasamos a tu servicio como de costumbre
+
         const resultado = await controlService.crearControl(controlLimpio);
 
         res.status(201).json({

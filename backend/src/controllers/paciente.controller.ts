@@ -5,14 +5,14 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
     try {
         const { paciente, tutor } = req.body;
 
-        // Validación básica de supervivencia
+        // validación 
         if (!paciente || !tutor) {
             res.status(400).json({ error: 'Faltan datos del paciente o del tutor en la petición' });
             return;
         }
 
 
-        // Extraemos solo los campos que existen en el schema
+
         const pacienteLimpio = {
             rut: paciente.rut,
             nombre: paciente.nombre,
@@ -42,7 +42,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             rut_tutor_principal: tutor.rut
         };
 
-        // Mandamos los datos limpios al servicio
+       
         const resultado = await pacienteService.crearPacienteConTutor(pacienteLimpio, tutorLimpio);
 
         res.status(201).json({
@@ -110,7 +110,7 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
     } catch (error: any) {
         console.error('Error al actualizar al paciente', error.message);
 
-        // Prisma arroja el código P2025 cuando intentas actualizar un ID que no existe
+        
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'El paciente que intentas editar no existe en la base de datos' });
             return;
@@ -135,7 +135,7 @@ export const obtenerTodosLosPacientes = async (req: Request, res: Response): Pro
     }
 };
 
-// Forzamos a que TS entienda que esto es un RequestHandler oficial
+
 export const obtenerPacientes: RequestHandler = async (req, res) => {
     try {
         const pacientes = await pacienteService.obtenerTodosLosPacientes();
