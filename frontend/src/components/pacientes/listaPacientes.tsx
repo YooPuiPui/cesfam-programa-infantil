@@ -35,7 +35,7 @@ const metrics: Metric[] = [
         value: 1248,
         icon: Users,
         iconClass: "bg-blue-100 text-blue-700",
-        valueClass: "text-blue-700",
+        valueClass: "text-blue-900",
     },
     {
         label: "Controles al día",
@@ -98,10 +98,7 @@ export default function GestionPacientes() {
             <div className="mx-auto max-w-6xl">
                 {/* Encabezado */}
                 <header className="mb-6">
-                    <h1 className="text-xl font-semibold text-slate-800 sm:text-2xl">Gestión de Pacientes</h1>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Resumen y seguimiento de los controles pediátricos del centro.
-                    </p>
+                    <h5 className="mb-4 text-4xl font-bold tracking-tight text-heading md:text-5xl lg:text-6xl">Gestión de pacientes</h5>
                 </header>
 
                 {/* ===================== TARJETAS DE RESUMEN ===================== */}
@@ -111,13 +108,13 @@ export default function GestionPacientes() {
                         return (
                             <div
                                 key={metric.label}
-                                className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5"
+                                className="flex items-center gap-4 rounded-xl border border-slate-900 bg-white p-5"
                             >
                                 <div className={"flex h-12 w-12 items-center justify-center rounded-lg " + metric.iconClass}>
                                     <Icon className="h-6 w-6" aria-hidden="true" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-slate-500">{metric.label}</p>
+                                    <p className="text-sm text-slate-900">{metric.label}</p>
                                     <p className={"text-2xl font-semibold " + metric.valueClass}>
                                         {metric.value.toLocaleString("es-CL")}
                                     </p>
@@ -140,21 +137,21 @@ export default function GestionPacientes() {
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder="Buscar por nombre o RUT..."
                             aria-label="Buscar paciente por nombre o RUT"
-                            className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="w-full rounded-lg border border-slate-900 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         />
                     </div>
                 </div>
 
                 {/* ===================== TABLA DE PACIENTES ===================== */}
-                <section className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <section className="mt-4 overflow-hidden rounded-xl border border-slate-900 bg-white">
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[640px] border-collapse text-left text-sm">
                             <thead>
                                 <tr className="border-b border-slate-200 bg-slate-50/80">
-                                    <th className="px-6 py-3.5 font-medium text-slate-500">Nombre</th>
-                                    <th className="px-6 py-3.5 font-medium text-slate-500">Edad</th>
-                                    <th className="px-6 py-3.5 font-medium text-slate-500">Estado de Control</th>
-                                    <th className="px-6 py-3.5 text-right font-medium text-slate-500">Acciones</th>
+                                    <th className="px-6 py-3.5 font-medium text-slate-900">Nombre</th>
+                                    <th className="px-6 py-3.5 font-medium text-slate-900">Edad</th>
+                                    <th className="px-6 py-3.5 font-medium text-slate-900">Estado de Control</th>
+                                    <th className="px-6 py-3.5 text-right font-medium text-slate-900">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -164,10 +161,10 @@ export default function GestionPacientes() {
                                         className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60"
                                     >
                                         <td className="px-6 py-4">
-                                            <div className="font-medium text-slate-800">{patient.nombre}</div>
-                                            <div className="text-xs text-slate-400">{patient.rut}</div>
+                                            <div className="font-medium text-slate-900">{patient.nombre}</div>
+                                            <div className="text-xs text-slate-900">{patient.rut}</div>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600">{patient.edad}</td>
+                                        <td className="px-6 py-4 text-slate-900">{patient.edad}</td>
                                         <td className="px-6 py-4">
                                             <StatusBadge estado={patient.estado} />
                                         </td>
@@ -176,7 +173,7 @@ export default function GestionPacientes() {
                                                 <button
                                                     type="button"
                                                     title="Nueva ficha"
-                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-900 px-2.5 py-1.5 text-xs font-medium text-slate-900 transition-colors hover:bg-blue-50 hover:text-blue-700"
                                                 >
                                                     <ClipboardPlus className="h-4 w-4" aria-hidden="true" />
                                                     <span className="hidden sm:inline">Nueva ficha</span>
@@ -184,10 +181,10 @@ export default function GestionPacientes() {
                                                 <button
                                                     type="button"
                                                     title="Ver histórico"
-                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800"
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-900 px-2.5 py-1.5 text-xs font-medium text-slate-900 transition-colors hover:bg-slate-100 hover:text-slate-800"
                                                 >
                                                     <History className="h-4 w-4" aria-hidden="true" />
-                                                    <span className="hidden sm:inline">Ver histórico</span>
+                                                    <span className="hidden sm:inline">Ver historial medico</span>
                                                 </button>
                                             </div>
                                         </td>

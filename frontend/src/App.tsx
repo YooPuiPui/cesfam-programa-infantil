@@ -1,18 +1,32 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
-import PatientList from "./components/pacientes/listaPacientes"; // Asumiendo que ya lo creaste
+import PatientList from "./components/pacientes/listaPacientes"; 
+import Login from "./components/login/Login";
 
 export default function App() {
   return (
     <BrowserRouter>
-      <DashboardLayout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={<div className="p-6">Bienvenida al Dashboard</div>} />
-          <Route path="/pacientes" element={<PatientList />} />
-          {/* Aquí agregarás tus rutas futuras */}
-        </Routes>
-      </DashboardLayout>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/login" />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <DashboardLayout>
+              <div className="p-6">pronto...</div>
+            </DashboardLayout>
+          } 
+        />
+    
+        <Route 
+          path="/pacientes" 
+          element={
+            <DashboardLayout>
+              <PatientList />
+            </DashboardLayout>
+          } 
+        />
+      </Routes>
     </BrowserRouter>
   );
 }
