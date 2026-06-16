@@ -111,3 +111,13 @@ model ControlClinico {
 
   creado_en         DateTime  @default(now())
 }
+
+model Usuario {
+  id               Int @default(autoincrement())
+  rut              String @unique
+  password         String 
+  nombre           String
+  rol              String @default("Medico")
+  createdAt        DateTime @default(now())
+
+}

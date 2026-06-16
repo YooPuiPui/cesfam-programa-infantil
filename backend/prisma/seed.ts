@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -36,6 +37,23 @@ async function main() {
     { rut: '14.555.666-8', nombre: 'Carlos', apellido: 'Méndez', telefono: '+56955566688', parentesco: 'Padre', correo: 'carlos@mail.com', direccion: 'Palomares 12', sector: 'Palomares', comuna: 'Concepción' }
   ];
 
+
+  // ==========================================
+  // CREACIÓN DE USUARIO PARA LOGIN
+  // ==========================================
+  console.log('🔑 Creando usuario de acceso al sistema...');
+  const passwordHasheada = await bcrypt.hash('cesfam123', 10);
+  await prisma.usuario.upsert({
+    where: { rut: '12345678-9' },
+    update: {},
+    create: {
+      rut: '12345678-9',
+      nombre: 'Dra. Valentina Garrido',
+      password: passwordHasheada,
+      rol: 'Medica Pediatra',
+    },
+  });
+  
   // ==========================================
   // INSERCIÓN DE DATOS
   // ==========================================

@@ -5,6 +5,7 @@ import pacienteRoutes from './routes/paciente.routes';
 import profesionalRoutes from './routes/profesional.routes';
 import tutorRoutes from './routes/tutor.routes';
 import controlRoutes from './routes/controlClinico.routes'
+import authRoutes from './routes/auth.routes'
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use('/api/pacientes', pacienteRoutes);
 app.use('/api/profesionales', profesionalRoutes);
 app.use('/api/tutores', tutorRoutes);
 app.use('/api/control', controlRoutes);
+app.use('/api/auth', authRoutes);
 
 
 // Iniciar el servidor
