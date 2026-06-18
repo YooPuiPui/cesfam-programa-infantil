@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, FileText, Loader2 } from "lucide-react";
+import { Search, Plus, FileText, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// 1. Interfaz conectada a Prisma
 interface Paciente {
     id_paciente: number;
     rut: string;
@@ -15,59 +14,28 @@ interface Paciente {
     es_migrante: boolean;
 }
 
-// 2. Calculadora de edad clínica
 const calcularEdadPediatrica = (fechaIso: string) => {
     if (!fechaIso) return "N/A";
-
     const nacimiento = new Date(fechaIso);
     const hoy = new Date();
-
     let anios = hoy.getFullYear() - nacimiento.getFullYear();
     let meses = hoy.getMonth() - nacimiento.getMonth();
-
-    if (meses < 0 || (meses === 0 && hoy.getDate() < nacimiento.getDate())) {
-        anios--;
-        meses += 12;
-    }
-
-    if (hoy.getDate() < nacimiento.getDate()) {
-        meses--;
-        if (meses < 0) {
-            meses = 11;
-        }
-    }
-
+    if (meses < 0 || (meses === 0 && hoy.getDate() < nacimiento.getDate())) { anios--; meses += 12; }
+    if (hoy.getDate() < nacimiento.getDate()) { meses--; if (meses < 0) meses = 11; }
     if (anios === 0 && meses === 0) return "Recién nacido";
     if (anios === 0) return `${meses} mes${meses > 1 ? 'es' : ''}`;
     if (meses === 0) return `${anios} año${anios > 1 ? 's' : ''}`;
-
     return `${anios} año${anios > 1 ? 's' : ''} y ${meses} mes${meses > 1 ? 'es' : ''}`;
 };
 
-// 3. Renderizador de Alertas Visuales
 const renderRiesgoSocial = (paciente: Paciente) => {
     const riesgos = [];
+    if (paciente.es_sename) riesgos.push({ label: "SENAME", color: "bg-red-100 text-red-900 border-red-300" });
+    if (paciente.es_naneas_prematuro) riesgos.push({ label: "Prematuro/NANEAS", color: "bg-orange-100 text-orange-900 border-orange-300" });
+    if (paciente.es_poblacion_trans) riesgos.push({ label: "Trans", color: "bg-purple-100 text-purple-900 border-purple-300" });
+    if (paciente.es_migrante) riesgos.push({ label: "Migrante", color: "bg-blue-100 text-blue-900 border-blue-300" });
 
-    if (paciente.es_sename) {
-        riesgos.push({ label: "SENAME", color: "bg-red-100 text-red-900 border-red-300" });
-    }
-    if (paciente.es_naneas_prematuro) {
-        riesgos.push({ label: "Prematuro/NANEAS", color: "bg-orange-100 text-orange-900 border-orange-300" });
-    }
-    if (paciente.es_poblacion_trans) {
-        riesgos.push({ label: "Trans", color: "bg-purple-100 text-purple-900 border-purple-300" });
-    }
-    if (paciente.es_migrante) {
-        riesgos.push({ label: "Migrante", color: "bg-blue-100 text-blue-900 border-blue-300" });
-    }
-
-    if (riesgos.length === 0) {
-        return (
-            <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-300">
-                Población Regular
-            </span>
-        );
-    }
+    if (riesgos.length === 0) return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-300">Población Regular</span>;
 
     return (
         <div className="flex flex-wrap gap-1.5">
@@ -87,13 +55,17 @@ export default function PatientList() {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
 
+    // Estados de paginación
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+
     useEffect(() => {
         const obtenerPacientes = async () => {
+            setCargando(true);
             try {
                 const token = localStorage.getItem("token");
-                if (!token) throw new Error("No hay sesión activa");
-
-                const respuesta = await fetch("http://localhost:3000/api/pacientes", {
+                // AQUÍ ES DONDE LLAMAREMOS A LA PAGINACIÓN: ?page=${page}&limit=30
+                const respuesta = await fetch(`http://localhost:3000/api/pacientes?page=${page}&limit=30`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -101,10 +73,13 @@ export default function PatientList() {
                     }
                 });
 
-                if (!respuesta.ok) throw new Error("Error al obtener los datos del servidor");
+                if (!respuesta.ok) throw new Error("Error al obtener los datos");
 
-                const datosReales = await respuesta.json();
-                setPacientes(datosReales);
+                const respuestaJson = await respuesta.json();
+
+                // Actualizamos pacientes y total de páginas
+                setPacientes(respuestaJson.data);
+                setTotalPages(respuestaJson.meta.totalPages);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -113,7 +88,7 @@ export default function PatientList() {
         };
 
         obtenerPacientes();
-    }, []);
+    }, [page]); // Se vuelve a ejecutar cada vez que cambia la página
 
     const pacientesFiltrados = pacientes.filter(paciente => {
         const nombreCompleto = `${paciente.nombre || ''} ${paciente.apellido || ''}`.toLowerCase();
@@ -122,7 +97,6 @@ export default function PatientList() {
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-300">
-            {/* Buscador */}
             <div className="flex flex-col md:flex-row items-center justify-between p-4 space-y-3 md:space-y-0 md:space-x-4 border-b border-slate-200 bg-slate-50 rounded-t-xl">
                 <div className="w-full md:w-1/2">
                     <div className="relative w-full">
@@ -146,73 +120,61 @@ export default function PatientList() {
                 </div>
             </div>
 
-            {cargando && (
-                <div className="flex justify-center items-center p-12 text-blue-700">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="ml-3 font-semibold text-lg">Cargando población inscrita...</span>
-                </div>
-            )}
+            {cargando && <div className="flex justify-center items-center p-12 text-blue-700"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-3 font-semibold text-lg">Cargando...</span></div>}
+            {error && !cargando && <div className="p-8 text-center text-red-600 font-bold text-lg">{error}</div>}
 
-            {error && !cargando && (
-                <div className="p-8 text-center text-red-600 font-bold text-lg">{error}</div>
-            )}
-
-            {/* TABLA */}
             {!cargando && !error && (
-                <div className="overflow-x-auto">
-                    {/* Cambiamos el texto base a slate-800 para mayor legibilidad */}
-                    <table className="w-full text-sm text-left text-slate-800">
-                        {/* Encabezado más oscuro y en negrita */}
-                        <thead className="text-xs text-slate-900 uppercase bg-slate-200 border-b border-slate-300 font-bold">
-                            <tr>
-                                <th scope="col" className="px-5 py-4">RUT</th>
-                                <th scope="col" className="px-5 py-4">Nombre del Paciente</th>
-                                <th scope="col" className="px-5 py-4">Edad</th>
-                                <th scope="col" className="px-5 py-4">Riesgo Social / Condición</th>
-                                <th scope="col" className="px-5 py-4 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pacientesFiltrados.length === 0 ? (
+                <>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left text-slate-800">
+                            <thead className="text-xs text-slate-900 uppercase bg-slate-200 border-b border-slate-300 font-bold">
                                 <tr>
-                                    <td colSpan={5} className="px-5 py-8 text-center text-slate-600 font-medium">
-                                        No se encontraron pacientes en los registros.
-                                    </td>
+                                    <th className="px-5 py-4">RUT</th>
+                                    <th className="px-5 py-4">Nombre del Paciente</th>
+                                    <th className="px-5 py-4">Edad</th>
+                                    <th className="px-5 py-4">Riesgo Social / Condición</th>
+                                    <th className="px-5 py-4 text-right">Acciones</th>
                                 </tr>
-                            ) : (
-                                pacientesFiltrados.map((paciente) => (
+                            </thead>
+                            <tbody>
+                                {pacientesFiltrados.map((paciente) => (
                                     <tr key={paciente.id_paciente} className="border-b border-slate-200 hover:bg-blue-50 transition-colors">
-                                        {/* RUT en negrita y color fuerte */}
-                                        <td className="px-5 py-3 font-bold text-slate-900 whitespace-nowrap">{paciente.rut}</td>
-
-                                        {/* Nombre más oscuro */}
+                                        <td className="px-5 py-3 font-bold text-slate-900">{paciente.rut}</td>
                                         <td className="px-5 py-3 font-medium text-slate-900 capitalize">{paciente.nombre.toLowerCase()} {paciente.apellido.toLowerCase()}</td>
-
-                                        {/* Edad destacada en azul oscuro */}
-                                        <td className="px-5 py-3 text-blue-800 font-semibold">
-                                            {calcularEdadPediatrica(paciente.fecha_nacimiento)}
-                                        </td>
-
-                                        <td className="px-5 py-3">
-                                            {renderRiesgoSocial(paciente)}
-                                        </td>
-
+                                        <td className="px-5 py-3 text-blue-800 font-semibold">{calcularEdadPediatrica(paciente.fecha_nacimiento)}</td>
+                                        <td className="px-5 py-3">{renderRiesgoSocial(paciente)}</td>
                                         <td className="px-5 py-3 flex items-center justify-end">
-                                            {/* Botón de acción más grueso */}
-                                            <button
-                                                onClick={() => navigate(`/nuevo-control?rut=${paciente.rut}`)}
-                                                className="flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-900 bg-white hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors shadow-sm"
-                                            >
-                                                <FileText className="h-4 w-4" />
-                                                Iniciar Control
+                                            <button onClick={() => navigate(`/nuevo-control?rut=${paciente.rut}`)} className="flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-900 bg-white hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors shadow-sm">
+                                                <FileText className="h-4 w-4" /> Iniciar Control
                                             </button>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* BOTONES DE PAGINACIÓN */}
+                    <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
+                        <span className="text-sm font-medium text-slate-600">Página {page} de {totalPages}</span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                disabled={page === 1}
+                                onClick={() => setPage(page - 1)}
+                                className="flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                            </button>
+                            <button
+                                disabled={page >= totalPages}
+                                onClick={() => setPage(page + 1)}
+                                className="flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                Siguiente <ChevronRight className="h-4 w-4 ml-1" />
+                            </button>
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );
