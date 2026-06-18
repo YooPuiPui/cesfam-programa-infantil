@@ -1,5 +1,6 @@
 import { Request, Response, RequestHandler } from 'express';
 import * as pacienteService from '../services/paciente.service';
+import prisma from '../config/prisma';
 
 export const crearPaciente = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -42,7 +43,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             rut_tutor_principal: tutor.rut
         };
 
-       
+
         const resultado = await pacienteService.crearPacienteConTutor(pacienteLimpio, tutorLimpio);
 
         res.status(201).json({
@@ -110,7 +111,7 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
     } catch (error: any) {
         console.error('Error al actualizar al paciente', error.message);
 
-        
+
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'El paciente que intentas editar no existe en la base de datos' });
             return;
@@ -122,7 +123,7 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         });
     }
 };
-
+/*
 export const obtenerTodosLosPacientes = async (req: Request, res: Response): Promise<void> => {
     try {
         const pacientes = await pacienteService.obtenerTodosLosPacientes();
@@ -134,14 +135,35 @@ export const obtenerTodosLosPacientes = async (req: Request, res: Response): Pro
         res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };
+*/
 
-
-export const obtenerPacientes: RequestHandler = async (req, res) => {
+export const obtenerPacientes = async (req: Request, res: Response): Promise<void> => {
     try {
-        const pacientes = await pacienteService.obtenerTodosLosPacientes();
-        res.status(200).json(pacientes);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 30;
+        const skip = (page - 1) * limit;
+
+        // Prisma ejecuta ambas consultas eficientemente
+        const [data, total] = await Promise.all([
+            prisma.paciente.findMany({
+                skip: skip,
+                take: limit,
+                orderBy: { creado_en: 'desc' }
+            }),
+            prisma.paciente.count()
+        ]);
+
+        res.status(200).json({
+            data: data,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (error: any) {
-        console.error('🚨 ERROR AL OBTENER PACIENTES 🚨', error.message);
+        console.error('🚨 Error al obtener pacientes:', error.message);
         res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };
