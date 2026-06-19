@@ -17,4 +17,37 @@ node_modules/
 # prisma (evitar subir datos locales de prueba)
 prisma/*.db
 prisma/*.db-journal
-*.sql
+
+# Ignorar el cliente autogenerado de Prisma
+backend/src/generated/
+
+# ignora las seed y demas cosas de prisma 
+/src/generated/prisma
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
