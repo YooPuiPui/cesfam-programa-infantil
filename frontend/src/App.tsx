@@ -3,6 +3,7 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 import PatientList from "./components/pacientes/listaPacientes";
 import Login from "./components/login/Login";
 import CrearControl from "./components/controles/crearControl";
+import FichaPacientes from "./components/pacientes/fichaPacientes";
 
 <Route path="/nuevo-control" element={<CrearControl />} />
 export default function App() {
@@ -30,8 +31,12 @@ export default function App() {
         />
 
         <Route
-          path="/nuevo-control" 
+          path="/nuevo-control"
           element={<CrearControl />}
+        />
+
+        <Route path="/ficha/:rut" 
+        element={<FichaPacientes />} 
         />
       </Routes>
     </BrowserRouter>
