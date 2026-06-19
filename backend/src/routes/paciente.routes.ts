@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import { borrarPaciente, crearPaciente, editarPaciente, obtenerPaciente, obtenerTodosLosPacientes } from '../controllers/paciente.controller';
-
+import { obtenerPacientes, obtenerPaciente, crearPaciente, editarPaciente, borrarPaciente } from '../controllers/paciente.controller';import { verificarToken } from '../middlewares/authMiddleware';
 const router = Router();
 
-router.post('/', crearPaciente);
-router.put('/:id', editarPaciente);
-router.get('/', obtenerTodosLosPacientes);
-router.get('/:id', obtenerPaciente);
-router.delete('/:id', borrarPaciente);
+router.post('/', verificarToken, crearPaciente);
+router.put('/:id', verificarToken, editarPaciente);
+router.get('/:id', verificarToken, obtenerPaciente);
+router.get('/', verificarToken, obtenerPacientes);
+router.delete('/:id', verificarToken, borrarPaciente);
 
 export default router;
