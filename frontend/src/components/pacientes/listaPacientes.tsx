@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, FileText, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, FolderOpen, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Paciente {
@@ -64,7 +64,6 @@ export default function PatientList() {
             setCargando(true);
             try {
                 const token = localStorage.getItem("token");
-                // AQUÍ ES DONDE LLAMAREMOS A LA PAGINACIÓN: ?page=${page}&limit=30
                 const respuesta = await fetch(`http://localhost:3000/api/pacientes?page=${page}&limit=30`, {
                     method: "GET",
                     headers: {
@@ -77,7 +76,6 @@ export default function PatientList() {
 
                 const respuestaJson = await respuesta.json();
 
-                // Actualizamos pacientes y total de páginas
                 setPacientes(respuestaJson.data);
                 setTotalPages(respuestaJson.meta.totalPages);
             } catch (err: any) {
@@ -88,7 +86,7 @@ export default function PatientList() {
         };
 
         obtenerPacientes();
-    }, [page]); // Se vuelve a ejecutar cada vez que cambia la página
+    }, [page]);
 
     const pacientesFiltrados = pacientes.filter(paciente => {
         const nombreCompleto = `${paciente.nombre || ''} ${paciente.apellido || ''}`.toLowerCase();
@@ -144,8 +142,12 @@ export default function PatientList() {
                                         <td className="px-5 py-3 text-blue-800 font-semibold">{calcularEdadPediatrica(paciente.fecha_nacimiento)}</td>
                                         <td className="px-5 py-3">{renderRiesgoSocial(paciente)}</td>
                                         <td className="px-5 py-3 flex items-center justify-end">
-                                            <button onClick={() => navigate(`/nuevo-control?rut=${paciente.rut}`)} className="flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-900 bg-white hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors shadow-sm">
-                                                <FileText className="h-4 w-4" /> Iniciar Control
+                                            {/* AQUÍ ESTÁ EL CAMBIO CLAVE */}
+                                            <button
+                                                onClick={() => navigate(`/ficha/${paciente.rut}`)}
+                                                className="flex items-center gap-1.5 text-sm font-bold text-slate-700 hover:text-blue-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 transition-colors shadow-sm"
+                                            >
+                                                <FolderOpen className="h-4 w-4" /> Ver Ficha
                                             </button>
                                         </td>
                                     </tr>
@@ -154,7 +156,6 @@ export default function PatientList() {
                         </table>
                     </div>
 
-                    {/* BOTONES DE PAGINACIÓN */}
                     <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
                         <span className="text-sm font-medium text-slate-600">Página {page} de {totalPages}</span>
                         <div className="flex items-center gap-2">
