@@ -13,12 +13,15 @@ datasource db {
 // 1. Tabla Profesionales
 model Profesional {
   id_profesional      Int      @id @default(autoincrement())
-  rut                 String   @unique @db.VarChar(15)
+  rut                 String   @unique @db.VarChar(12)
   nombre              String   @db.VarChar(100)
   apellido            String   @db.VarChar(100)
   estamento           String   @db.VarChar(50)
   activo              Boolean  @default(true)
   creado_en           DateTime @default(now())
+
+  // relacion 
+  controlClinico      ControlClinico[]
 }
 
 // 2. Tabla Tutores
@@ -66,4 +69,55 @@ model Paciente {
   // Relación con el tutor
   id_tutor_principal  Int
   tutor               Tutor    @relation(fields: [id_tutor_principal], references: [id_tutor])
+
+  controlClinico      ControlClinico[]
+}
+
+
+model ControlClinico {
+  id_control          Int @id @default(autoincrement())
+  fecha_control       DateTime @default(now())
+
+  // medidas
+  edad_meses          Int
+  peso_kg             Float
+  talla_cm            Float
+  perimetro_cefalico  Float?
+  imc                 Float
+  presion_arterial    String? @db.VarChar(30)
+
+  // nutricion
+  diagnostico_nutricional   String? @db.VarChar(500)
+  tipo_lactancia      String? @db.VarChar(100)
+
+  // desarrollo y evaluacion
+  resultado_dpm       String? @db.VarChar(100)
+  meses_dpm_aplicado  Int?
+  score_ira           String? @db.VarChar(100)
+
+  // notas clinicas
+  problemas_diagnosticados  String? @db.Text
+  indicaciones_acuerdos   String? @db.Text
+
+  // gestion control
+  fecha_proximoControl DateTime @db.Date
+
+  // forean key - relacion
+  rut_paciente      String
+  paciente          Paciente @relation(fields: [rut_paciente], references : [rut])
+
+  rut_profesional    String
+  Profesional        Profesional @relation(fields: [rut_profesional], references: [rut])
+
+  creado_en         DateTime  @default(now())
+}
+
+model Usuario {
+  id               Int @default(autoincrement())
+  rut              String @unique
+  password         String 
+  nombre           String
+  rol              String @default("Medico")
+  createdAt        DateTime @default(now())
+
 }

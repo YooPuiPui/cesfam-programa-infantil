@@ -3,22 +3,21 @@ import * as profesionalService from '../services/profesional.service';
 
 export const crearProfesional: RequestHandler = async (req, res): Promise<void> => {
     try {
-        // Leemos todo directo del JSON (sin cajones)
+
         const datos = req.body;
 
-        // Validación de los campos obligatorios de tu schema
+
         if (!datos.rut || !datos.nombre || !datos.apellido || !datos.estamento) {
             res.status(400).json({ error: 'Faltan datos obligatorios (RUT, nombre, apellido o estamento)' });
             return;
         }
 
-        // 🛠️ MAPEO SEGURO EXACTO A TU SCHEMA
+
         const profesionalLimpio = {
             rut: datos.rut,
             nombre: datos.nombre,
             apellido: datos.apellido,
             estamento: datos.estamento,
-            // Si mandan "activo" lo usamos, si no, Prisma pone 'true' por defecto
             activo: datos.activo !== undefined ? datos.activo : true,
         };
 
@@ -72,7 +71,7 @@ export const obtenerProfesional: RequestHandler = async (req, res): Promise<void
     }
 };
 
-// 🟠 EDITAR PROFESIONAL
+//! Editar profesional
 export const editarProfesional: RequestHandler = async (req, res): Promise<void> => {
     try {
         const id = parseInt(req.params.id as string);
