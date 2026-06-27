@@ -113,7 +113,7 @@ export default function PatientList() {
                     </div>
                 </div>
                 <div className="w-full md:w-auto flex flex-col md:flex-row items-stretch md:items-center justify-end flex-shrink-0">
-                    <button type="button" className="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 font-semibold rounded-lg text-sm px-4 py-2.5 transition-colors shadow-sm">
+                    <button type="button" onClick={() => navigate("/inscribir-paciente")} className="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 font-semibold rounded-lg text-sm px-4 py-2.5 transition-colors shadow-sm">
                         <Plus className="h-5 w-5 mr-2" />
                         Inscribir Paciente
                     </button>
