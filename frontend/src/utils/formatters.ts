@@ -1,6 +1,7 @@
 
 //? calcular edad
 
+<<<<<<< HEAD
 export function calcularEdad(fechaNacimiento: string): number {
 
     const hoy = new Date();
@@ -17,6 +18,21 @@ export function calcularEdad(fechaNacimiento: string): number {
     }
 
     return edad;
+=======
+export function calcularEdad(fechaNacimiento: string): string {
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNacimiento);
+
+    let años = hoy.getFullYear() - nacimiento.getFullYear();
+    let meses = hoy.getMonth() - nacimiento.getMonth();
+
+    if (meses < 0 || (meses === 0 && hoy.getDate() < nacimiento.getDate())) {
+        años--;
+        meses += 12;
+    }
+
+    return `${años}a ${meses}m`; 
+>>>>>>> feat/vista-ficha-pacientes
 }
 
 export function formatearFecha(fechaISO: string): string {
@@ -148,7 +164,11 @@ export function iconoSexo(sexo: string): string {
 }
 
 
+<<<<<<< HEAD
  //?  Si tiene nombre_social lo usa si no, usa nombre + apellido
+=======
+//?  Si tiene nombre_social lo usa si no, usa nombre + apellido
+>>>>>>> feat/vista-ficha-pacientes
 
 export function nombreMostrar(nombre: string, nombre_social?: string): string {
     if (nombre_social && nombre_social.trim()) {

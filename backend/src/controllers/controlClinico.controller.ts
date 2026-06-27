@@ -4,7 +4,11 @@ import prisma from "../../src/config/prisma";
 
 export const crearControl: RequestHandler = async (req, res): Promise<void> => {
     try {
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> feat/vista-ficha-pacientes
         const { paciente, control, tutor } = req.body;
 
         // validacion inicial
@@ -31,7 +35,11 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
         });
 
         if (pacienteExistente) {
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feat/vista-ficha-pacientes
             id_paciente_final = pacienteExistente.id_paciente;
         } else {
             // el paciente no existe. 
@@ -44,6 +52,12 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
 
         // mapeo y conversión de tipos usando el ID que acabamos de encontrar
         const controlLimpio = {
+<<<<<<< HEAD
+=======
+            motivo_consulta: control.motivo_consulta || null,
+            anamnesis: control.anamnesis || null,
+            exploracion_fisica: control.exploracion_fisica || null,
+>>>>>>> feat/vista-ficha-pacientes
             edad_meses: parseInt(control.edad_meses),
             peso_kg: parseFloat(control.peso_kg),
             talla_cm: parseFloat(control.talla_cm),
@@ -55,7 +69,11 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             resultado_dpm: control.resultado_dpm || null,
             meses_dpm_aplicado: control.meses_dpm_aplicado ? parseInt(control.meses_dpm_aplicado) : null,
             score_ira: control.score_ira || null,
+<<<<<<< HEAD
             problemas_diagnosticados: control.problemas_diagnosticados || null, // Corregí el nombre para que calce con tu Prisma
+=======
+            problemas_diagnosticados: control.problemas_diagnosticados || null,
+>>>>>>> feat/vista-ficha-pacientes
             indicaciones_acuerdos: control.indicaciones_acuerdos || null,
             fecha_proximoControl: new Date(control.fecha_proximoControl),
 
@@ -131,6 +149,12 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         const datosLimpios: any = {};
 
         if (datos.edad_meses !== undefined) datosLimpios.edad_meses = parseInt(datos.edad_meses);
+<<<<<<< HEAD
+=======
+        if (datos.motivo_consulta !== undefined) datosLimpios.motivo_consulta = datos.motivo_consulta;
+        if (datos.anamnesis !== undefined) datosLimpios.anamnesis = datos.anamnesis;
+        if (datos.exploracion_fisica !== undefined) datosLimpios.exploracion_fisica = datos.exploracion_fisica;
+>>>>>>> feat/vista-ficha-pacientes
         if (datos.peso_kg !== undefined) datosLimpios.peso_kg = parseFloat(datos.peso_kg);
         if (datos.talla_cm !== undefined) datosLimpios.talla_cm = parseFloat(datos.talla_cm);
         if (datos.perimetro_cefalico !== undefined) datosLimpios.perimetro_cefalico = datos.perimetro_cefalico ? parseFloat(datos.perimetro_cefalico) : null;
@@ -141,7 +165,11 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         if (datos.resultado_dpm !== undefined) datosLimpios.resultado_dpm = datos.resultado_dpm;
         if (datos.meses_dpm_aplicado !== undefined) datosLimpios.meses_dpm_aplicado = datos.meses_dpm_aplicado ? parseInt(datos.meses_dpm_aplicado) : null;
         if (datos.score_ira !== undefined) datosLimpios.score_ira = datos.score_ira;
+<<<<<<< HEAD
         if (datos.problemas_diagnosticos !== undefined) datosLimpios.problemas_diagnosticos = datos.problemas_diagnosticos;
+=======
+        if (datos.problemas_diagnosticados !== undefined) datosLimpios.problemas_diagnosticados = datos.problemas_diagnosticados;
+>>>>>>> feat/vista-ficha-pacientes
         if (datos.indicaciones_acuerdos !== undefined) datosLimpios.indicaciones_acuerdos = datos.indicaciones_acuerdos;
         if (datos.fecha_proximoControl !== undefined) datosLimpios.fecha_proximoControl = new Date(datos.fecha_proximoControl);
         if (datos.rut_paciente !== undefined) datosLimpios.rut_paciente = parseInt(datos.rut_paciente);
@@ -194,4 +222,31 @@ export const eliminarControl: RequestHandler = async (req, res): Promise<void> =
 
         res.status(500).json({ error: 'Error interno al eliminar el control' });
     }
+<<<<<<< HEAD
 };
+=======
+};
+
+export const obtenerControlPorId: RequestHandler = async (req, res): Promise<void> => {
+    try {
+        const id = parseInt(req.params.id as string);
+
+        if (isNaN(id)) {
+            res.status(400).json({ error: 'El id del control debe ser un número válido' });
+            return;
+        }
+
+        const control = await controlService.buscarControlPorId(id);
+
+        if (!control) {
+            res.status(404).json({ error: 'El control clínico solicitado no existe' });
+            return;
+        }
+
+        res.status(200).json(control);
+    } catch (error: any) {
+        console.error('Error al obtener control por ID:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar el control' });
+    }
+};
+>>>>>>> feat/vista-ficha-pacientes

@@ -221,3 +221,36 @@ export const borrarPaciente: RequestHandler = async (req, res): Promise<void> =>
 
     }
 };
+
+// src/controllers/paciente.controller.ts
+
+export const obtenerPacientePorRut: RequestHandler = async (req, res): Promise<void> => {
+    try {
+        // 1. Forzamos a que el RUT sea leído como un único String
+        const rut = req.params.rut as string;
+
+        // 2. Si por alguna razón viene vacío, cortamos de inmediato
+        if (!rut) {
+            res.status(400).json({ error: 'Debes proporcionar un RUT' });
+            return;
+        }
+
+        // 3. Prisma ya no se quejará
+        const paciente = await prisma.paciente.findUnique({
+            where: { rut: rut },
+            include: {
+                tutor: true
+            }
+        });
+
+        if (!paciente) {
+            res.status(404).json({ error: 'El paciente no existe en los registros' });
+            return;
+        }
+
+        res.status(200).json(paciente);
+    } catch (error: any) {
+        console.error('Error al obtener paciente por RUT:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar el paciente' });
+    }
+};
