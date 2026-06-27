@@ -78,6 +78,10 @@ model ControlClinico {
   id_control          Int @id @default(autoincrement())
   fecha_control       DateTime @default(now())
 
+  motivo_consulta     String? @db.Text
+  anamnesis           String? @db.Text
+  exploracion_fisica  String? @db.Text
+  
   // medidas
   edad_meses          Int
   peso_kg             Float

@@ -3,14 +3,18 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 import PatientList from "./components/pacientes/listaPacientes";
 import Login from "./components/login/Login";
 import CrearControl from "./components/controles/crearControl";
+import FichaPacientes from "./components/pacientes/fichaPacientes";
+import PlantillaControl from './components/controles/plantillaControl';
 
-<Route path="/nuevo-control" element={<CrearControl />} />
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Navigate to="/login" />} />
+
+
         <Route
           path="/dashboard"
           element={
@@ -30,8 +34,30 @@ export default function App() {
         />
 
         <Route
-          path="/nuevo-control" 
-          element={<CrearControl />}
+          path="/nuevo-control"
+          element={
+            <DashboardLayout>
+              <CrearControl />
+            </DashboardLayout>
+          }
+        />
+
+        <Route
+          path="/ficha/:rut"
+          element={
+            <DashboardLayout>
+              <FichaPacientes />
+            </DashboardLayout>
+          }
+        />
+
+        <Route
+          path="/detalle/:id_control"
+          element={
+            <DashboardLayout>
+              <PlantillaControl />
+            </DashboardLayout>
+          }
         />
       </Routes>
     </BrowserRouter>
