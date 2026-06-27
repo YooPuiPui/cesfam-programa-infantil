@@ -8,35 +8,29 @@ export default function Login() {
     const navigate = useNavigate();
 
     const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault(); // evita que la página se recargue al enviar el form
+        e.preventDefault();
         setError("");
 
         try {
-            // post a la api 
-            const response = await fetch("http://localhost:3000/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ rut, password }),
+            const response = await fetch('http://localhost:3000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rut, password })
             });
 
-            const data = await response.json();
-
-            // validacion de contraseña 
-            if (!response.ok) {
-                throw new Error(data.error || "Error al iniciar sesión");
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('rut_profesional', data.usuario.rut);
+                navigate('/pacientes');
+            } else if (response.status === 401) {
+                setError('RUT o contraseña incorrectos');
+            } else {
+                setError('Error al iniciar sesión. Intenta nuevamente.');
             }
 
-            // 
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("usuario", JSON.stringify(data.usuario));
-
-            // Redirigimos diractamente al dashboard
-            navigate("/dashboard");
-
         } catch (err: any) {
-            setError(err.message);
+            setError('No se pudo conectar con el servidor.');
         }
     };
 

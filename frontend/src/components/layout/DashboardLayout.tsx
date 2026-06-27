@@ -19,10 +19,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const usuarioStr = localStorage.getItem("usuario");
     const usuarioActual = usuarioStr ? JSON.parse(usuarioStr) : { nombre: "Profesional", rol: "Medico" };
 
-    // 2. Extraemos la primera letra del nombre para el círculo del avatar
     const inicial = usuarioActual.nombre ? usuarioActual.nombre.charAt(0).toUpperCase() : "U";
 
-    // 3. Función para destruir la sesión y salir
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("usuario");
@@ -60,7 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* header permanente*/}
                 <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
                     <h1 className="text-base font-semibold text-slate-800">
-                        {navItems.find(i => i.path === location.pathname)?.label || "Panel"}
+                        {navItems.find(i => i.path === location.pathname)?.label || ""}
                     </h1>
 
                     <div className="flex items-center gap-4">

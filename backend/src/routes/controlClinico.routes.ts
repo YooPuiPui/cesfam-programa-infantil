@@ -4,14 +4,16 @@ import {
     obtenerControlPorRut, 
     obtenerControles, 
     editarControl, 
-    eliminarControl 
+    eliminarControl,
+    obtenerControlPorId
 } from "../controllers/controlClinico.controller";
 
 const router = Router();
 
-router.post('/', crearControl);
-router.get('/:rut', obtenerControlPorRut);
 router.get('/', obtenerControles);
+router.post('/', crearControl);
+router.get('/detalle/:id', obtenerControlPorId);
+router.get('/:rut', obtenerControlPorRut);
 router.put('/:id', editarControl);
 router.delete('/:id', eliminarControl);
 
