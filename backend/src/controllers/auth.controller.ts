@@ -20,9 +20,6 @@ export const login = async (req: Request, res: Response) => {
     // generar token
     const token = jwt.sign({ id: usuario.id, rut: usuario.rut }, JWT_SECRET, { expiresIn: '8h' });
 
-<<<<<<< HEAD
-    res.json({ token, usuario: { nombre: usuario.nombre, rol: usuario.rol } });
-=======
     res.json({ token, usuario: { rut: usuario.rut, nombre: usuario.nombre, rol: usuario.rol } });
 };
 
@@ -63,5 +60,4 @@ export const registro = async (req: Request, res: Response) => {
         console.error("Error en el registro:", error);
         res.status(500).json({ error: "Error interno del servidor al registrar el usuario" });
     }
->>>>>>> feat/vista-ficha-pacientes
 };

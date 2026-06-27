@@ -1,24 +1,6 @@
 
 //? calcular edad
 
-<<<<<<< HEAD
-export function calcularEdad(fechaNacimiento: string): number {
-
-    const hoy = new Date();
-    const nacimiento = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-
-    const mesActual = hoy.getMonth();
-    const diaActual = hoy.getDay();
-    const mesCumple = nacimiento.getMonth();
-    const diaCumple = nacimiento.getDate();
-
-    if (mesActual < mesCumple || (mesActual === mesCumple && diaActual < diaCumple)) {
-        edad--;
-    }
-
-    return edad;
-=======
 export function calcularEdad(fechaNacimiento: string): string {
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
@@ -32,7 +14,6 @@ export function calcularEdad(fechaNacimiento: string): string {
     }
 
     return `${años}a ${meses}m`; 
->>>>>>> feat/vista-ficha-pacientes
 }
 
 export function formatearFecha(fechaISO: string): string {
@@ -139,10 +120,7 @@ export function formatearPeso(peso_kg: number | undefined): string {
     return `${peso_kg.toFixed(1)} kg`;
 }
 
-/**
- * Formatea talla para mostrar: "110 cm"
 
- */
 export function formatearTalla(talla_cm: number | undefined): string {
     if (!talla_cm) return 'N/A';
     return `${talla_cm} cm`;
@@ -155,7 +133,7 @@ export function colorEstado(activo: boolean): string {
         : 'bg-red-100 text-red-800 px-2 py-1 rounded text-sm';
 }
 
-//? Retorna un emoji/icono de sexo (para referencia visual rápida)
+
 
 export function iconoSexo(sexo: string): string {
     if (sexo.toLowerCase().includes('masculino')) return '♂';
@@ -164,11 +142,7 @@ export function iconoSexo(sexo: string): string {
 }
 
 
-<<<<<<< HEAD
- //?  Si tiene nombre_social lo usa si no, usa nombre + apellido
-=======
 //?  Si tiene nombre_social lo usa si no, usa nombre + apellido
->>>>>>> feat/vista-ficha-pacientes
 
 export function nombreMostrar(nombre: string, nombre_social?: string): string {
     if (nombre_social && nombre_social.trim()) {
@@ -177,10 +151,7 @@ export function nombreMostrar(nombre: string, nombre_social?: string): string {
     return nombre;
 }
 
-/**
-    Convierte timestamp a "hace X tiempo" (ej: "hace 2 horas")
 
- */
 export function tiempoTranscurrido(fechaISO: string): string {
     const ahora = new Date();
     const fecha = new Date(fechaISO);
