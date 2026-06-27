@@ -5,6 +5,7 @@ import Login from "./components/login/Login";
 import CrearControl from "./components/controles/crearControl";
 import FichaPacientes from "./components/pacientes/fichaPacientes";
 import PlantillaControl from './components/controles/plantillaControl';
+import InscribirPaciente from "./components/pacientes/inscribirPaciente";
 
 export default function App() {
   return (
@@ -29,6 +30,15 @@ export default function App() {
           element={
             <DashboardLayout>
               <PatientList />
+            </DashboardLayout>
+          }
+        />
+
+        <Route
+          path="/inscribir-paciente"
+          element={
+            <DashboardLayout>
+              <InscribirPaciente />
             </DashboardLayout>
           }
         />

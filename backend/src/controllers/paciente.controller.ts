@@ -18,8 +18,10 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             rut: paciente.rut,
             nombre: paciente.nombre,
             apellido: paciente.apellido,
+            nombre_social: paciente.nombre_social,
             fecha_nacimiento: new Date(paciente.fecha_nacimiento),
             sexo_biologico: paciente.sexo_biologico,
+            identidad_genero: paciente.identidad_genero,
             nacionalidad: paciente.nacionalidad || 'Chilena',
             direccion: paciente.direccion,
             sector: paciente.sector,
@@ -27,7 +29,11 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             nhc: paciente.nhc,
             prevision: paciente.prevision,
             activo: paciente.activo !== undefined ? paciente.activo : true,
-            fecha_inscripcion: paciente.fecha_inscripcion ? new Date(paciente.fecha_inscripcion) : undefined
+            fecha_inscripcion: paciente.fecha_inscripcion ? new Date(paciente.fecha_inscripcion) : new Date(),
+            es_sename: paciente.es_sename !== undefined ? paciente.es_sename : false,
+            es_naneas_prematuro: paciente.es_naneas_prematuro !== undefined ? paciente.es_naneas_prematuro : false,
+            es_poblacion_trans: paciente.es_poblacion_trans !== undefined ? paciente.es_poblacion_trans : false,
+            es_migrante: paciente.es_migrante !== undefined ? paciente.es_migrante : false,
         };
 
 
@@ -40,7 +46,6 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             correo: tutor.correo,
             direccion: tutor.direccion,
             comuna: tutor.comuna,
-            rut_tutor_principal: tutor.rut
         };
 
 
