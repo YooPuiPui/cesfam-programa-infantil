@@ -1,22 +1,19 @@
 
 //? calcular edad
 
-export function calcularEdad(fechaNacimiento: string): number {
-
+export function calcularEdad(fechaNacimiento: string): string {
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
 
-    const mesActual = hoy.getMonth();
-    const diaActual = hoy.getDay();
-    const mesCumple = nacimiento.getMonth();
-    const diaCumple = nacimiento.getDate();
+    let años = hoy.getFullYear() - nacimiento.getFullYear();
+    let meses = hoy.getMonth() - nacimiento.getMonth();
 
-    if (mesActual < mesCumple || (mesActual === mesCumple && diaActual < diaCumple)) {
-        edad--;
+    if (meses < 0 || (meses === 0 && hoy.getDate() < nacimiento.getDate())) {
+        años--;
+        meses += 12;
     }
 
-    return edad;
+    return `${años}a ${meses}m`; 
 }
 
 export function formatearFecha(fechaISO: string): string {
@@ -148,7 +145,7 @@ export function iconoSexo(sexo: string): string {
 }
 
 
- //?  Si tiene nombre_social lo usa si no, usa nombre + apellido
+//?  Si tiene nombre_social lo usa si no, usa nombre + apellido
 
 export function nombreMostrar(nombre: string, nombre_social?: string): string {
     if (nombre_social && nombre_social.trim()) {

@@ -17,7 +17,7 @@ node_modules/
 # prisma (evitar subir datos locales de prueba)
 prisma/*.db
 prisma/*.db-journal
-
+backend/prisma/
 # Ignorar el cliente autogenerado de Prisma
 backend/src/generated/
 
@@ -51,3 +51,4 @@ dist-ssr
 *.sw?
 
 
+Microsoft/

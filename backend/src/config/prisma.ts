@@ -8,7 +8,6 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL no está configurada en .env');
 }
 
-console.log('[PRISMA] ✅ DATABASE_URL cargada:', process.env.DATABASE_URL?.substring(0, 50) + '...');
 
 //* Instanciamos prisma client 
 const prisma = new PrismaClient();
