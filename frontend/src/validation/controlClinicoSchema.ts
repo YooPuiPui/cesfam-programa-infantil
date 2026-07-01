@@ -14,7 +14,8 @@ export const controlSchema = z.object({
         
     exploracion_fisica: z.string().min(5, "Debe ingresar el examen físico."),
     problemas_diagnosticados: z.string().min(5, "Debe ingresar al menos un diagnóstico."),
-    indicaciones_acuerdos: z.string().min(5, "Debe ingresar el plan a seguir.")
+    indicaciones_acuerdos: z.string().min(5, "Debe ingresar el plan a seguir."),
+    fecha_proximoControl: z.string().optional(),
 });
 
 // Exportamos el tipo para que TypeScript nos ayude con el autocompletado en el frontend

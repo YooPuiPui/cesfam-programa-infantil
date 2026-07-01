@@ -6,6 +6,7 @@ import CrearControl from "./components/controles/crearControl";
 import FichaPacientes from "./components/pacientes/fichaPacientes";
 import PlantillaControl from './components/controles/plantillaControl';
 import InscribirPaciente from "./components/pacientes/inscribirPaciente";
+import AgendaControles from "./components/agenda/agendaControles";
 
 export default function App() {
   return (
@@ -39,6 +40,15 @@ export default function App() {
           element={
             <DashboardLayout>
               <InscribirPaciente />
+            </DashboardLayout>
+          }
+        />
+
+        <Route
+          path="/agenda"
+          element={
+            <DashboardLayout>
+              <AgendaControles />
             </DashboardLayout>
           }
         />

@@ -14,7 +14,10 @@ node_modules/
 *.md
 !README.md
 
-# prisma (evitar subir datos locales de prueba)
+# prisma 
+backend/prisma/*.db
+backend/prisma/*.db-journal
+backend/prisma/migrations/dev.db
 prisma/*.db
 prisma/*.db-journal
 backend/prisma/

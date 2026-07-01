@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer, Loader2 } from 'lucide-react';
 import { calcularEdad } from '../../utils/formatters';
 import type { ControlClinicoDetalle } from '../../types';
-
+import { API_BASE_URL } from '../../service/api'
 export default function PlantillaControl() {
     const navigate = useNavigate();
     const { id_control } = useParams();
@@ -21,7 +21,7 @@ export default function PlantillaControl() {
             }
             try {
                 const token = localStorage.getItem("token");
-                const response = await fetch(`http://localhost:3000/api/control/detalle/${id_control}`, {
+                const response = await fetch(`${API_BASE_URL}/control/detalle/${id_control}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -168,6 +168,12 @@ export default function PlantillaControl() {
                         <p className="font-bold mb-1 uppercase underline underline-offset-2">Actuación / Plan / Indicaciones:</p>
                         <p className="uppercase whitespace-pre-wrap">
                             {controlData.indicaciones_acuerdos || '---'}
+                        </p>
+                        <p className="mt-4 font-bold uppercase underline underline-offset-2">Próximo control:</p>
+                        <p className="uppercase">
+                            {controlData.fecha_proximoControl
+                                ? new Date(controlData.fecha_proximoControl).toLocaleDateString('es-CL')
+                                : 'Sin fecha de próximo control agendada'}
                         </p>
                     </div>
                 </div>
