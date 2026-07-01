@@ -10,7 +10,14 @@ export const crearControl = async (datosControl: Prisma.ControlClinicoUncheckedC
 }
 
 export const buscarControl = async () => {
-    return await prisma.controlClinico.findMany();
+    return await prisma.controlClinico.findMany({
+        include: {
+            paciente: true,
+        },
+        orderBy: {
+            fecha_control: 'desc'
+        }
+    });
 }
 
 export const buscarControlPorRut = async (rutPaciente: string) => {

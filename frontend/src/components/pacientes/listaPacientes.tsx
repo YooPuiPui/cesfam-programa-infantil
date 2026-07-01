@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Plus, FolderOpen, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from '../../service/api';
 
 interface Paciente {
     id_paciente: number;
@@ -64,8 +65,8 @@ export default function PatientList() {
             setCargando(true);
             try {
                 const token = localStorage.getItem("token");
-                // AQUÍ ES DONDE LLAMAREMOS A LA PAGINACIÓN: ?page=${page}&limit=30
-                const respuesta = await fetch(`http://localhost:3000/api/pacientes?page=${page}&limit=30`, {
+                
+                const respuesta = await fetch(`${API_BASE_URL}/pacientes?page=${page}&limit=30`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText, Calendar, History } from 'lucide-react';
 import type { ControlClinico, Paciente } from '../../types';
+import { API_BASE_URL } from '../../service/api';
+
 
 type RiesgoSocial = {
     label: string;
@@ -55,13 +57,13 @@ export default function FichaPaciente() {
                 const headers = { 'Authorization': `Bearer ${token}` };
 
                 // buscar paciente
-                const resPaciente = await fetch(`http://localhost:3000/api/pacientes/rut/${rut}`, { headers });
+                const resPaciente = await fetch(`${API_BASE_URL}/pacientes/rut/${rut}`, { headers });
                 if (!resPaciente.ok) throw new Error('Error al cargar datos del paciente');
                 const dataPaciente: Paciente = await resPaciente.json();
                 setPaciente(dataPaciente);
 
                 // buscar controles
-                const resControles = await fetch(`http://localhost:3000/api/control/${rut}`, { headers });
+                const resControles = await fetch(`${API_BASE_URL}/control/${rut}`, { headers });
                 if (resControles.ok) {
                     const dataControles: ControlClinico[] = await resControles.json();
                     setControles(dataControles);

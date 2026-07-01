@@ -4,6 +4,8 @@ import { ArrowLeft, Save, Loader2, User, History, ClipboardEdit, Activity, Steth
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { controlSchema, ControlFormValues } from '../../validation/controlClinicoSchema';
+import { API_BASE_URL } from '../../service/api';
+
 
 export default function NuevoControl() {
     const navigate = useNavigate();
@@ -31,6 +33,7 @@ export default function NuevoControl() {
                 exploracion_fisica: '',
                 problemas_diagnosticados: '',
                 indicaciones_acuerdos: '',
+                fecha_proximoControl: '',
             }
         });
 
@@ -47,13 +50,13 @@ export default function NuevoControl() {
                 const headers = { 'Authorization': `Bearer ${token}` };
 
                 // cargar datos de contexto del paciente
-                const response = await fetch(`http://localhost:3000/api/pacientes/rut/${rutPaciente}`, { headers });
+                const response = await fetch(`${API_BASE_URL}/pacientes/rut/${rutPaciente}`, { headers });
                 if (!response.ok) throw new Error('Paciente no encontrado en la base de datos');
                 const dataPaciente = await response.json();
                 setPaciente(dataPaciente);
 
                 //cargar último control  usando la ruta /api/control
-                const resControles = await fetch(`http://localhost:3000/api/control/${rutPaciente}`, { headers });
+                const resControles = await fetch(`${API_BASE_URL}/control/${rutPaciente}`, { headers });
                 if (resControles.ok) {
                     const dataControles = await resControles.json();
                     if (dataControles && dataControles.length > 0) {
@@ -96,11 +99,11 @@ export default function NuevoControl() {
                     rut_profesional: rutDoctor, // <-- Dinámico y real
                     edad_meses: 120, // (Calcularemos esto después con la fecha de nacimiento)
                     imc: parseFloat((data.peso_kg / Math.pow(data.talla_cm / 100, 2)).toFixed(2)),
-                    fecha_proximoControl: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString()
+                    fecha_proximoControl: data.fecha_proximoControl || new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString()
                 }
             };
 
-            const response = await fetch('http://localhost:3000/api/control', {
+            const response = await fetch(`${API_BASE_URL}/control`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -221,6 +224,16 @@ export default function NuevoControl() {
                                     placeholder="Describa la situación relatada por el tutor/paciente..."
                                 />
                                 {errors.anamnesis && <span className="text-red-500 text-sm font-bold mt-1.5 block">{errors.anamnesis.message}</span>}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1.5">Fecha próximo control</label>
+                                <input
+                                    type="date"
+                                    {...register("fecha_proximoControl")}
+                                    className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:bg-white"
+                                />
+                                <p className="text-xs font-medium text-slate-500 mt-1.5">Si no se completa, se registrará por defecto a 6 meses.</p>
                             </div>
                         </div>
                     </div>
