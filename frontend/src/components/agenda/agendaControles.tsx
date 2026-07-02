@@ -128,8 +128,11 @@ export default function AgendaControles() {
                 const esAtrasado = fecha < hoy;
                 const esEstaSemana = fecha >= inicioSem && fecha <= finSem;
                 const esEsteMes = fecha >= inicioM && fecha <= finM;
+                const diasAtraso = esAtrasado
+                    ? Math.floor((hoy.getTime() - fecha.getTime()) / (1000 * 60 * 60 * 24))
+                    : 0;
 
-                return { ...control, _fecha: fecha, esHoy, esAtrasado, esEstaSemana, esEsteMes };
+                return { ...control, _fecha: fecha, esHoy, esAtrasado, esEstaSemana, esEsteMes, diasAtraso };
             });
     }, [controles]);
 
@@ -230,12 +233,12 @@ export default function AgendaControles() {
                             type="button"
                             onClick={() => setFiltro(key)}
                             className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${activo
-                                    ? esAtrasadosConPendientes
-                                        ? "border-red-600 bg-red-600 text-white"
-                                        : "border-blue-600 bg-blue-600 text-white"
-                                    : esAtrasadosConPendientes
-                                        ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
-                                        : "border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
+                                ? esAtrasadosConPendientes
+                                    ? "border-red-600 bg-red-600 text-white"
+                                    : "border-blue-600 bg-blue-600 text-white"
+                                : esAtrasadosConPendientes
+                                    ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
+                                    : "border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
                                 }`}
                         >
                             {key === "atrasados" && esAtrasadosConPendientes && <AlertTriangle className="h-4 w-4" />}
@@ -305,7 +308,7 @@ export default function AgendaControles() {
                                     return (
                                         <tr
                                             key={control.id_control}
-                                            className={`transition-colors hover:bg-blue-50/60 ${control.esAtrasado ? "bg-red-50/60" : ""
+                                            className={`transition-colors ${control.esAtrasado ? "bg-red-100/80" : "hover:bg-blue-50/60"
                                                 }`}
                                         >
                                             <td className="px-6 py-4 font-bold text-slate-900">{nombrePaciente}</td>
@@ -323,7 +326,7 @@ export default function AgendaControles() {
                                                     {formatearFecha(control.fecha_proximoControl)}
                                                     {control.esAtrasado && (
                                                         <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-                                                            Atrasado
+                                                            Atrasado hace {control.diasAtraso} día{control.diasAtraso === 1 ? '' : 's'}
                                                         </span>
                                                     )}
                                                 </div>

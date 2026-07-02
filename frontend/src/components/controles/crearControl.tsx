@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { controlSchema, ControlFormValues } from '../../validation/controlClinicoSchema';
 import { API_BASE_URL } from '../../service/api';
+import { calcularEdadEnMeses } from '../../utils/formatters';
 
 
 export default function NuevoControl() {
@@ -19,23 +20,24 @@ export default function NuevoControl() {
     const [guardando, setGuardando] = useState(false);
     const [ultimoControl, setUltimoControl] = useState<any>(null);
 
-        const {
-            register,
-            handleSubmit,
-            formState: { errors }
-        } = useForm<ControlFormValues>({
-            resolver: zodResolver(controlSchema) as any,
-            defaultValues: {
-                motivo_consulta: '',
-                anamnesis: '',
-                peso_kg: '' as unknown as number,
-                talla_cm: '' as unknown as number,
-                exploracion_fisica: '',
-                problemas_diagnosticados: '',
-                indicaciones_acuerdos: '',
-                fecha_proximoControl: '',
-            }
-        });
+    const {
+        register,
+        handleSubmit,
+        formState: { errors }
+    } = useForm<ControlFormValues>({
+        resolver: zodResolver(controlSchema) as any,
+        defaultValues: {
+            motivo_consulta: '',
+            anamnesis: '',
+            peso_kg: '' as unknown as number,
+            talla_cm: '' as unknown as number,
+            perimetro_cefalico: undefined,
+            exploracion_fisica: '',
+            problemas_diagnosticados: '',
+            indicaciones_acuerdos: '',
+            fecha_proximoControl: '',
+        }
+    });
 
     useEffect(() => {
         const fetchContexto = async () => {
@@ -72,6 +74,10 @@ export default function NuevoControl() {
         fetchContexto();
     }, [rutPaciente]);
 
+    // Edad actual del paciente en meses, y si corresponde medir perímetro cefálico (hasta los 36 meses / 3 años)
+    const edadMesesActual = paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : null;
+    const aplicaPerimetroCefalico = edadMesesActual !== null && edadMesesActual <= 36;
+
     const onSubmit = async (data: ControlFormValues) => {
         setGuardando(true);
         try {
@@ -93,11 +99,12 @@ export default function NuevoControl() {
                     anamnesis: data.anamnesis,
                     peso_kg: data.peso_kg,
                     talla_cm: data.talla_cm,
+                    perimetro_cefalico: aplicaPerimetroCefalico ? data.perimetro_cefalico : null,
                     exploracion_fisica: data.exploracion_fisica,
                     problemas_diagnosticados: data.problemas_diagnosticados,
                     indicaciones_acuerdos: data.indicaciones_acuerdos,
                     rut_profesional: rutDoctor, // <-- Dinámico y real
-                    edad_meses: 120, // (Calcularemos esto después con la fecha de nacimiento)
+                    edad_meses: paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : 0,
                     imc: parseFloat((data.peso_kg / Math.pow(data.talla_cm / 100, 2)).toFixed(2)),
                     fecha_proximoControl: data.fecha_proximoControl || new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString()
                 }
@@ -244,7 +251,7 @@ export default function NuevoControl() {
                             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><Activity className="h-6 w-6" /></div>
                             <h2 className="text-xl font-bold text-slate-800">2. Medidas</h2>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Peso (kg)</label>
                                 <input
@@ -264,6 +271,22 @@ export default function NuevoControl() {
                                     placeholder="0.0"
                                 />
                                 {errors.talla_cm && <span className="text-red-500 text-sm font-bold mt-1.5 block">{errors.talla_cm.message}</span>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                                    Perímetro Cefálico (cm)
+                                </label>
+                                <input
+                                    type="number" step="0.1"
+                                    {...register("perimetro_cefalico")}
+                                    disabled={!aplicaPerimetroCefalico}
+                                    className={`w-full p-3 border rounded-xl outline-none transition-all ${!aplicaPerimetroCefalico
+                                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200'
+                                            : 'bg-slate-50 border-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 hover:bg-white'
+                                        }`}
+                                    placeholder={aplicaPerimetroCefalico ? "0.0" : "No aplica (mayor de 3 años)"}
+                                />
+                                {errors.perimetro_cefalico && <span className="text-red-500 text-sm font-bold mt-1.5 block">{errors.perimetro_cefalico.message}</span>}
                             </div>
                         </div>
                     </div>

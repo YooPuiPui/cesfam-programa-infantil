@@ -22,7 +22,6 @@ const calcularEdadPediatrica = (fechaIso: string) => {
     let anios = hoy.getFullYear() - nacimiento.getFullYear();
     let meses = hoy.getMonth() - nacimiento.getMonth();
     if (meses < 0 || (meses === 0 && hoy.getDate() < nacimiento.getDate())) { anios--; meses += 12; }
-    if (hoy.getDate() < nacimiento.getDate()) { meses--; if (meses < 0) meses = 11; }
     if (anios === 0 && meses === 0) return "Recién nacido";
     if (anios === 0) return `${meses} mes${meses > 1 ? 'es' : ''}`;
     if (meses === 0) return `${anios} año${anios > 1 ? 's' : ''}`;
@@ -65,7 +64,7 @@ export default function PatientList() {
             setCargando(true);
             try {
                 const token = localStorage.getItem("token");
-                
+
                 const respuesta = await fetch(`${API_BASE_URL}/pacientes?page=${page}&limit=30`, {
                     method: "GET",
                     headers: {

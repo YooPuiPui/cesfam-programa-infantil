@@ -188,3 +188,17 @@ export function obtenerFechaHoy(): string {
         day: 'numeric',
     });
 }
+
+export function calcularEdadEnMeses(fechaNacimiento: string): number {
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNacimiento);
+
+    let meses = (hoy.getFullYear() - nacimiento.getFullYear()) * 12;
+    meses += hoy.getMonth() - nacimiento.getMonth();
+
+    if (hoy.getDate() < nacimiento.getDate()) {
+        meses--;
+    }
+
+    return meses;
+}
