@@ -149,7 +149,12 @@ export default function PlantillaControl() {
                         <div className="flex justify-between items-start mb-2">
                             <p className="font-bold uppercase underline underline-offset-2">Exploración Física:</p>
                             <div className="text-xs font-bold bg-white px-3 py-1 border-2 border-black rounded shadow-sm">
-                                PESO: {controlData.peso_kg ? `${controlData.peso_kg} kg` : '---'} &nbsp;|&nbsp; TALLA: {controlData.talla_cm ? `${controlData.talla_cm} cm` : '---'}
+                                PESO: {controlData.peso_kg ? `${controlData.peso_kg} kg` : '---'} &nbsp;|&nbsp;
+                                TALLA: {controlData.talla_cm ? `${controlData.talla_cm} cm` : '---'} &nbsp;|&nbsp;
+                                IMC: {controlData.imc ? controlData.imc : '---'}
+                                {controlData.perimetro_cefalico && (
+                                    <> &nbsp;|&nbsp; P. CEFÁLICO: {controlData.perimetro_cefalico} cm</>
+                                )}
                             </div>
                         </div>
                         <p className="uppercase whitespace-pre-wrap">{controlData.exploracion_fisica || '---'}</p>
@@ -163,17 +168,18 @@ export default function PlantillaControl() {
                         </p>
                     </div>
 
-                    {/* ACTUACIÓN / PLAN (Con fallback preventivo) */}
+                    {/* ACTUACIÓN / PLAN (con Próximo Control como badge) */}
                     <div className="p-3 min-h-[160px]">
-                        <p className="font-bold mb-1 uppercase underline underline-offset-2">Actuación / Plan / Indicaciones:</p>
+                        <div className="flex justify-between items-start mb-2">
+                            <p className="font-bold uppercase underline underline-offset-2">Actuación / Plan / Indicaciones:</p>
+                            <div className="text-xs font-bold bg-white px-3 py-1 border-2 border-black rounded shadow-sm whitespace-nowrap">
+                                PRÓX. CONTROL: {controlData.fecha_proximoControl
+                                    ? new Date(controlData.fecha_proximoControl).toLocaleDateString('es-CL')
+                                    : '---'}
+                            </div>
+                        </div>
                         <p className="uppercase whitespace-pre-wrap">
                             {controlData.indicaciones_acuerdos || '---'}
-                        </p>
-                        <p className="mt-4 font-bold uppercase underline underline-offset-2">Próximo control:</p>
-                        <p className="uppercase">
-                            {controlData.fecha_proximoControl
-                                ? new Date(controlData.fecha_proximoControl).toLocaleDateString('es-CL')
-                                : 'Sin fecha de próximo control agendada'}
                         </p>
                     </div>
                 </div>
