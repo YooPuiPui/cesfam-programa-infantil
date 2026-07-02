@@ -20,7 +20,7 @@ backend/prisma/*.db-journal
 backend/prisma/migrations/dev.db
 prisma/*.db
 prisma/*.db-journal
-backend/prisma/
+
 # Ignorar el cliente autogenerado de Prisma
 backend/src/generated/
 
