@@ -47,6 +47,8 @@ services:
     container_name: mi-servidor-frontend
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      - VITE_API_URL=http://backend:3000/api
     depends_on:
       - backend
     networks:
