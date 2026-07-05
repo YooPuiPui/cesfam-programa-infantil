@@ -147,15 +147,46 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 30;
         const skip = (page - 1) * limit;
+        const riesgo = req.query.riesgo as string | undefined;
+        const busqueda = req.query.busqueda as string | undefined;
 
-        // Prisma ejecuta ambas consultas eficientemente
+        let where: any = {};
+
+        switch (riesgo) {
+            case 'sename':
+                where.es_sename = true;
+                break;
+            case 'naneas':
+                where.es_naneas_prematuro = true;
+                break;
+            case 'trans':
+                where.es_poblacion_trans = true;
+                break;
+            case 'migrante':
+                where.es_migrante = true;
+                break;
+            case 'regular':
+                where = {
+                    es_sename: false,
+                    es_naneas_prematuro: false,
+                    es_poblacion_trans: false,
+                    es_migrante: false,
+                };
+                break;
+        }
+
+        if (busqueda && busqueda.trim() !== '') {
+            where.rut = { contains: busqueda.trim(), mode: 'insensitive' };
+        }
+
         const [data, total] = await Promise.all([
             prisma.paciente.findMany({
+                where,
                 skip: skip,
                 take: limit,
                 orderBy: { creado_en: 'desc' }
             }),
-            prisma.paciente.count()
+            prisma.paciente.count({ where })
         ]);
 
         res.status(200).json({

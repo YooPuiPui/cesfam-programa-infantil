@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, CalendarDays, ArrowRight, ArrowLeft, SearchX, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, CalendarDays, ArrowRight, ArrowLeft, SearchX, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ControlClinico, Paciente } from "../../types";
 import { API_BASE_URL } from '../../service/api';
 
@@ -9,6 +9,14 @@ type ControlAgenda = ControlClinico & {
 };
 
 type FiltroAgenda = "hoy" | "atrasados" | "semana" | "mes" | "todos";
+
+type Conteos = {
+    hoy: number;
+    atrasados: number;
+    semana: number;
+    mes: number;
+    todos: number;
+};
 
 const formatearFecha = (fecha?: string | null) => {
     if (!fecha) return "Sin fecha";
@@ -39,18 +47,6 @@ const finSemana = (referencia: Date) => {
     return fin;
 };
 
-const inicioMes = (referencia: Date) => {
-    const fecha = new Date(referencia.getFullYear(), referencia.getMonth(), 1);
-    fecha.setHours(0, 0, 0, 0);
-    return fecha;
-};
-
-const finMes = (referencia: Date) => {
-    const fecha = new Date(referencia.getFullYear(), referencia.getMonth() + 1, 0);
-    fecha.setHours(23, 59, 59, 999);
-    return fecha;
-};
-
 const formatearFechaCorta = (fecha: Date) =>
     fecha.toLocaleDateString("es-CL", { day: "numeric", month: "short" });
 
@@ -67,6 +63,8 @@ const FILTROS: { key: FiltroAgenda; label: string }[] = [
     { key: "todos", label: "Todos" },
 ];
 
+const LIMITE_POR_PAGINA = 30;
+
 export default function AgendaControles() {
     const navigate = useNavigate();
     const [controles, setControles] = useState<ControlAgenda[]>([]);
@@ -74,6 +72,46 @@ export default function AgendaControles() {
     const [error, setError] = useState("");
     const [filtro, setFiltro] = useState<FiltroAgenda>("semana");
 
+    const [conteos, setConteos] = useState<Conteos>({ hoy: 0, atrasados: 0, semana: 0, mes: 0, todos: 0 });
+    const [cargandoConteos, setCargandoConteos] = useState(true);
+
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalRegistros, setTotalRegistros] = useState(0);
+
+    // Carga los conteos globales una sola vez (independiente de la paginación/filtro)
+    useEffect(() => {
+        const cargarConteos = async () => {
+            setCargandoConteos(true);
+            try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`${API_BASE_URL}/control/agenda/conteos`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!response.ok) throw new Error("No se pudieron cargar los conteos de la agenda.");
+
+                const data: Conteos = await response.json();
+                setConteos(data);
+            } catch (err) {
+                console.error("Error al cargar conteos de agenda:", err);
+            } finally {
+                setCargandoConteos(false);
+            }
+        };
+
+        cargarConteos();
+    }, []);
+
+    // Vuelve a página 1 cada vez que cambia el filtro
+    useEffect(() => {
+        setPage(1);
+    }, [filtro]);
+
+    // Carga los controles paginados según filtro + página actual
     useEffect(() => {
         const cargarAgenda = async () => {
             setCargando(true);
@@ -81,26 +119,25 @@ export default function AgendaControles() {
 
             try {
                 const token = localStorage.getItem("token");
-                const response = await fetch(`${API_BASE_URL}/control`, {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                const response = await fetch(
+                    `${API_BASE_URL}/control/agenda/paginado?page=${page}&limit=${LIMITE_POR_PAGINA}&filtro=${filtro}`,
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
 
                 if (!response.ok) {
                     throw new Error("No se pudo cargar la agenda de controles.");
                 }
 
-                const data: ControlAgenda[] = await response.json();
+                const respuestaJson = await response.json();
 
-                const agenda = [...data].sort((a, b) => {
-                    const fechaA = new Date(a.fecha_proximoControl as string).getTime();
-                    const fechaB = new Date(b.fecha_proximoControl as string).getTime();
-                    return fechaA - fechaB;
-                });
-
-                setControles(agenda);
+                setControles(respuestaJson.data);
+                setTotalPages(respuestaJson.meta.totalPages);
+                setTotalRegistros(respuestaJson.meta.total);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "No se pudo cargar la agenda de controles.");
             } finally {
@@ -109,58 +146,24 @@ export default function AgendaControles() {
         };
 
         cargarAgenda();
-    }, []);
+    }, [filtro, page]);
 
+    // Solo se calcula esAtrasado/diasAtraso sobre la página actual (ya viene filtrada del backend)
     const controlesConCategoria = useMemo(() => {
         const hoy = hoyMedianoche();
-        const manana = new Date(hoy);
-        manana.setDate(manana.getDate() + 1);
-        const inicioSem = inicioSemana(hoy);
-        const finSem = finSemana(hoy);
-        const inicioM = inicioMes(hoy);
-        const finM = finMes(hoy);
 
         return controles
             .filter((control) => !!control.fecha_proximoControl)
             .map((control) => {
                 const fecha = new Date(control.fecha_proximoControl as string);
-                const esHoy = fecha >= hoy && fecha < manana;
                 const esAtrasado = fecha < hoy;
-                const esEstaSemana = fecha >= inicioSem && fecha <= finSem;
-                const esEsteMes = fecha >= inicioM && fecha <= finM;
                 const diasAtraso = esAtrasado
                     ? Math.floor((hoy.getTime() - fecha.getTime()) / (1000 * 60 * 60 * 24))
                     : 0;
 
-                return { ...control, _fecha: fecha, esHoy, esAtrasado, esEstaSemana, esEsteMes, diasAtraso };
+                return { ...control, _fecha: fecha, esAtrasado, diasAtraso };
             });
     }, [controles]);
-
-    const controlesFiltrados = useMemo(() => {
-        switch (filtro) {
-            case "hoy":
-                return controlesConCategoria.filter((c) => c.esHoy);
-            case "atrasados":
-                return controlesConCategoria.filter((c) => c.esAtrasado);
-            case "semana":
-                return controlesConCategoria.filter((c) => c.esEstaSemana);
-            case "mes":
-                return controlesConCategoria.filter((c) => c.esEsteMes);
-            case "todos":
-            default:
-                return controlesConCategoria;
-        }
-    }, [controlesConCategoria, filtro]);
-
-    const conteos = useMemo(() => {
-        return {
-            hoy: controlesConCategoria.filter((c) => c.esHoy).length,
-            atrasados: controlesConCategoria.filter((c) => c.esAtrasado).length,
-            semana: controlesConCategoria.filter((c) => c.esEstaSemana).length,
-            mes: controlesConCategoria.filter((c) => c.esEsteMes).length,
-            todos: controlesConCategoria.length,
-        };
-    }, [controlesConCategoria]);
 
     const subtitulo = useMemo(() => {
         const hoy = hoyMedianoche();
@@ -185,17 +188,6 @@ export default function AgendaControles() {
         }
     }, [filtro]);
 
-    if (cargando) {
-        return (
-            <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex items-center gap-3 text-slate-900">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="text-lg font-bold">Cargando agenda...</span>
-                </div>
-            </div>
-        );
-    }
-
     if (error) {
         return <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center font-bold text-red-700">{error}</div>;
     }
@@ -216,7 +208,7 @@ export default function AgendaControles() {
                     <p className="mt-1 text-sm font-bold text-slate-900">{subtitulo}</p>
                 </div>
                 <div className="rounded-2xl border border-blue-600 bg-blue-600 px-4 py-3 text-sm font-bold text-slate-100">
-                    Mostrando: {controlesFiltrados.length}
+                    Mostrando: {totalRegistros}
                 </div>
             </div>
 
@@ -247,14 +239,21 @@ export default function AgendaControles() {
                                 className={`rounded-full px-2 py-0.5 text-xs font-bold ${activo ? "bg-white/20" : "bg-slate-100"
                                     }`}
                             >
-                                {conteo}
+                                {cargandoConteos ? "…" : conteo}
                             </span>
                         </button>
                     );
                 })}
             </div>
 
-            {controlesFiltrados.length === 0 ? (
+            {cargando ? (
+                <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="flex items-center gap-3 text-slate-900">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <span className="text-lg font-bold">Cargando agenda...</span>
+                    </div>
+                </div>
+            ) : controlesConCategoria.length === 0 ? (
                 filtro === "atrasados" ? (
                     <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-green-300 bg-green-50/40 px-6 text-center shadow-sm">
                         <div className="mb-4 rounded-full bg-green-100 p-4 text-green-600">
@@ -299,7 +298,7 @@ export default function AgendaControles() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 bg-white">
-                                {controlesFiltrados.map((control) => {
+                                {controlesConCategoria.map((control) => {
                                     const rutPaciente = control.paciente?.rut || control.rut_paciente;
                                     const nombrePaciente = control.paciente
                                         ? `${control.paciente.nombre} ${control.paciente.apellido}`
@@ -346,6 +345,27 @@ export default function AgendaControles() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Paginación */}
+                    <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 p-4">
+                        <span className="text-sm font-medium text-slate-600">Página {page} de {totalPages}</span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                disabled={page === 1}
+                                onClick={() => setPage((p) => p - 1)}
+                                className="flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                <ChevronLeft className="mr-1 h-4 w-4" /> Anterior
+                            </button>
+                            <button
+                                disabled={page >= totalPages}
+                                onClick={() => setPage((p) => p + 1)}
+                                className="flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                Siguiente <ChevronRight className="ml-1 h-4 w-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

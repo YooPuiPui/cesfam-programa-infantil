@@ -222,3 +222,27 @@ export const obtenerControlPorId: RequestHandler = async (req, res): Promise<voi
         res.status(500).json({ error: 'Error interno al consultar el control' });
     }
 };
+
+export const obtenerControlesPaginado: RequestHandler = async (req, res): Promise<void> => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 30;
+        const filtro = req.query.filtro as string | undefined;
+
+        const resultado = await controlService.buscarControlPaginado(page, limit, filtro);
+        res.status(200).json(resultado);
+    } catch (error: any) {
+        console.error('ERROR AL OBTENER CONTROLES PAGINADOS:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
+    }
+};
+
+export const obtenerConteosAgenda: RequestHandler = async (req, res): Promise<void> => {
+    try {
+        const conteos = await controlService.obtenerConteosAgenda();
+        res.status(200).json(conteos);
+    } catch (error: any) {
+        console.error('ERROR AL OBTENER CONTEOS DE AGENDA:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
+    }
+};
