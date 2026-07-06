@@ -7,6 +7,8 @@ import FichaPacientes from "./components/pacientes/fichaPacientes";
 import PlantillaControl from './components/controles/plantillaControl';
 import InscribirPaciente from "./components/pacientes/inscribirPaciente";
 import AgendaControles from "./components/agenda/agendaControles";
+import Dashboard from "./components/dashboard/Dashboard";
+import RutaProtegida from "./components/login/rsutaProtegida";
 
 export default function App() {
   return (
@@ -20,63 +22,77 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            <DashboardLayout>
-              <div className="p-6">pronto...</div>
-            </DashboardLayout>
+            <RutaProtegida>
+              <DashboardLayout>
+                <Dashboard />
+              </DashboardLayout>
+            </RutaProtegida>
           }
         />
 
         <Route
           path="/pacientes"
           element={
-            <DashboardLayout>
-              <PatientList />
-            </DashboardLayout>
+            <RutaProtegida>
+              <DashboardLayout>
+                <PatientList />
+              </DashboardLayout>
+            </RutaProtegida>
           }
         />
 
         <Route
           path="/inscribir-paciente"
           element={
-            <DashboardLayout>
-              <InscribirPaciente />
-            </DashboardLayout>
+            <RutaProtegida>
+              <DashboardLayout>
+                <InscribirPaciente />
+              </DashboardLayout>
+            </RutaProtegida>
           }
         />
 
         <Route
           path="/agenda"
           element={
-            <DashboardLayout>
-              <AgendaControles />
-            </DashboardLayout>
+            <RutaProtegida>
+              <DashboardLayout>
+                <AgendaControles />
+              </DashboardLayout>
+            </RutaProtegida>
           }
         />
 
         <Route
           path="/nuevo-control"
           element={
-            <DashboardLayout>
-              <CrearControl />
-            </DashboardLayout>
+            <RutaProtegida>
+              <DashboardLayout>
+                <CrearControl />
+              </DashboardLayout>
+            </RutaProtegida>
           }
         />
 
         <Route
           path="/ficha/:rut"
           element={
-            <DashboardLayout>
-              <FichaPacientes />
-            </DashboardLayout>
+            <RutaProtegida>
+              <DashboardLayout>
+                <FichaPacientes />
+              </DashboardLayout>
+            </RutaProtegida>
           }
         />
 
         <Route
           path="/detalle/:id_control"
           element={
-            <DashboardLayout>
-              <PlantillaControl />
-            </DashboardLayout>
+            <RutaProtegida>
+              <DashboardLayout>
+                <PlantillaControl />
+              </DashboardLayout>
+            </RutaProtegida>
           }
         />
       </Routes>
