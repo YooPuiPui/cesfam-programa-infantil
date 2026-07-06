@@ -75,3 +75,23 @@ export const eliminarPaciente = async (idPaciente: number) => {
         },
     });
 };
+
+export const obtenerConteosPacientes = async () => {
+    const [total, sename, naneas, trans, migrante, regular] = await Promise.all([
+        prisma.paciente.count(),
+        prisma.paciente.count({ where: { es_sename: true } }),
+        prisma.paciente.count({ where: { es_naneas_prematuro: true } }),
+        prisma.paciente.count({ where: { es_poblacion_trans: true } }),
+        prisma.paciente.count({ where: { es_migrante: true } }),
+        prisma.paciente.count({
+            where: {
+                es_sename: false,
+                es_naneas_prematuro: false,
+                es_poblacion_trans: false,
+                es_migrante: false,
+            },
+        }),
+    ]);
+
+    return { total, sename, naneas, trans, migrante, regular };
+};

@@ -6,13 +6,14 @@ import {
     obtenerProfesional,
     borrarProfesional
 } from '../controllers/profesional.controller';
+import { verificarToken } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-router.post('/', crearProfesional);
-router.get('/', obtenerTodosLosProfesionales);
-router.get('/:id', obtenerProfesional);
-router.put('/:id', editarProfesional);
-router.delete('/:id', borrarProfesional);
+router.post('/',verificarToken, crearProfesional);
+router.get('/',verificarToken, obtenerTodosLosProfesionales);
+router.get('/:id',verificarToken, obtenerProfesional);
+router.put('/:id',verificarToken, editarProfesional);
+router.delete('/:id',verificarToken, borrarProfesional);
 
 export default router;

@@ -258,7 +258,6 @@ export const borrarPaciente: RequestHandler = async (req, res): Promise<void> =>
     }
 };
 
-// src/controllers/paciente.controller.ts
 
 export const obtenerPacientePorRut: RequestHandler = async (req, res): Promise<void> => {
     try {
@@ -288,5 +287,27 @@ export const obtenerPacientePorRut: RequestHandler = async (req, res): Promise<v
     } catch (error: any) {
         console.error('Error al obtener paciente por RUT:', error.message);
         res.status(500).json({ error: 'Error interno al consultar el paciente' });
+    }
+};
+
+export const obtenerConteosPacientes = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const conteos = await prisma.paciente.count().then(async (total) => {
+            const [sename, naneas, trans, migrante, regular] = await Promise.all([
+                prisma.paciente.count({ where: { es_sename: true } }),
+                prisma.paciente.count({ where: { es_naneas_prematuro: true } }),
+                prisma.paciente.count({ where: { es_poblacion_trans: true } }),
+                prisma.paciente.count({ where: { es_migrante: true } }),
+                prisma.paciente.count({
+                    where: { es_sename: false, es_naneas_prematuro: false, es_poblacion_trans: false, es_migrante: false },
+                }),
+            ]);
+            return { total, sename, naneas, trans, migrante, regular };
+        });
+
+        res.status(200).json(conteos);
+    } catch (error: any) {
+        console.error('Error al obtener conteos de pacientes:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };

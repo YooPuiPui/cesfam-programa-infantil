@@ -7,14 +7,16 @@ import {
     editarTutor,
     eliminarTutor
 } from '../controllers/tutor.controller';
+import { verificarToken } from '../middlewares/authMiddleware';
+
 
 const router = Router();
 
-router.post('/', crearTutor);
-router.get('/', obtenerTutores);
-router.get('/rut/:rut', obtenerTutorporRut);
-router.get('/:id', obtenerTutor);
-router.put('/:id', editarTutor);
-router.delete('/:id', eliminarTutor);
+router.post('/',verificarToken, crearTutor);
+router.get('/',verificarToken, obtenerTutores);
+router.get('/rut/:rut',verificarToken, obtenerTutorporRut);
+router.get('/:id',verificarToken, obtenerTutor);
+router.put('/:id',verificarToken, editarTutor);
+router.delete('/:id',verificarToken, eliminarTutor);
 
 export default router;
