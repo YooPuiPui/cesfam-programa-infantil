@@ -8,7 +8,7 @@ import PlantillaControl from './components/controles/plantillaControl';
 import InscribirPaciente from "./components/pacientes/inscribirPaciente";
 import AgendaControles from "./components/agenda/agendaControles";
 import Dashboard from "./components/dashboard/Dashboard";
-import RutaProtegida from "./components/login/rsutaProtegida";
+import RutaProtegida from "./components/login/rutaProtegida";
 
 export default function App() {
   return (
