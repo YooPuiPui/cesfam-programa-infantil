@@ -64,11 +64,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-                                V
+                                {inicial}
                             </div>
                             <div className="hidden leading-tight sm:block">
-                                <p className="text-sm font-medium text-slate-800">Dra. Valeska </p>
-                                <p className="text-xs text-slate-500">Pediatra</p>
+                                <p className="text-sm font-medium text-slate-800">{usuarioActual.nombre}</p>
+                                <p className="text-xs text-slate-500">{usuarioActual.rol}</p>
                             </div>
                         </div>
                         <button

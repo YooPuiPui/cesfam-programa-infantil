@@ -21,9 +21,11 @@ export default function Login() {
 
             if (response.ok) {
                 const data = await response.json();
+
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('rut_profesional', data.usuario.rut);
-                navigate('/pacientes');
+                localStorage.setItem('usuario', JSON.stringify(data.usuario));
+                navigate('/dashboard');
             } else if (response.status === 401) {
                 setError('RUT o contraseña incorrectos');
             } else {

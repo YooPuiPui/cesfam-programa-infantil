@@ -9,16 +9,19 @@ import {
     obtenerControlesPaginado,
     obtenerConteosAgenda
 } from "../controllers/controlClinico.controller";
+import { verificarToken } from '../middlewares/authMiddleware';
+
+
 
 const router = Router();
 
-router.get('/', obtenerControles);
-router.post('/', crearControl);
-router.get('/agenda/paginado', obtenerControlesPaginado);
-router.get('/agenda/conteos', obtenerConteosAgenda);
-router.get('/detalle/:id', obtenerControlPorId);
-router.get('/:rut', obtenerControlPorRut);
-router.put('/:id', editarControl);
-router.delete('/:id', eliminarControl);
+router.get('/', verificarToken, obtenerControles);
+router.post('/', verificarToken, crearControl);
+router.get('/agenda/paginado',verificarToken, obtenerControlesPaginado);
+router.get('/agenda/conteos', verificarToken, obtenerConteosAgenda);
+router.get('/detalle/:id', verificarToken, obtenerControlPorId);
+router.get('/:rut',verificarToken, obtenerControlPorRut);
+router.put('/:id',verificarToken, editarControl);
+router.delete('/:id',verificarToken, eliminarControl);
 
 export default router;
