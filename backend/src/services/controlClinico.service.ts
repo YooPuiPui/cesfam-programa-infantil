@@ -82,7 +82,9 @@ export const buscarControlPaginado = async (page: number, limit: number, filtro?
     const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
     finMes.setHours(23, 59, 59, 999);
 
-    let where: any = {};
+    const idsVigentes = await obtenerIdsControlesVigentes();
+
+    let where: any = { id_control: { in: idsVigentes } };
 
     switch (filtro) {
         case 'hoy':
@@ -97,7 +99,7 @@ export const buscarControlPaginado = async (page: number, limit: number, filtro?
         case 'mes':
             where.fecha_proximoControl = { gte: inicioMes, lte: finMes };
             break;
-        // 'todos' o sin filtro: no se agrega condición extra
+        // 'todos' o sin filtro: no se agrega condición extra de fecha
     }
 
     const [data, total] = await Promise.all([
@@ -134,13 +136,28 @@ export const obtenerConteosAgenda = async () => {
     const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
     finMes.setHours(23, 59, 59, 999);
 
+    const idsVigentes = await obtenerIdsControlesVigentes();
+    const baseWhere = { id_control: { in: idsVigentes } };
+
     const [hoyCount, atrasadosCount, semanaCount, mesCount, todosCount] = await Promise.all([
-        prisma.controlClinico.count({ where: { fecha_proximoControl: { gte: hoy, lt: manana } } }),
-        prisma.controlClinico.count({ where: { fecha_proximoControl: { lt: hoy } } }),
-        prisma.controlClinico.count({ where: { fecha_proximoControl: { gte: inicioSemana, lte: finSemana } } }),
-        prisma.controlClinico.count({ where: { fecha_proximoControl: { gte: inicioMes, lte: finMes } } }),
-        prisma.controlClinico.count(),
+        prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { gte: hoy, lt: manana } } }),
+        prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { lt: hoy } } }),
+        prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { gte: inicioSemana, lte: finSemana } } }),
+        prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { gte: inicioMes, lte: finMes } } }),
+        prisma.controlClinico.count({ where: baseWhere }),
     ]);
 
     return { hoy: hoyCount, atrasados: atrasadosCount, semana: semanaCount, mes: mesCount, todos: todosCount };
+};
+
+
+// Obtiene, por cada paciente, el id del control creado más recientemente
+// (ese es el control "vigente" que representa el estado actual del paciente).
+const obtenerIdsControlesVigentes = async (): Promise<number[]> => {
+    const resultado = await prisma.$queryRaw<{ id_control: number }[]>`
+        SELECT DISTINCT ON (rut_paciente) id_control
+        FROM "ControlClinico"
+        ORDER BY rut_paciente, creado_en DESC
+    `;
+    return resultado.map((r) => r.id_control);
 };
