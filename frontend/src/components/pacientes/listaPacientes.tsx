@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, FolderOpen, Loader2, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { Search, Plus, FolderOpen, Loader2, ChevronLeft, ChevronRight, Filter, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from '../../service/api';
 
@@ -127,6 +127,15 @@ export default function PatientList() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-300">
             <div className="flex flex-col md:flex-row items-center justify-between p-4 gap-3 border-b border-slate-200 bg-slate-50 rounded-t-xl">
                 <div className="flex flex-col sm:flex-row w-full md:w-2/3 gap-3">
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-bold text-slate-900 shadow-sm transition-colors hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Volver
+                    </button>
+                
                     <div className="relative w-full sm:w-1/2">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                             <Search className="h-5 w-5 text-slate-500" />
@@ -173,7 +182,7 @@ export default function PatientList() {
                 <>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left text-slate-800">
-                            <thead className="text-xs text-slate-900 uppercase bg-slate-200 border-b border-slate-300 font-bold">
+                            <thead className="text-xs text-slate-900 uppercase bg-slate-300 border-b border-slate-300 font-bold">
                                 <tr>
                                     <th className="px-5 py-4">RUT</th>
                                     <th className="px-5 py-4">Nombre del Paciente</th>

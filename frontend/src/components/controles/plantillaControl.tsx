@@ -46,7 +46,7 @@ export default function PlantillaControl() {
 
     const formatearFecha = (fechaStr: string) => {
         if (!fechaStr) return '';
-        return new Date(fechaStr).toLocaleDateString('es-CL');
+        return new Date(fechaStr).toLocaleDateString('es-CL', { timeZone: 'UTC' });
     };
 
     if (cargando) return (
@@ -174,7 +174,7 @@ export default function PlantillaControl() {
                             <p className="font-bold uppercase underline underline-offset-2">Actuación / Plan / Indicaciones:</p>
                             <div className="text-xs font-bold bg-white px-3 py-1 border-2 border-black rounded shadow-sm whitespace-nowrap">
                                 PRÓX. CONTROL: {controlData.fecha_proximoControl
-                                    ? new Date(controlData.fecha_proximoControl).toLocaleDateString('es-CL')
+                                    ? new Date(controlData.fecha_proximoControl).toLocaleDateString('es-CL', { timeZone: 'UTC' })
                                     : '---'}
                             </div>
                         </div>

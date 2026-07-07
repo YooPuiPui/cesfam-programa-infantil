@@ -20,6 +20,7 @@ export function formatearFecha(fechaISO: string): string {
     if (!fechaISO) return 'N/A';
     const fecha = new Date(fechaISO);
     return fecha.toLocaleDateString('es-CL', {
+        timeZone: 'UTC',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',

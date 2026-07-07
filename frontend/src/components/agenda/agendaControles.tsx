@@ -21,7 +21,8 @@ type Conteos = {
 const formatearFecha = (fecha?: string | null) => {
     if (!fecha) return "Sin fecha";
     const parsed = new Date(fecha);
-    return Number.isNaN(parsed.getTime()) ? "Sin fecha" : parsed.toLocaleDateString("es-CL");
+    if (Number.isNaN(parsed.getTime())) return "Sin fecha";
+    return parsed.toLocaleDateString("es-CL", { timeZone: "UTC" });
 };
 
 const hoyMedianoche = () => {
@@ -49,6 +50,23 @@ const finSemana = (referencia: Date) => {
 
 const formatearFechaCorta = (fecha: Date) =>
     fecha.toLocaleDateString("es-CL", { day: "numeric", month: "short" });
+
+const obtenerClaveFechaCalendario = (fecha: string | Date) => {
+    if (typeof fecha === "string") {
+        return fecha.slice(0, 10);
+    }
+
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, "0");
+    const day = String(fecha.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
+
+const convertirClaveFechaACodeDias = (claveFecha: string) => {
+    const [year, month, day] = claveFecha.split("-").map(Number);
+    return Date.UTC(year, month - 1, day);
+};
 
 const MESES_LARGO = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -151,19 +169,44 @@ export default function AgendaControles() {
     // Solo se calcula esAtrasado/diasAtraso sobre la página actual (ya viene filtrada del backend)
     const controlesConCategoria = useMemo(() => {
         const hoy = hoyMedianoche();
+        const claveHoy = obtenerClaveFechaCalendario(hoy);
+        const fechaHoyCalendario = convertirClaveFechaACodeDias(claveHoy);
+        const inicioSemanaCalendario = convertirClaveFechaACodeDias(obtenerClaveFechaCalendario(inicioSemana(hoy)));
+        const finSemanaCalendario = convertirClaveFechaACodeDias(obtenerClaveFechaCalendario(finSemana(hoy)));
+        const inicioMesCalendario = convertirClaveFechaACodeDias(obtenerClaveFechaCalendario(new Date(hoy.getFullYear(), hoy.getMonth(), 1)));
+        const finMesCalendario = convertirClaveFechaACodeDias(obtenerClaveFechaCalendario(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)));
 
         return controles
             .filter((control) => !!control.fecha_proximoControl)
+            .filter((control) => {
+                const claveFecha = obtenerClaveFechaCalendario(control.fecha_proximoControl as string);
+                const fechaCalendario = convertirClaveFechaACodeDias(claveFecha);
+
+                switch (filtro) {
+                    case "hoy":
+                        return fechaCalendario === fechaHoyCalendario;
+                    case "atrasados":
+                        return fechaCalendario < fechaHoyCalendario;
+                    case "semana":
+                        return fechaCalendario >= inicioSemanaCalendario && fechaCalendario <= finSemanaCalendario;
+                    case "mes":
+                        return fechaCalendario >= inicioMesCalendario && fechaCalendario <= finMesCalendario;
+                    case "todos":
+                    default:
+                        return true;
+                }
+            })
             .map((control) => {
-                const fecha = new Date(control.fecha_proximoControl as string);
-                const esAtrasado = fecha < hoy;
+                const claveFecha = obtenerClaveFechaCalendario(control.fecha_proximoControl as string);
+                const fechaCalendario = convertirClaveFechaACodeDias(claveFecha);
+                const esAtrasado = fechaCalendario < fechaHoyCalendario;
                 const diasAtraso = esAtrasado
-                    ? Math.floor((hoy.getTime() - fecha.getTime()) / (1000 * 60 * 60 * 24))
+                    ? Math.floor((fechaHoyCalendario - fechaCalendario) / (1000 * 60 * 60 * 24))
                     : 0;
 
-                return { ...control, _fecha: fecha, esAtrasado, diasAtraso };
+                return { ...control, _fecha: new Date(fechaCalendario), esAtrasado, diasAtraso };
             });
-    }, [controles]);
+    }, [controles, filtro]);
 
     const subtitulo = useMemo(() => {
         const hoy = hoyMedianoche();
@@ -207,9 +250,11 @@ export default function AgendaControles() {
                     <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Controles agendados</h1>
                     <p className="mt-1 text-sm font-bold text-slate-900">{subtitulo}</p>
                 </div>
+                {/*
                 <div className="rounded-2xl border border-blue-600 bg-blue-600 px-4 py-3 text-sm font-bold text-slate-100">
                     Mostrando: {totalRegistros}
                 </div>
+                */}
             </div>
 
             {/* Chips de filtro */}
