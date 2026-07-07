@@ -66,21 +66,17 @@ export const buscarControlPorId = async (idControl: number) => {
 export const buscarControlPaginado = async (page: number, limit: number, filtro?: string) => {
     const skip = (page - 1) * limit;
 
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const manana = new Date(hoy);
-    manana.setDate(manana.getDate() + 1);
+    const ahora = new Date();
+    const hoy = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate()));
+    const manana = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate() + 1));
 
-    const inicioSemana = new Date(hoy);
-    const dia = inicioSemana.getDay();
-    inicioSemana.setDate(inicioSemana.getDate() + (dia === 0 ? -6 : 1 - dia));
-    const finSemana = new Date(inicioSemana);
-    finSemana.setDate(finSemana.getDate() + 6);
-    finSemana.setHours(23, 59, 59, 999);
+    const diaSemana = hoy.getUTCDay();
+    const diffInicio = diaSemana === 0 ? -6 : 1 - diaSemana;
+    const inicioSemana = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() + diffInicio));
+    const finSemana = new Date(Date.UTC(inicioSemana.getUTCFullYear(), inicioSemana.getUTCMonth(), inicioSemana.getUTCDate() + 7));
 
-    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-    finMes.setHours(23, 59, 59, 999);
+    const inicioMes = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), 1));
+    const finMes = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth() + 1, 1));
 
     const idsVigentes = await obtenerIdsControlesVigentes();
 
@@ -94,12 +90,11 @@ export const buscarControlPaginado = async (page: number, limit: number, filtro?
             where.fecha_proximoControl = { lt: hoy };
             break;
         case 'semana':
-            where.fecha_proximoControl = { gte: inicioSemana, lte: finSemana };
+            where.fecha_proximoControl = { gte: inicioSemana, lt: finSemana };
             break;
         case 'mes':
-            where.fecha_proximoControl = { gte: inicioMes, lte: finMes };
+            where.fecha_proximoControl = { gte: inicioMes, lt: finMes };
             break;
-        // 'todos' o sin filtro: no se agrega condición extra de fecha
     }
 
     const [data, total] = await Promise.all([
@@ -119,22 +114,19 @@ export const buscarControlPaginado = async (page: number, limit: number, filtro?
     };
 };
 
+
 export const obtenerConteosAgenda = async () => {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const manana = new Date(hoy);
-    manana.setDate(manana.getDate() + 1);
+    const ahora = new Date();
+    const hoy = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate()));
+    const manana = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate() + 1));
 
-    const inicioSemana = new Date(hoy);
-    const dia = inicioSemana.getDay();
-    inicioSemana.setDate(inicioSemana.getDate() + (dia === 0 ? -6 : 1 - dia));
-    const finSemana = new Date(inicioSemana);
-    finSemana.setDate(finSemana.getDate() + 6);
-    finSemana.setHours(23, 59, 59, 999);
+    const diaSemana = hoy.getUTCDay();
+    const diffInicio = diaSemana === 0 ? -6 : 1 - diaSemana;
+    const inicioSemana = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() + diffInicio));
+    const finSemana = new Date(Date.UTC(inicioSemana.getUTCFullYear(), inicioSemana.getUTCMonth(), inicioSemana.getUTCDate() + 7));
 
-    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-    finMes.setHours(23, 59, 59, 999);
+    const inicioMes = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), 1));
+    const finMes = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth() + 1, 1));
 
     const idsVigentes = await obtenerIdsControlesVigentes();
     const baseWhere = { id_control: { in: idsVigentes } };
@@ -142,8 +134,8 @@ export const obtenerConteosAgenda = async () => {
     const [hoyCount, atrasadosCount, semanaCount, mesCount, todosCount] = await Promise.all([
         prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { gte: hoy, lt: manana } } }),
         prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { lt: hoy } } }),
-        prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { gte: inicioSemana, lte: finSemana } } }),
-        prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { gte: inicioMes, lte: finMes } } }),
+        prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { gte: inicioSemana, lt: finSemana } } }),
+        prisma.controlClinico.count({ where: { ...baseWhere, fecha_proximoControl: { gte: inicioMes, lt: finMes } } }),
         prisma.controlClinico.count({ where: baseWhere }),
     ]);
 
@@ -152,7 +144,6 @@ export const obtenerConteosAgenda = async () => {
 
 
 // Obtiene, por cada paciente, el id del control creado más recientemente
-// (ese es el control "vigente" que representa el estado actual del paciente).
 const obtenerIdsControlesVigentes = async (): Promise<number[]> => {
     const resultado = await prisma.$queryRaw<{ id_control: number }[]>`
         SELECT DISTINCT ON (rut_paciente) id_control
