@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, Calendar, History } from 'lucide-react';
+import { FileText, Calendar, History, ArrowLeft } from 'lucide-react';
 import type { ControlClinico, Paciente } from '../../types';
 import { API_BASE_URL } from '../../service/api';
 
@@ -99,6 +99,14 @@ export default function FichaPaciente() {
             {/* ENCABEZADO DE LA FICHA */}
             <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-bold text-slate-900 shadow-sm transition-colors hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Volver
+                    </button>
                     {paciente?.es_poblacion_trans && paciente?.nombre_social ? (
                         <>
                             <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente.nombre_social} {paciente.apellido}</h1>
@@ -202,7 +210,7 @@ export default function FichaPaciente() {
                                     {controles.map((control) => (
                                         <tr key={control.id_control} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-bold text-slate-900">{new Date(control.fecha_control).toLocaleDateString('es-CL')}</div>
+                                                <div className="text-sm font-bold text-slate-900">{new Date(control.fecha_control).toLocaleDateString('es-CL', { timeZone: 'UTC' })}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm font-bold text-slate-800 line-clamp-1 max-w-[300px]" title={control.motivo_consulta}>
