@@ -1,28 +1,26 @@
 
 //? calcular edad
 
-export function calcularEdad(fechaNacimiento: string): number {
-
+export function calcularEdad(fechaNacimiento: string): string {
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
 
-    const mesActual = hoy.getMonth();
-    const diaActual = hoy.getDay();
-    const mesCumple = nacimiento.getMonth();
-    const diaCumple = nacimiento.getDate();
+    let años = hoy.getFullYear() - nacimiento.getFullYear();
+    let meses = hoy.getMonth() - nacimiento.getMonth();
 
-    if (mesActual < mesCumple || (mesActual === mesCumple && diaActual < diaCumple)) {
-        edad--;
+    if (meses < 0 || (meses === 0 && hoy.getDate() < nacimiento.getDate())) {
+        años--;
+        meses += 12;
     }
 
-    return edad;
+    return `${años}a ${meses}m`; 
 }
 
 export function formatearFecha(fechaISO: string): string {
     if (!fechaISO) return 'N/A';
     const fecha = new Date(fechaISO);
     return fecha.toLocaleDateString('es-CL', {
+        timeZone: 'UTC',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -123,10 +121,7 @@ export function formatearPeso(peso_kg: number | undefined): string {
     return `${peso_kg.toFixed(1)} kg`;
 }
 
-/**
- * Formatea talla para mostrar: "110 cm"
 
- */
 export function formatearTalla(talla_cm: number | undefined): string {
     if (!talla_cm) return 'N/A';
     return `${talla_cm} cm`;
@@ -139,7 +134,7 @@ export function colorEstado(activo: boolean): string {
         : 'bg-red-100 text-red-800 px-2 py-1 rounded text-sm';
 }
 
-//? Retorna un emoji/icono de sexo (para referencia visual rápida)
+
 
 export function iconoSexo(sexo: string): string {
     if (sexo.toLowerCase().includes('masculino')) return '♂';
@@ -148,7 +143,7 @@ export function iconoSexo(sexo: string): string {
 }
 
 
- //?  Si tiene nombre_social lo usa si no, usa nombre + apellido
+//?  Si tiene nombre_social lo usa si no, usa nombre + apellido
 
 export function nombreMostrar(nombre: string, nombre_social?: string): string {
     if (nombre_social && nombre_social.trim()) {
@@ -157,10 +152,7 @@ export function nombreMostrar(nombre: string, nombre_social?: string): string {
     return nombre;
 }
 
-/**
-    Convierte timestamp a "hace X tiempo" (ej: "hace 2 horas")
 
- */
 export function tiempoTranscurrido(fechaISO: string): string {
     const ahora = new Date();
     const fecha = new Date(fechaISO);
@@ -196,4 +188,18 @@ export function obtenerFechaHoy(): string {
         month: 'long',
         day: 'numeric',
     });
+}
+
+export function calcularEdadEnMeses(fechaNacimiento: string): number {
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNacimiento);
+
+    let meses = (hoy.getFullYear() - nacimiento.getFullYear()) * 12;
+    meses += hoy.getMonth() - nacimiento.getMonth();
+
+    if (hoy.getDate() < nacimiento.getDate()) {
+        meses--;
+    }
+
+    return meses;
 }
