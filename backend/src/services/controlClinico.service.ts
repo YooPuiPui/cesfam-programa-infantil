@@ -63,7 +63,14 @@ export const buscarControlPorId = async (idControl: number) => {
     });
 };
 
-export const buscarControlPaginado = async (page: number, limit: number, filtro?: string) => {
+export const buscarControlPaginado = async (
+    page: number,
+    limit: number,
+    filtro?: string,
+    fechaDesde?: string,
+    fechaHasta?: string,
+    orden?: string,
+) => {
     const skip = (page - 1) * limit;
 
     const ahora = new Date();
@@ -74,9 +81,6 @@ export const buscarControlPaginado = async (page: number, limit: number, filtro?
     const diffInicio = diaSemana === 0 ? -6 : 1 - diaSemana;
     const inicioSemana = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() + diffInicio));
     const finSemana = new Date(Date.UTC(inicioSemana.getUTCFullYear(), inicioSemana.getUTCMonth(), inicioSemana.getUTCDate() + 7));
-
-    const inicioMes = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), 1));
-    const finMes = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth() + 1, 1));
 
     const idsVigentes = await obtenerIdsControlesVigentes();
 
@@ -92,18 +96,24 @@ export const buscarControlPaginado = async (page: number, limit: number, filtro?
         case 'semana':
             where.fecha_proximoControl = { gte: inicioSemana, lt: finSemana };
             break;
-        case 'mes':
-            where.fecha_proximoControl = { gte: inicioMes, lt: finMes };
+        case 'rango':
+            if (fechaDesde && fechaHasta) {
+                const desde = new Date(fechaDesde + 'T00:00:00.000Z');
+                const hastaExclusivo = new Date(fechaHasta + 'T00:00:00.000Z');
+                hastaExclusivo.setUTCDate(hastaExclusivo.getUTCDate() + 1);
+                where.fecha_proximoControl = { gte: desde, lt: hastaExclusivo };
+            }
             break;
-    }
+        }
 
+    const direccionOrden = orden === 'desc' ? 'desc' : 'asc';    
     const [data, total] = await Promise.all([
         prisma.controlClinico.findMany({
             where,
             skip,
             take: limit,
             include: { paciente: true },
-            orderBy: { fecha_proximoControl: 'asc' }
+            orderBy: { fecha_proximoControl: direccionOrden }
         }),
         prisma.controlClinico.count({ where })
     ]);

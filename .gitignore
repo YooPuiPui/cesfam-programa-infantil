@@ -53,5 +53,16 @@ dist-ssr
 *.sln
 *.sw?
 
+backend/backups/
+backend/*.sql
+
+
+
+
+
+
+
+
+
 
 Microsoft/
