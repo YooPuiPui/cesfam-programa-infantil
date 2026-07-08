@@ -18,8 +18,10 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             rut: paciente.rut,
             nombre: paciente.nombre,
             apellido: paciente.apellido,
+            nombre_social: paciente.nombre_social,
             fecha_nacimiento: new Date(paciente.fecha_nacimiento),
             sexo_biologico: paciente.sexo_biologico,
+            identidad_genero: paciente.identidad_genero,
             nacionalidad: paciente.nacionalidad || 'Chilena',
             direccion: paciente.direccion,
             sector: paciente.sector,
@@ -27,7 +29,11 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             nhc: paciente.nhc,
             prevision: paciente.prevision,
             activo: paciente.activo !== undefined ? paciente.activo : true,
-            fecha_inscripcion: paciente.fecha_inscripcion ? new Date(paciente.fecha_inscripcion) : undefined
+            fecha_inscripcion: paciente.fecha_inscripcion ? new Date(paciente.fecha_inscripcion) : new Date(),
+            es_sename: paciente.es_sename !== undefined ? paciente.es_sename : false,
+            es_naneas_prematuro: paciente.es_naneas_prematuro !== undefined ? paciente.es_naneas_prematuro : false,
+            es_poblacion_trans: paciente.es_poblacion_trans !== undefined ? paciente.es_poblacion_trans : false,
+            es_migrante: paciente.es_migrante !== undefined ? paciente.es_migrante : false,
         };
 
 
@@ -40,7 +46,6 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             correo: tutor.correo,
             direccion: tutor.direccion,
             comuna: tutor.comuna,
-            rut_tutor_principal: tutor.rut
         };
 
 
@@ -142,15 +147,46 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 30;
         const skip = (page - 1) * limit;
+        const riesgo = req.query.riesgo as string | undefined;
+        const busqueda = req.query.busqueda as string | undefined;
 
-        // Prisma ejecuta ambas consultas eficientemente
+        let where: any = {};
+
+        switch (riesgo) {
+            case 'sename':
+                where.es_sename = true;
+                break;
+            case 'naneas':
+                where.es_naneas_prematuro = true;
+                break;
+            case 'trans':
+                where.es_poblacion_trans = true;
+                break;
+            case 'migrante':
+                where.es_migrante = true;
+                break;
+            case 'regular':
+                where = {
+                    es_sename: false,
+                    es_naneas_prematuro: false,
+                    es_poblacion_trans: false,
+                    es_migrante: false,
+                };
+                break;
+        }
+
+        if (busqueda && busqueda.trim() !== '') {
+            where.rut = { contains: busqueda.trim(), mode: 'insensitive' };
+        }
+
         const [data, total] = await Promise.all([
             prisma.paciente.findMany({
+                where,
                 skip: skip,
                 take: limit,
                 orderBy: { creado_en: 'desc' }
             }),
-            prisma.paciente.count()
+            prisma.paciente.count({ where })
         ]);
 
         res.status(200).json({
@@ -219,5 +255,59 @@ export const borrarPaciente: RequestHandler = async (req, res): Promise<void> =>
 
         res.status(500).json({ error: 'Error interno al eliminar el paciente ' });
 
+    }
+};
+
+
+export const obtenerPacientePorRut: RequestHandler = async (req, res): Promise<void> => {
+    try {
+        // 1. Forzamos a que el RUT sea leído como un único String
+        const rut = req.params.rut as string;
+
+        // 2. Si por alguna razón viene vacío, cortamos de inmediato
+        if (!rut) {
+            res.status(400).json({ error: 'Debes proporcionar un RUT' });
+            return;
+        }
+
+        // 3. Prisma ya no se quejará
+        const paciente = await prisma.paciente.findUnique({
+            where: { rut: rut },
+            include: {
+                tutor: true
+            }
+        });
+
+        if (!paciente) {
+            res.status(404).json({ error: 'El paciente no existe en los registros' });
+            return;
+        }
+
+        res.status(200).json(paciente);
+    } catch (error: any) {
+        console.error('Error al obtener paciente por RUT:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar el paciente' });
+    }
+};
+
+export const obtenerConteosPacientes = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const conteos = await prisma.paciente.count().then(async (total) => {
+            const [sename, naneas, trans, migrante, regular] = await Promise.all([
+                prisma.paciente.count({ where: { es_sename: true } }),
+                prisma.paciente.count({ where: { es_naneas_prematuro: true } }),
+                prisma.paciente.count({ where: { es_poblacion_trans: true } }),
+                prisma.paciente.count({ where: { es_migrante: true } }),
+                prisma.paciente.count({
+                    where: { es_sename: false, es_naneas_prematuro: false, es_poblacion_trans: false, es_migrante: false },
+                }),
+            ]);
+            return { total, sename, naneas, trans, migrante, regular };
+        });
+
+        res.status(200).json(conteos);
+    } catch (error: any) {
+        console.error('Error al obtener conteos de pacientes:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };

@@ -7,7 +7,7 @@ import {
     FormCrearPaciente,
 } from '../types/index';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 //? obtener la lista de pacientes /api/pacientes
 
@@ -192,6 +192,7 @@ export function calcularEdad(fechaNacimiento: string): number {
 export function formatearFecha(fechaISO: string): string {
     const fecha = new Date(fechaISO);
     return fecha.toLocaleDateString('es-CL', {
+        timeZone: 'UTC',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',

@@ -19,10 +19,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const usuarioStr = localStorage.getItem("usuario");
     const usuarioActual = usuarioStr ? JSON.parse(usuarioStr) : { nombre: "Profesional", rol: "Medico" };
 
-    // 2. Extraemos la primera letra del nombre para el círculo del avatar
     const inicial = usuarioActual.nombre ? usuarioActual.nombre.charAt(0).toUpperCase() : "U";
 
-    // 3. Función para destruir la sesión y salir
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("usuario");
@@ -60,17 +58,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* header permanente*/}
                 <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
                     <h1 className="text-base font-semibold text-slate-800">
-                        {navItems.find(i => i.path === location.pathname)?.label || "Panel"}
+                        {navItems.find(i => i.path === location.pathname)?.label || ""}
                     </h1>
 
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-                                V
+                                {inicial}
                             </div>
                             <div className="hidden leading-tight sm:block">
-                                <p className="text-sm font-medium text-slate-800">Dra. Valeska </p>
-                                <p className="text-xs text-slate-500">Pediatra</p>
+                                <p className="text-sm font-medium text-slate-800">{usuarioActual.nombre}</p>
+                                <p className="text-xs text-slate-500">{usuarioActual.rol}</p>
                             </div>
                         </div>
                         <button
