@@ -48,7 +48,7 @@ services:
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     environment:
-      - VITE_API_URL=http://backend:3000/api
+      - VITE_API_URL=http://146.83.194.168:3000/api
     depends_on:
       - backend
     networks:
