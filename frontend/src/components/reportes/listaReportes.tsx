@@ -1,106 +1,83 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, FolderOpen, Loader2, ChevronLeft, ChevronRight, Filter, ArrowLeft } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Loader2, ChevronLeft, ChevronRight, Filter, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from '../../service/api';
 
-interface Paciente {
-    id_paciente: number;
+interface ReportePaciente {
     rut: string;
     nombre: string;
-    apellido: string;
-    fecha_nacimiento: string;
-    es_sename: boolean;
-    es_naneas_prematuro: boolean;
-    es_poblacion_trans: boolean;
-    es_migrante: boolean;
+    edad_meses: number | null;
+    ultimo_control: string | null;
+    totalControles: number;
+    tasaPesoKgMes: number | null;
+    tasaTallaCmMes: number | null;
+    alerta: string | null;
 }
 
-type FiltroRiesgo = "todos" | "sename" | "naneas" | "trans" | "migrante" | "regular";
+type FiltroReporte = "todos" | "alerta" | "con_datos" | "sin_datos";
 
-const OPCIONES_RIESGO: { value: FiltroRiesgo; label: string }[] = [
+const OPCIONES_FILTRO: { value: FiltroReporte; label: string }[] = [
     { value: "todos", label: "Todos" },
-    { value: "regular", label: "Población Regular" },
-    { value: "sename", label: "SENAME" },
-    { value: "naneas", label: "Prematuro/NANEAS" },
-    { value: "trans", label: "Población Trans" },
-    { value: "migrante", label: "Migrante" },
+    { value: "alerta", label: "Con alerta" },
+    { value: "con_datos", label: "Con datos suficientes" },
+    { value: "sin_datos", label: "Datos insuficientes" },
 ];
 
-const calcularEdadPediatrica = (fechaIso: string) => {
-    if (!fechaIso) return "N/A";
-    const nacimiento = new Date(fechaIso);
-    const hoy = new Date();
-    let anios = hoy.getFullYear() - nacimiento.getFullYear();
-    let meses = hoy.getMonth() - nacimiento.getMonth();
-    if (meses < 0 || (meses === 0 && hoy.getDate() < nacimiento.getDate())) { anios--; meses += 12; }
-    if (anios === 0 && meses === 0) return "Recién nacido";
-    if (anios === 0) return `${meses} mes${meses > 1 ? 'es' : ''}`;
-    if (meses === 0) return `${anios} año${anios > 1 ? 's' : ''}`;
-    return `${anios} año${anios > 1 ? 's' : ''} y ${meses} mes${meses > 1 ? 'es' : ''}`;
+const formatearFechaCorta = (fechaIso: string | null) => {
+    if (!fechaIso) return "Sin controles";
+    return new Date(fechaIso).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-const renderRiesgoSocial = (paciente: Paciente) => {
-    const riesgos = [];
-    if (paciente.es_sename) riesgos.push({ label: "SENAME", color: "bg-red-100 text-red-900 border-red-300" });
-    if (paciente.es_naneas_prematuro) riesgos.push({ label: "Prematuro/NANEAS", color: "bg-orange-100 text-orange-900 border-orange-300" });
-    if (paciente.es_poblacion_trans) riesgos.push({ label: "Trans", color: "bg-purple-100 text-purple-900 border-purple-300" });
-    if (paciente.es_migrante) riesgos.push({ label: "Migrante", color: "bg-blue-100 text-blue-900 border-blue-300" });
+const renderTasa = (valor: number | null, unidad: string) => {
+    if (valor === null) return <span className="text-slate-400 font-medium">Datos insuficientes</span>;
+    const signo = valor > 0 ? '+' : '';
+    return <span className="font-bold text-slate-800">{signo}{valor} {unidad}</span>;
+};
 
-    if (riesgos.length === 0) return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-300">Población Regular</span>;
-
+const renderAlerta = (alerta: string | null) => {
+    if (!alerta) {
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-300">Sin alerta</span>;
+    }
     return (
-        <div className="flex flex-wrap gap-1.5">
-            {riesgos.map((riesgo, index) => (
-                <span key={index} className={`px-2.5 py-1 text-xs font-bold rounded-full border ${riesgo.color}`}>
-                    {riesgo.label}
-                </span>
-            ))}
-        </div>
+        <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-orange-100 text-orange-900 border border-orange-300 w-fit">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {alerta}
+        </span>
     );
 };
 
-export default function PatientList() {
+export default function ReportesList() {
     const navigate = useNavigate();
     const [busqueda, setBusqueda] = useState("");
     const [busquedaDebounced, setBusquedaDebounced] = useState("");
-    const [pacientes, setPacientes] = useState<Paciente[]>([]);
+    const [reportes, setReportes] = useState<ReportePaciente[]>([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
 
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalPacientes, setTotalPacientes] = useState(0); // <- nuevo
+    const [filtro, setFiltro] = useState<FiltroReporte>("todos");
 
-    const [riesgo, setRiesgo] = useState<FiltroRiesgo>("todos");
-
-    // Debounce: espera 400ms de silencio antes de aplicar la búsqueda real
     useEffect(() => {
-        const timeout = setTimeout(() => {
-            setBusquedaDebounced(busqueda.trim());
-        }, 400);
+        const timeout = setTimeout(() => setBusquedaDebounced(busqueda.trim()), 400);
         return () => clearTimeout(timeout);
     }, [busqueda]);
 
-    // Cualquier cambio de filtro (riesgo o búsqueda) vuelve a página 1
     useEffect(() => {
         setPage(1);
-    }, [riesgo, busquedaDebounced]);
+    }, [filtro, busquedaDebounced]);
 
     useEffect(() => {
-        const obtenerPacientes = async () => {
+        const obtenerReportes = async () => {
             setCargando(true);
             try {
                 const token = localStorage.getItem("token");
 
-                const params = new URLSearchParams({
-                    page: String(page),
-                    limit: "30",
-                });
-                if (riesgo !== "todos") params.set("riesgo", riesgo);
-                const pareceRut = /\d/.test(busquedaDebounced);
-                if (busquedaDebounced !== "" && pareceRut) params.set("busqueda", busquedaDebounced);
+                const params = new URLSearchParams({ page: String(page), limit: "30" });
+                if (filtro !== "todos") params.set("filtro", filtro);
+                if (busquedaDebounced !== "") params.set("busqueda", busquedaDebounced);
 
-                const respuesta = await fetch(`${API_BASE_URL}/pacientes?${params.toString()}`, {
+                const respuesta = await fetch(`${API_BASE_URL}/reportes?${params.toString()}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -108,13 +85,11 @@ export default function PatientList() {
                     }
                 });
 
-                if (!respuesta.ok) throw new Error("Error al obtener los datos");
+                if (!respuesta.ok) throw new Error("Error al obtener los reportes");
 
                 const respuestaJson = await respuesta.json();
-
-                setPacientes(respuestaJson.data);
+                setReportes(respuestaJson.data);
                 setTotalPages(respuestaJson.meta.totalPages);
-                setTotalPacientes(respuestaJson.meta.total); // <- nuevo
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -122,8 +97,8 @@ export default function PatientList() {
             }
         };
 
-        obtenerPacientes();
-    }, [page, riesgo, busquedaDebounced]);
+        obtenerReportes();
+    }, [page, filtro, busquedaDebounced]);
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-300">
@@ -145,7 +120,7 @@ export default function PatientList() {
                         <input
                             type="text"
                             className="bg-white border border-slate-400 text-slate-900 text-sm font-medium rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full pl-10 p-2.5 outline-none transition-all shadow-sm"
-                            placeholder="Buscar paciente por RUT..."
+                            placeholder="Buscar por RUT o nombre..."
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                         />
@@ -156,62 +131,51 @@ export default function PatientList() {
                             <Filter className="h-5 w-5 text-slate-500" />
                         </div>
                         <select
-                            value={riesgo}
-                            onChange={(e) => setRiesgo(e.target.value as FiltroRiesgo)}
+                            value={filtro}
+                            onChange={(e) => setFiltro(e.target.value as FiltroReporte)}
                             className="bg-white border border-slate-400 text-slate-900 text-sm font-medium rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full pl-10 p-2.5 outline-none transition-all shadow-sm appearance-none cursor-pointer"
                         >
-                            {OPCIONES_RIESGO.map((opcion) => (
-                                <option key={opcion.value} value={opcion.value}>
-                                    {opcion.label}
-                                </option>
+                            {OPCIONES_FILTRO.map((opcion) => (
+                                <option key={opcion.value} value={opcion.value}>{opcion.label}</option>
                             ))}
                         </select>
                     </div>
                 </div>
-
-                <div className="w-full md:w-auto flex flex-col md:flex-row items-stretch md:items-center justify-end gap-3 flex-shrink-0">
-                    <div className="flex items-center justify-center bg-blue-700 text-white font-bold rounded-lg text-sm px-4 py-2.5 shadow-sm whitespace-nowrap">
-                        Total: {totalPacientes}
-                    </div>
-
-                    <button type="button" onClick={() => navigate("/inscribir-paciente")} className="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 font-semibold rounded-lg text-sm px-4 py-2.5 transition-colors shadow-sm">
-                        <Plus className="h-5 w-5 mr-2" />
-                        Inscribir Paciente
-                    </button>
-                </div>
             </div>
 
-            {cargando && <div className="flex justify-center items-center p-12 text-blue-700"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-3 font-semibold text-lg">Cargando...</span></div>}
+            {cargando && <div className="flex justify-center items-center p-12 text-blue-700"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-3 font-semibold text-lg">Cargando reportes...</span></div>}
             {error && !cargando && <div className="p-8 text-center text-red-600 font-bold text-lg">{error}</div>}
 
             {!cargando && !error && (
                 <>
-
-
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left text-slate-800">
                             <thead className="text-xs text-slate-900 uppercase bg-slate-300 border-b border-slate-300 font-bold">
                                 <tr>
                                     <th className="px-5 py-4">RUT</th>
                                     <th className="px-5 py-4">Nombre del Paciente</th>
-                                    <th className="px-5 py-4">Edad</th>
-                                    <th className="px-5 py-4">Riesgo Social / Condición</th>
+                                    <th className="px-5 py-4">Último Control</th>
+                                    <th className="px-5 py-4">Variación Peso</th>
+                                    <th className="px-5 py-4">Variación Talla</th>
+                                    <th className="px-5 py-4">Alerta</th>
                                     <th className="px-5 py-4 text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {pacientes.map((paciente) => (
-                                    <tr key={paciente.id_paciente} className="border-b border-slate-200 hover:bg-blue-50 transition-colors">
-                                        <td className="px-5 py-3 font-bold text-slate-900">{paciente.rut}</td>
-                                        <td className="px-5 py-3 font-medium text-slate-900 capitalize">{paciente.nombre.toLowerCase()} {paciente.apellido.toLowerCase()}</td>
-                                        <td className="px-5 py-3 text-blue-800 font-semibold">{calcularEdadPediatrica(paciente.fecha_nacimiento)}</td>
-                                        <td className="px-5 py-3">{renderRiesgoSocial(paciente)}</td>
+                                {reportes.map((r) => (
+                                    <tr key={r.rut} className="border-b border-slate-200 hover:bg-blue-50 transition-colors">
+                                        <td className="px-5 py-3 font-bold text-slate-900">{r.rut}</td>
+                                        <td className="px-5 py-3 font-medium text-slate-900 capitalize">{r.nombre.toLowerCase()}</td>
+                                        <td className="px-5 py-3 text-slate-700 font-semibold">{formatearFechaCorta(r.ultimo_control)}</td>
+                                        <td className="px-5 py-3">{renderTasa(r.tasaPesoKgMes, 'kg/mes')}</td>
+                                        <td className="px-5 py-3">{renderTasa(r.tasaTallaCmMes, 'cm/mes')}</td>
+                                        <td className="px-5 py-3">{renderAlerta(r.alerta)}</td>
                                         <td className="px-5 py-3 flex items-center justify-end">
                                             <button
-                                                onClick={() => navigate(`/ficha/${paciente.rut}`)}
+                                                onClick={() => navigate(`/reportes/${r.rut}`)}
                                                 className="flex items-center gap-1.5 text-sm font-bold text-slate-700 hover:text-blue-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 transition-colors shadow-sm"
                                             >
-                                                <FolderOpen className="h-4 w-4" /> Ver Ficha
+                                                <TrendingUp className="h-4 w-4" /> Ver Evolución
                                             </button>
                                         </td>
                                     </tr>
@@ -220,7 +184,7 @@ export default function PatientList() {
                         </table>
                     </div>
 
-                    {pacientes.length === 0 && (
+                    {reportes.length === 0 && (
                         <div className="p-8 text-center text-slate-500 font-semibold">
                             No se encontraron pacientes con los filtros aplicados.
                         </div>

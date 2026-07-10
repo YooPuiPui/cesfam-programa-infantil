@@ -184,7 +184,13 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                 where,
                 skip: skip,
                 take: limit,
-                orderBy: { creado_en: 'desc' }
+                orderBy: { creado_en: 'desc' },
+                include: {
+                    controlClinico: {
+                        orderBy: { fecha_control: 'desc' },
+                        take: 1
+                    }
+                }
             }),
             prisma.paciente.count({ where })
         ]);
