@@ -9,6 +9,8 @@ import InscribirPaciente from "./components/pacientes/inscribirPaciente";
 import AgendaControles from "./components/agenda/agendaControles";
 import Dashboard from "./components/dashboard/Dashboard";
 import RutaProtegida from "./components/login/rutaProtegida";
+import ReportesList from "./components/reportes/listaReportes";
+import ReporteDetalle from "./components/reportes/datalleReportes";
 
 export default function App() {
   return (
@@ -91,6 +93,28 @@ export default function App() {
             <RutaProtegida>
               <DashboardLayout>
                 <PlantillaControl />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/reportes"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <ReportesList />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/reportes/:rut"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <ReporteDetalle />
               </DashboardLayout>
             </RutaProtegida>
           }
