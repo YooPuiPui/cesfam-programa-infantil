@@ -207,7 +207,7 @@ export default function InscribirPaciente() {
         setGuardando(true);
 
         try {
-            const response = await fetch("http://localhost:3000/api/pacientes", {
+            const response = await fetch(`${API_BASE_URL}/pacientes`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
