@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 3000;
 // Middlewares
 const origenesPermitidos = [
   'http://localhost:5173',
+  'http://localhost:5174',
   process.env.FRONTEND_ORIGIN, 
 ].filter(Boolean) as string[];
 
