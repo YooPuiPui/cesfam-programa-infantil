@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   database:
-    build: 
+    build:
       context: ./database
     container_name: cesfam-db-container
     ports:
-      - "5455:5432"
+      - "${DB_PORT:-5455}:5432"
     environment:
       POSTGRES_USER: ${DB_USER:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-admin123}
@@ -16,25 +14,21 @@ services:
     volumes:
       - cesfam-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-root} -d ${DB_NAME:-cesfam_db}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-root} -d ${DB_NAME:-cesfam_db}" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
   backend:
-    build: 
+    build:
       context: ./backend
     container_name: mi-servidor-backend
     ports:
       - "${BACKEND_PORT:-3000}:3000"
-    env_file:
-      - ./backend/.env
     environment:
-      - DB_HOST=database
-      - DB_USER=${DB_USER:-root}
-      - DB_PASSWORD=${DB_PASSWORD:-admin123}
-      - DB_NAME=${DB_NAME:-cesfam_db}
       - DATABASE_URL=postgresql://${DB_USER:-root}:${DB_PASSWORD:-admin123}@database:5432/${DB_NAME:-cesfam_db}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_ORIGIN=http://${SERVER_HOST}:${FRONTEND_PORT:-5173}
     depends_on:
       database:
         condition: service_healthy
@@ -42,13 +36,13 @@ services:
       - cesfam-net
 
   frontend:
-    build: 
+    build:
       context: ./frontend
     container_name: mi-servidor-frontend
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     environment:
-      - VITE_API_URL=http://146.83.194.168:3000/api
+      - VITE_API_URL=http://${SERVER_HOST}:${BACKEND_PORT:-3000}/api
     depends_on:
       - backend
     networks:
