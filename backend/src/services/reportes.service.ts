@@ -1,9 +1,8 @@
 import prisma from "../config/prisma";
 
-const UMBRAL_PESO_GANANCIA_KG_MES = 0.8;
-const UMBRAL_PESO_PERDIDA_KG_MES = -0.5;
+const UMBRAL_PERDIDA_KG_MES = -0.3; // cualquier pérdida sostenida es atípica en un niño en crecimiento activo
 const VENTANA_MESES_ALERTA = 24;
-const MIN_DIAS_ENTRE_CONTROLES = 5;
+const MIN_DIAS_ENTRE_CONTROLES = 5; // ignora tramos demasiado cortos (ruido/errores de tipeo)
 
 function mesesEntre(fechaA: Date, fechaB: Date): number {
     const dias = Math.abs(fechaA.getTime() - fechaB.getTime()) / (1000 * 60 * 60 * 24);
@@ -12,6 +11,32 @@ function mesesEntre(fechaA: Date, fechaB: Date): number {
 
 function diasEntre(fechaA: Date, fechaB: Date): number {
     return Math.abs(fechaA.getTime() - fechaB.getTime()) / (1000 * 60 * 60 * 24);
+}
+
+const PUNTOS_EDAD_PESO = [0, 3, 6, 12, 24, 36, 48, 60, 72, 84, 96, 108];
+const PUNTOS_PESO_REF = [3.3, 6.0, 7.8, 9.6, 12.2, 14.3, 16.3, 18.0, 20.5, 22.9, 25.6, 28.6];
+
+function pesoEsperadoParaEdad(edadMeses: number): number {
+    if (edadMeses <= PUNTOS_EDAD_PESO[0]) return PUNTOS_PESO_REF[0];
+    if (edadMeses >= PUNTOS_EDAD_PESO[PUNTOS_EDAD_PESO.length - 1]) return PUNTOS_PESO_REF[PUNTOS_PESO_REF.length - 1];
+
+    for (let i = 0; i < PUNTOS_EDAD_PESO.length - 1; i++) {
+        if (edadMeses >= PUNTOS_EDAD_PESO[i] && edadMeses <= PUNTOS_EDAD_PESO[i + 1]) {
+            const proporcion = (edadMeses - PUNTOS_EDAD_PESO[i]) / (PUNTOS_EDAD_PESO[i + 1] - PUNTOS_EDAD_PESO[i]);
+            return PUNTOS_PESO_REF[i] + proporcion * (PUNTOS_PESO_REF[i + 1] - PUNTOS_PESO_REF[i]);
+        }
+    }
+    return PUNTOS_PESO_REF[PUNTOS_PESO_REF.length - 1];
+}
+
+function gananciaEsperadaKgMes(edadMeses: number): number {
+    const antes = pesoEsperadoParaEdad(Math.max(edadMeses - 1, 0));
+    const despues = pesoEsperadoParaEdad(edadMeses + 1);
+    return Math.max((despues - antes) / 2, 0.05);
+}
+
+function umbralGananciaKgMes(edadMeses: number): number {
+    return Math.max(gananciaEsperadaKgMes(edadMeses) * 3, 0.4);
 }
 
 interface ControlLiviano {
@@ -45,9 +70,11 @@ function calcularTramosConAlerta(controlesVentana: ControlLiviano[]): TramoDetec
         const tasaTallaCmMes = Number(((actual.talla_cm - anterior.talla_cm) / meses).toFixed(2));
 
         let tipo: string | null = null;
-        if (tasaPesoKgMes >= UMBRAL_PESO_GANANCIA_KG_MES) {
+        const umbralGanancia = umbralGananciaKgMes(actual.edad_meses);
+
+        if (tasaPesoKgMes >= umbralGanancia) {
             tipo = 'Aumento de peso acelerado';
-        } else if (tasaPesoKgMes <= UMBRAL_PESO_PERDIDA_KG_MES) {
+        } else if (tasaPesoKgMes <= UMBRAL_PERDIDA_KG_MES) {
             tipo = 'Pérdida de peso significativa';
         }
 
@@ -82,7 +109,7 @@ export const obtenerReportePacientes = async (
             apellido: true,
             controlClinico: {
                 orderBy: { fecha_control: 'desc' },
-                take: 30, // cupo generoso; filtramos la ventana real en JS
+                take: 30,
                 select: {
                     fecha_control: true,
                     peso_kg: true,
@@ -90,33 +117,30 @@ export const obtenerReportePacientes = async (
                     edad_meses: true,
                 },
             },
-            _count: { select: { controlClinico: true } }, // total histórico, sin ventana
+            _count: { select: { controlClinico: true } },
         },
     });
 
     let reportes = pacientes.map((p) => {
-        const controlesDesc = p.controlClinico; // más reciente primero
+        const controlesDesc = p.controlClinico;
         const ultimo = controlesDesc[0] ?? null;
 
-        // Filtramos a los que caen dentro de la ventana de 24 meses, y los ordenamos ASC
-        // para recorrer los tramos en orden cronológico.
         const controlesVentana = controlesDesc
             .filter((c) => c.fecha_control >= haceVeinticuatroMeses)
             .slice()
             .reverse();
 
         const tramosConAlerta = calcularTramosConAlerta(controlesVentana);
+
         const alertaMasReciente = tramosConAlerta.length > 0 ? tramosConAlerta[tramosConAlerta.length - 1] : null;
 
         let tasaPesoKgMes: number | null = null;
         let tasaTallaCmMes: number | null = null;
 
         if (alertaMasReciente) {
-            // Si hay alerta, mostramos la tasa del tramo que la generó (coherencia con lo que se ve en pantalla)
             tasaPesoKgMes = alertaMasReciente.tasaPesoKgMes;
             tasaTallaCmMes = alertaMasReciente.tasaTallaCmMes;
         } else if (controlesVentana.length >= 2) {
-            // Sin alerta, mostramos la tasa del último par dentro de la ventana
             const penultimo = controlesVentana[controlesVentana.length - 2];
             const ultimoEnVentana = controlesVentana[controlesVentana.length - 1];
             const meses = mesesEntre(penultimo.fecha_control, ultimoEnVentana.fecha_control);
@@ -138,7 +162,6 @@ export const obtenerReportePacientes = async (
         };
     });
 
-    // Filtro por estado
     if (filtro === 'alerta') {
         reportes = reportes.filter((r) => r.alerta !== null);
     } else if (filtro === 'con_datos') {
@@ -147,7 +170,6 @@ export const obtenerReportePacientes = async (
         reportes = reportes.filter((r) => r.controlesEnVentana < 2);
     }
 
-    // Búsqueda por rut o nombre
     if (busqueda && busqueda.trim() !== '') {
         const texto = busqueda.trim().toLowerCase();
         reportes = reportes.filter(
@@ -155,7 +177,6 @@ export const obtenerReportePacientes = async (
         );
     }
 
-    // Orden por relevancia: alerta primero, luego con datos suficientes, luego el resto
     reportes.sort((a, b) => {
         const rangoA = a.alerta ? 0 : a.controlesEnVentana >= 2 ? 1 : 2;
         const rangoB = b.alerta ? 0 : b.controlesEnVentana >= 2 ? 1 : 2;
@@ -181,7 +202,7 @@ export const obtenerReporteDetalle = async (rut: string) => {
     const paciente = await prisma.paciente.findUnique({
         where: { rut },
         include: {
-            controlClinico: { orderBy: { fecha_control: 'asc' } }, // historial completo, sin ventana
+            controlClinico: { orderBy: { fecha_control: 'asc' } },
         },
     });
 
@@ -196,6 +217,7 @@ export const obtenerReporteDetalle = async (rut: string) => {
             talla_cm: c.talla_cm,
             imc: c.imc,
             edad_meses: c.edad_meses,
+            perimetro_cefalico: c.perimetro_cefalico,
         })),
     };
 };

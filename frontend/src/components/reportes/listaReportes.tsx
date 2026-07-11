@@ -19,8 +19,8 @@ type FiltroReporte = "todos" | "alerta" | "con_datos" | "sin_datos";
 const OPCIONES_FILTRO: { value: FiltroReporte; label: string }[] = [
     { value: "todos", label: "Todos" },
     { value: "alerta", label: "Con alerta" },
-    { value: "con_datos", label: "Con datos suficientes" },
-    { value: "sin_datos", label: "Datos insuficientes" },
+    { value: "con_datos", label: "Evolución registrada" },
+    { value: "sin_datos", label: "Seguimiento inicial" },
 ];
 
 const formatearFechaCorta = (fechaIso: string | null) => {
@@ -115,7 +115,7 @@ export default function ReportesList() {
 
                     <div className="relative w-full sm:w-1/2">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <Search className="h-5 w-5 text-slate-500" />
+                            <Search className="h-5 w-5 text-slate-900" />
                         </div>
                         <input
                             type="text"
@@ -128,7 +128,7 @@ export default function ReportesList() {
 
                     <div className="relative w-full sm:w-1/2">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <Filter className="h-5 w-5 text-slate-500" />
+                            <Filter className="h-5 w-5 text-slate-900" />
                         </div>
                         <select
                             value={filtro}
@@ -185,7 +185,7 @@ export default function ReportesList() {
                     </div>
 
                     {reportes.length === 0 && (
-                        <div className="p-8 text-center text-slate-500 font-semibold">
+                        <div className="p-8 text-center text-slate-900 font-semibold">
                             No se encontraron pacientes con los filtros aplicados.
                         </div>
                     )}
