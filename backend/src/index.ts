@@ -7,7 +7,7 @@ import tutorRoutes from './routes/tutor.routes';
 import controlRoutes from './routes/controlClinico.routes';
 import authRoutes from './routes/auth.routes';
 import reportesRoutes from './routes/reportes.routes';
-
+import 'dotenv/config';
 
 
 
@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3000;
 // Middlewares
 const origenesPermitidos = [
   'http://localhost:5173',
-  process.env.FRONTEND_ORIGIN, // ej: http://192.168.1.XX:5173, viene del .env
+  process.env.FRONTEND_ORIGIN, 
 ].filter(Boolean) as string[];
 
 app.use(cors({
