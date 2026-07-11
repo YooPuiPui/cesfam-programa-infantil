@@ -18,8 +18,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
+const origenesPermitidos = [
+  'http://localhost:5173',
+  process.env.FRONTEND_ORIGIN, // ej: http://192.168.1.XX:5173, viene del .env
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://146.83.198.35:1650'],
+  origin: origenesPermitidos,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
