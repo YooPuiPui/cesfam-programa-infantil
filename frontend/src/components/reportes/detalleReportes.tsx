@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowLeft, Loader2, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { API_BASE_URL } from '../../service/api';
 
@@ -13,10 +13,18 @@ interface ControlHistorial {
     perimetro_cefalico: number | null;
 }
 
+interface AlertaDetalle {
+    desde: string;
+    hasta: string;
+    tipo: string;
+    tasaPesoKgMes: number;
+}
+
 interface ReporteDetalleData {
     rut: string;
     nombre: string;
     historial: ControlHistorial[];
+    alertaDetalle: AlertaDetalle | null;
 }
 
 function calcularDominio(valores: number[]): [number, number] {
@@ -203,6 +211,18 @@ export default function DetalleReportes() {
                                 </span>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {reporte.alertaDetalle && (
+                <div className="mb-6 flex items-start gap-3 rounded-lg border-2 border-orange-300 bg-orange-50 px-4 py-3">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
+                    <div>
+                        <p className="text-sm font-bold text-orange-900">{reporte.alertaDetalle.tipo}</p>
+                        <p className="text-sm font-medium text-orange-800">
+                            Detectado entre el {formatearFechaCorta(reporte.alertaDetalle.desde)} y el {formatearFechaCorta(reporte.alertaDetalle.hasta)}
+                        </p>
                     </div>
                 </div>
             )}

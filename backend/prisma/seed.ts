@@ -4,7 +4,13 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-// ==================== Anclaje de fechas a día calendario (evita bug de zona horaria) ====================
+const RUT_PROFESIONAL = '21118397-7';
+const NOMBRE_PROFESIONAL = 'Francisca';
+const APELLIDO_PROFESIONAL = 'Huaique';
+const ESTAMENTO_PROFESIONAL = 'Médico';
+
+const EDAD_MINIMA_MESES_TRANS = 48;
+
 function fechaSoloDia(year: number, month: number, day: number): Date {
     return new Date(Date.UTC(year, month, day, 12, 0, 0));
 }
@@ -14,14 +20,12 @@ const HOY_ANIO = HOY_LOCAL.getFullYear();
 const HOY_MES = HOY_LOCAL.getMonth();
 const HOY_DIA = HOY_LOCAL.getDate();
 
-// ==================== RUT chileno correlacionado con año de nacimiento ====================
 const ANCLAS_ANIO = [1960, 1970, 1980, 1990, 2000, 2010, 2015, 2018, 2020, 2022, 2024, 2026];
 const ANCLAS_RUT = [4000000, 6500000, 9000000, 11800000, 14000000, 18500000, 21000000, 23000000, 24500000, 26000000, 27300000, 28300000];
 
 function interpolarRutBase(anioNacimiento: number): number {
     if (anioNacimiento <= ANCLAS_ANIO[0]) return ANCLAS_RUT[0];
     if (anioNacimiento >= ANCLAS_ANIO[ANCLAS_ANIO.length - 1]) return ANCLAS_RUT[ANCLAS_RUT.length - 1];
-
     for (let i = 0; i < ANCLAS_ANIO.length - 1; i++) {
         if (anioNacimiento >= ANCLAS_ANIO[i] && anioNacimiento <= ANCLAS_ANIO[i + 1]) {
             const proporcion = (anioNacimiento - ANCLAS_ANIO[i]) / (ANCLAS_ANIO[i + 1] - ANCLAS_ANIO[i]);
@@ -39,12 +43,10 @@ function generarRUT(anioNacimiento: number): string {
     let suma = 0;
     let multiplicador = 2;
     const digitos = numero.toString().split('').reverse();
-
     for (const d of digitos) {
         suma += parseInt(d) * multiplicador;
         multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
     }
-
     const resto = 11 - (suma % 11);
     const dv = resto === 11 ? '0' : resto === 10 ? 'K' : resto.toString();
     return `${numero}-${dv}`;
@@ -55,7 +57,6 @@ function anioNacimientoAdulto(): number {
     return HOY_ANIO - edadAdulto;
 }
 
-// ==================== Curvas de crecimiento aproximadas ====================
 const PUNTOS_EDAD = [0, 3, 6, 12, 24, 36, 48, 60, 72, 84, 96, 108];
 const PUNTOS_PESO = [3.3, 6.0, 7.8, 9.6, 12.2, 14.3, 16.3, 18.0, 20.5, 22.9, 25.6, 28.6];
 const PUNTOS_TALLA = [50, 61, 67, 75, 87, 96, 103, 110, 116, 122, 128, 133];
@@ -64,7 +65,6 @@ const PUNTOS_PERIMETRO = [34, 40, 43, 46, 48, 49, 50, 50, 50, 50, 50, 50];
 function interpolar(edadMeses: number, puntosX: number[], puntosY: number[]): number {
     if (edadMeses <= puntosX[0]) return puntosY[0];
     if (edadMeses >= puntosX[puntosX.length - 1]) return puntosY[puntosY.length - 1];
-
     for (let i = 0; i < puntosX.length - 1; i++) {
         if (edadMeses >= puntosX[i] && edadMeses <= puntosX[i + 1]) {
             const proporcion = (edadMeses - puntosX[i]) / (puntosX[i + 1] - puntosX[i]);
@@ -78,7 +78,6 @@ const pesoEsperado = (edadMeses: number) => interpolar(edadMeses, PUNTOS_EDAD, P
 const tallaEsperada = (edadMeses: number) => interpolar(edadMeses, PUNTOS_EDAD, PUNTOS_TALLA);
 const perimetroEsperado = (edadMeses: number) => interpolar(edadMeses, PUNTOS_EDAD, PUNTOS_PERIMETRO);
 
-// ==================== Escenarios clínicos coherentes ====================
 interface EscenarioClinico {
     motivo: string;
     anamnesis: string;
@@ -160,7 +159,9 @@ const ESCENARIOS_CLINICOS: EscenarioClinico[] = [
     },
 ];
 
-// ==================== Distribución de "próximo control" ====================
+const SECTORES = ['Sector 1 - Azul', 'Sector 2 - Rojo'];
+const COMUNA_UNICA = 'Concepción';
+
 function generarProximoControlDistribuido(): Date {
     const categoria = faker.helpers.weightedArrayElement([
         { weight: 15, value: 'atrasado' },
@@ -191,7 +192,6 @@ function fechaProximoControlHistorico(fechaControl: Date): Date {
     );
 }
 
-// ==================== Generación de la serie de controles (con crecimiento monótono real) ====================
 type TipoForzado = 'ninguno' | 'ganancia' | 'perdida';
 
 interface ControlGenerado {
@@ -212,13 +212,11 @@ function generarSerieControles(
 
     const controles: ControlGenerado[] = [];
 
-    // Se genera en orden cronológico ascendente (más antiguo primero)
     for (let k = 0; k < numControles; k++) {
         const iDesdeElFinal = numControles - 1 - k;
         const edad = Math.max(edadMesesActual - iDesdeElFinal * intervaloMeses, 0);
         const fecha = fechaSoloDia(HOY_ANIO, HOY_MES - iDesdeElFinal * intervaloMeses, HOY_DIA);
 
-        // Ruido pequeño y FIJO (no proporcional a la edad/tamaño), evita saltos falsos
         const ruidoPeso = faker.number.float({ min: -0.2, max: 0.2, fractionDigits: 2 });
         const ruidoTalla = faker.number.float({ min: -0.3, max: 0.3, fractionDigits: 2 });
 
@@ -226,10 +224,7 @@ function generarSerieControles(
         let talla = tallaEsperada(edad) * factorPersonal + ruidoTalla;
 
         if (k > 0) {
-            // La talla NUNCA puede bajar respecto al control anterior (un niño no encoge)
             talla = Math.max(talla, controles[k - 1].talla);
-            // El peso puede fluctuar levemente, pero se limita una baja excesiva por ruido
-            // (el umbral de alerta de pérdida es -0.5 kg/mes; con este piso, el ruido normal nunca lo alcanza)
             peso = Math.max(peso, controles[k - 1].peso - 0.2);
         }
 
@@ -243,25 +238,33 @@ function generarSerieControles(
     }
 
     // Caso intencional: se sobreescribe el ÚLTIMO control respecto al PENÚLTIMO,
-    // generando un salto real y grande, por encima de cualquier umbral.
+    // con un salto claramente por encima del umbral (varias veces más grande que
+    // lo esperado para cualquier edad), para que el ejemplo sea inequívoco en la
+    // demo sin necesidad de explicar el umbral relativo a la edad.
     if (tipoForzado !== 'ninguno' && controles.length >= 2) {
         const penultimo = controles[controles.length - 2];
         const ultimo = controles[controles.length - 1];
 
         if (tipoForzado === 'ganancia') {
-            ultimo.peso = parseFloat((penultimo.peso + faker.number.float({ min: 2.5, max: 4.5, fractionDigits: 1 })).toFixed(1));
+            ultimo.peso = parseFloat((penultimo.peso + faker.number.float({ min: 3.5, max: 6, fractionDigits: 1 })).toFixed(1));
         } else if (tipoForzado === 'perdida') {
-            const pesoForzado = penultimo.peso - faker.number.float({ min: 1.5, max: 3, fractionDigits: 1 });
-            ultimo.peso = parseFloat(Math.max(pesoForzado, 2).toFixed(1)); // nunca bajar de 2 kg, por realismo
+            const pesoForzado = penultimo.peso - faker.number.float({ min: 2.5, max: 4.5, fractionDigits: 1 });
+            ultimo.peso = parseFloat(Math.max(pesoForzado, 2).toFixed(1));
         }
     }
 
     return controles;
 }
 
-// ==================== MAIN ====================
+function generarDatosTrans(sexoBiologico: string): { identidadGenero: string; nombreSocial: string } {
+    const generoFaker: 'male' | 'female' = sexoBiologico === 'Masculino' ? 'female' : 'male';
+    const identidadGenero = generoFaker === 'female' ? 'Femenino' : 'Masculino';
+    const nombreSocial = faker.person.firstName(generoFaker);
+    return { identidadGenero, nombreSocial };
+}
+
 async function main() {
-    console.log('🧹 Limpiando base de datos local...');
+    console.log('Limpiando base de datos...');
 
     await prisma.controlClinico.deleteMany();
     await prisma.paciente.deleteMany();
@@ -269,40 +272,32 @@ async function main() {
     await prisma.profesional.deleteMany();
     await prisma.usuario.deleteMany();
 
-    console.log('✅ Base limpia. Iniciando seed...');
+    console.log('Base limpia. Iniciando seed...');
 
-    // 1. Usuario de login
+    const profesional = await prisma.profesional.create({
+        data: {
+            rut: RUT_PROFESIONAL,
+            nombre: NOMBRE_PROFESIONAL,
+            apellido: APELLIDO_PROFESIONAL,
+            estamento: ESTAMENTO_PROFESIONAL,
+            activo: true,
+        },
+    });
+    console.log(`Profesional creado -> ${profesional.nombre} ${profesional.apellido} (RUT: ${profesional.rut})`);
+
     const passwordPlano = 'cesfam2026';
     const passwordHash = await bcrypt.hash(passwordPlano, 10);
-    const rutMaria = generarRUT(anioNacimientoAdulto());
 
     await prisma.usuario.create({
         data: {
-            rut: rutMaria,
+            rut: RUT_PROFESIONAL,
             password: passwordHash,
-            nombre: 'María González',
-            rol: 'Profesional',
+            nombre: `${NOMBRE_PROFESIONAL} ${APELLIDO_PROFESIONAL}`,
+            rol: ESTAMENTO_PROFESIONAL,
         },
     });
-    console.log(`👤 Usuario de login creado -> RUT: ${rutMaria} | Password: ${passwordPlano}`);
+    console.log(`Usuario de login creado -> RUT: ${RUT_PROFESIONAL} | Password: ${passwordPlano}`);
 
-    // 2. Profesionales
-    const profesionales = [];
-    for (let i = 0; i < 4; i++) {
-        const profesional = await prisma.profesional.create({
-            data: {
-                rut: generarRUT(anioNacimientoAdulto()),
-                nombre: faker.person.firstName(),
-                apellido: faker.person.lastName(),
-                estamento: faker.helpers.arrayElement(['Médico', 'Enfermera', 'Matrona', 'Nutricionista']),
-                activo: true,
-            },
-        });
-        profesionales.push(profesional);
-    }
-    console.log(`${profesionales.length} profesionales creados.`);
-
-    // 3. Tutores
     const tutores = [];
     for (let i = 0; i < 40; i++) {
         const tutor = await prisma.tutor.create({
@@ -312,49 +307,95 @@ async function main() {
                 apellido: faker.person.lastName(),
                 telefono: `+569${faker.number.int({ min: 10000000, max: 99999999 })}`,
                 parentesco: faker.helpers.arrayElement(['Madre', 'Padre', 'Abuela', 'Tío/a']),
-                correo: faker.internet.email(),
+                correo: faker.datatype.boolean({ probability: 0.7 }) ? faker.internet.email() : null,
                 direccion: faker.location.streetAddress(),
-                sector: faker.helpers.arrayElement(['Sector 1', 'Sector 2', 'Sector 3']),
-                comuna: 'Concepción',
+                sector: faker.helpers.arrayElement(SECTORES),
+                comuna: COMUNA_UNICA,
             },
         });
         tutores.push(tutor);
     }
     console.log(`${tutores.length} tutores creados.`);
 
-    // 4. Pacientes + su serie de controles
     const TOTAL_PACIENTES = 120;
+
     const CANTIDAD_ALERTA_GANANCIA = 6;
     const CANTIDAD_ALERTA_PERDIDA = 6;
 
+    const CANTIDAD_SENAME_TOTAL = 10;
+    const CANTIDAD_TRANS_TOTAL = 8;
+    const CANTIDAD_AMBOS = 3;
+
+    const edadesPacientes = Array.from({ length: TOTAL_PACIENTES }, () =>
+        faker.number.int({ min: 1, max: 108 })
+    );
+
     const indices = Array.from({ length: TOTAL_PACIENTES }, (_, i) => i);
+    const indicesElegiblesTrans = indices.filter((i) => edadesPacientes[i] >= EDAD_MINIMA_MESES_TRANS);
+
+    const indicesAmbos = new Set(
+        faker.helpers.arrayElements(indicesElegiblesTrans, Math.min(CANTIDAD_AMBOS, indicesElegiblesTrans.length))
+    );
+
+    const disponiblesParaSename = indices.filter((i) => !indicesAmbos.has(i));
+    const indicesSoloSename = new Set(
+        faker.helpers.arrayElements(disponiblesParaSename, CANTIDAD_SENAME_TOTAL - indicesAmbos.size)
+    );
+
+    const disponiblesParaTrans = indicesElegiblesTrans.filter(
+        (i) => !indicesAmbos.has(i) && !indicesSoloSename.has(i)
+    );
+    const indicesSoloTrans = new Set(
+        faker.helpers.arrayElements(
+            disponiblesParaTrans,
+            Math.min(CANTIDAD_TRANS_TOTAL - indicesAmbos.size, disponiblesParaTrans.length)
+        )
+    );
+
     const indicesGanancia = new Set(faker.helpers.arrayElements(indices, CANTIDAD_ALERTA_GANANCIA));
-    const indicesRestantes = indices.filter((i) => !indicesGanancia.has(i));
-    const indicesPerdida = new Set(faker.helpers.arrayElements(indicesRestantes, CANTIDAD_ALERTA_PERDIDA));
+    const indicesRestantesPeso = indices.filter((i) => !indicesGanancia.has(i));
+    const indicesPerdida = new Set(faker.helpers.arrayElements(indicesRestantesPeso, CANTIDAD_ALERTA_PERDIDA));
 
     for (let i = 0; i < TOTAL_PACIENTES; i++) {
         const tutorAsignado = faker.helpers.arrayElement(tutores);
-        const profesionalAsignado = faker.helpers.arrayElement(profesionales);
 
-        const edadMesesActual = faker.number.int({ min: 1, max: 108 });
+        const edadMesesActual = edadesPacientes[i];
         const diaNacimiento = faker.number.int({ min: 1, max: 28 });
         const fechaNacimiento = fechaSoloDia(HOY_ANIO, HOY_MES - edadMesesActual, diaNacimiento);
+
+        const sexoBiologico = faker.helpers.arrayElement(['Masculino', 'Femenino']);
+
+        const generoFakerLegal: 'male' | 'female' = sexoBiologico === 'Masculino' ? 'male' : 'female';
+        const nombreLegal = faker.person.firstName(generoFakerLegal);
+
+        const esSename = indicesAmbos.has(i) || indicesSoloSename.has(i);
+        const esPoblacionTrans = indicesAmbos.has(i) || indicesSoloTrans.has(i);
+
+        let nombreSocial: string | null = null;
+        let identidadGenero: string | null = null;
+        if (esPoblacionTrans) {
+            const datosTrans = generarDatosTrans(sexoBiologico);
+            nombreSocial = datosTrans.nombreSocial;
+            identidadGenero = datosTrans.identidadGenero;
+        }
 
         const paciente = await prisma.paciente.create({
             data: {
                 rut: generarRUT(fechaNacimiento.getUTCFullYear()),
-                nombre: faker.person.firstName(),
+                nombre: nombreLegal,
                 apellido: faker.person.lastName(),
                 fecha_nacimiento: fechaNacimiento,
-                sexo_biologico: faker.helpers.arrayElement(['Masculino', 'Femenino']),
+                sexo_biologico: sexoBiologico,
                 direccion: faker.location.streetAddress(),
-                sector: faker.helpers.arrayElement(['Sector 1', 'Sector 2', 'Sector 3']),
-                comuna: 'Concepción',
+                sector: faker.helpers.arrayElement(SECTORES),
+                comuna: COMUNA_UNICA,
                 nacionalidad: faker.helpers.arrayElement(['Chilena', 'Chilena', 'Chilena', 'Venezolana', 'Haitiana']),
-                es_sename: faker.datatype.boolean({ probability: 0.05 }),
+                es_sename: esSename,
                 es_naneas_prematuro: faker.datatype.boolean({ probability: 0.08 }),
-                es_poblacion_trans: faker.datatype.boolean({ probability: 0.02 }),
+                es_poblacion_trans: esPoblacionTrans,
                 es_migrante: faker.datatype.boolean({ probability: 0.1 }),
+                nombre_social: nombreSocial,
+                identidad_genero: identidadGenero,
                 id_tutor_principal: tutorAsignado.id_tutor,
             },
         });
@@ -396,7 +437,7 @@ async function main() {
                     indicaciones_acuerdos: escenario.indicaciones,
                     fecha_proximoControl: fechaProximoControl,
                     rut_paciente: paciente.rut,
-                    rut_profesional: profesionalAsignado.rut,
+                    rut_profesional: RUT_PROFESIONAL,
                 },
             });
         }
@@ -404,9 +445,12 @@ async function main() {
         if ((i + 1) % 20 === 0) console.log(`${i + 1}/${TOTAL_PACIENTES} pacientes creados...`);
     }
 
-    console.log(`✅ Seed completado: ${TOTAL_PACIENTES} pacientes.`);
-    console.log(`   -> ${CANTIDAD_ALERTA_GANANCIA} con aumento de peso forzado`);
-    console.log(`   -> ${CANTIDAD_ALERTA_PERDIDA} con pérdida de peso forzada`);
+    console.log(`Seed completado: ${TOTAL_PACIENTES} pacientes.`);
+    console.log(`  -> ${CANTIDAD_ALERTA_GANANCIA} con aumento de peso forzado`);
+    console.log(`  -> ${CANTIDAD_ALERTA_PERDIDA} con perdida de peso forzada`);
+    console.log(`  -> ${CANTIDAD_SENAME_TOTAL} con SENAME`);
+    console.log(`  -> poblacion trans asignada solo a pacientes de ${EDAD_MINIMA_MESES_TRANS / 12}+ anios`);
+    console.log(`Login: RUT ${RUT_PROFESIONAL} | Password: ${passwordPlano}`);
 }
 
 main()

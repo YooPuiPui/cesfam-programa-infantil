@@ -46,7 +46,7 @@ interface ControlLiviano {
     edad_meses: number;
 }
 
-interface TramoDetectado {
+interface AlertaCalculada {
     desde: string;
     hasta: string;
     tipo: string;
@@ -54,42 +54,43 @@ interface TramoDetectado {
     tasaTallaCmMes: number;
 }
 
-function calcularTramosConAlerta(controlesVentana: ControlLiviano[]): TramoDetectado[] {
-    const tramos: TramoDetectado[] = [];
+// Evalúa ÚNICAMENTE el último par de controles dentro de la ventana (el más
+// reciente contra el que le precede). Si ese par no dispara alerta, no hay
+// alerta -- aunque el paciente haya tenido un salto en un tramo más antiguo
+// que ya se resolvió. Esto evita mostrar alertas "viejas" cuando el paciente
+// ya volvió a un ritmo de crecimiento normal en sus controles más recientes.
+function calcularAlertaUltimoTramo(controlesVentana: ControlLiviano[]): AlertaCalculada | null {
+    if (controlesVentana.length < 2) return null;
 
-    for (let i = 1; i < controlesVentana.length; i++) {
-        const anterior = controlesVentana[i - 1];
-        const actual = controlesVentana[i];
+    const anterior = controlesVentana[controlesVentana.length - 2];
+    const actual = controlesVentana[controlesVentana.length - 1];
 
-        if (diasEntre(anterior.fecha_control, actual.fecha_control) < MIN_DIAS_ENTRE_CONTROLES) {
-            continue;
-        }
-
-        const meses = mesesEntre(anterior.fecha_control, actual.fecha_control);
-        const tasaPesoKgMes = Number(((actual.peso_kg - anterior.peso_kg) / meses).toFixed(2));
-        const tasaTallaCmMes = Number(((actual.talla_cm - anterior.talla_cm) / meses).toFixed(2));
-
-        let tipo: string | null = null;
-        const umbralGanancia = umbralGananciaKgMes(actual.edad_meses);
-
-        if (tasaPesoKgMes >= umbralGanancia) {
-            tipo = 'Aumento de peso acelerado';
-        } else if (tasaPesoKgMes <= UMBRAL_PERDIDA_KG_MES) {
-            tipo = 'Pérdida de peso significativa';
-        }
-
-        if (tipo) {
-            tramos.push({
-                desde: anterior.fecha_control.toISOString(),
-                hasta: actual.fecha_control.toISOString(),
-                tipo,
-                tasaPesoKgMes,
-                tasaTallaCmMes,
-            });
-        }
+    if (diasEntre(anterior.fecha_control, actual.fecha_control) < MIN_DIAS_ENTRE_CONTROLES) {
+        return null; // tramo demasiado corto, probablemente ruido -> se ignora
     }
 
-    return tramos;
+    const meses = mesesEntre(anterior.fecha_control, actual.fecha_control);
+    const tasaPesoKgMes = Number(((actual.peso_kg - anterior.peso_kg) / meses).toFixed(2));
+    const tasaTallaCmMes = Number(((actual.talla_cm - anterior.talla_cm) / meses).toFixed(2));
+
+    const umbralGanancia = umbralGananciaKgMes(actual.edad_meses);
+
+    let tipo: string | null = null;
+    if (tasaPesoKgMes >= umbralGanancia) {
+        tipo = 'Aumento de peso acelerado';
+    } else if (tasaPesoKgMes <= UMBRAL_PERDIDA_KG_MES) {
+        tipo = 'Pérdida de peso significativa';
+    }
+
+    if (!tipo) return null;
+
+    return {
+        desde: anterior.fecha_control.toISOString(),
+        hasta: actual.fecha_control.toISOString(),
+        tipo,
+        tasaPesoKgMes,
+        tasaTallaCmMes,
+    };
 }
 
 export const obtenerReportePacientes = async (
@@ -130,17 +131,12 @@ export const obtenerReportePacientes = async (
             .slice()
             .reverse();
 
-        const tramosConAlerta = calcularTramosConAlerta(controlesVentana);
-
-        const alertaMasReciente = tramosConAlerta.length > 0 ? tramosConAlerta[tramosConAlerta.length - 1] : null;
+        const alerta = calcularAlertaUltimoTramo(controlesVentana);
 
         let tasaPesoKgMes: number | null = null;
         let tasaTallaCmMes: number | null = null;
 
-        if (alertaMasReciente) {
-            tasaPesoKgMes = alertaMasReciente.tasaPesoKgMes;
-            tasaTallaCmMes = alertaMasReciente.tasaTallaCmMes;
-        } else if (controlesVentana.length >= 2) {
+        if (controlesVentana.length >= 2) {
             const penultimo = controlesVentana[controlesVentana.length - 2];
             const ultimoEnVentana = controlesVentana[controlesVentana.length - 1];
             const meses = mesesEntre(penultimo.fecha_control, ultimoEnVentana.fecha_control);
@@ -157,8 +153,7 @@ export const obtenerReportePacientes = async (
             controlesEnVentana: controlesVentana.length,
             tasaPesoKgMes,
             tasaTallaCmMes,
-            alerta: alertaMasReciente?.tipo ?? null,
-            totalAlertasEnVentana: tramosConAlerta.length,
+            alerta: alerta?.tipo ?? null,
         };
     });
 
@@ -208,16 +203,33 @@ export const obtenerReporteDetalle = async (rut: string) => {
 
     if (!paciente) return null;
 
+    const historial = paciente.controlClinico.map((c) => ({
+        fecha: c.fecha_control,
+        peso_kg: c.peso_kg,
+        talla_cm: c.talla_cm,
+        imc: c.imc,
+        edad_meses: c.edad_meses,
+        perimetro_cefalico: c.perimetro_cefalico,
+    }));
+
+    const haceVeinticuatroMeses = new Date();
+    haceVeinticuatroMeses.setMonth(haceVeinticuatroMeses.getMonth() - VENTANA_MESES_ALERTA);
+
+    const historialReciente = paciente.controlClinico
+        .filter((c) => c.fecha_control >= haceVeinticuatroMeses)
+        .map((c) => ({
+            fecha_control: c.fecha_control,
+            peso_kg: c.peso_kg,
+            talla_cm: c.talla_cm,
+            edad_meses: c.edad_meses,
+        }));
+
+    const alerta = calcularAlertaUltimoTramo(historialReciente);
+
     return {
         rut: paciente.rut,
         nombre: `${paciente.nombre} ${paciente.apellido}`,
-        historial: paciente.controlClinico.map((c) => ({
-            fecha: c.fecha_control,
-            peso_kg: c.peso_kg,
-            talla_cm: c.talla_cm,
-            imc: c.imc,
-            edad_meses: c.edad_meses,
-            perimetro_cefalico: c.perimetro_cefalico,
-        })),
+        historial,
+        alertaDetalle: alerta,
     };
 };

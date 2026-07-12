@@ -109,9 +109,12 @@ export default function FichaPaciente() {
                     </button>
                     {paciente?.es_poblacion_trans && paciente?.nombre_social ? (
                         <>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente.nombre_social} {paciente.apellido}</h1>
-                            <p className="text-sm text-slate-000 font-medium mt-1">
-                                <span className="font-semibold text-slate-000">Nombre legal:</span> {paciente.nombre} {paciente.apellido}
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente.nombre} {paciente.apellido}</h1>
+                            <p className="mt-1 flex items-center gap-2 text-lg font-bold text-purple-700">
+                                <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-purple-700">
+                                    Nombre social
+                                </span>
+                                {paciente.nombre_social} {paciente.apellido}
                             </p>
                         </>
                     ) : (
