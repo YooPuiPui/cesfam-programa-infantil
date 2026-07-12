@@ -176,7 +176,15 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
         }
 
         if (busqueda && busqueda.trim() !== '') {
-            where.rut = { contains: busqueda.trim(), mode: 'insensitive' };
+            const palabras = busqueda.trim().split(/\s+/); // separa por cualquier espacio en blanco
+
+            where.AND = palabras.map((palabra) => ({
+                OR: [
+                    { rut: { contains: palabra, mode: 'insensitive' } },
+                    { nombre: { contains: palabra, mode: 'insensitive' } },
+                    { apellido: { contains: palabra, mode: 'insensitive' } },
+                ],
+            }));
         }
 
         const [data, total] = await Promise.all([
