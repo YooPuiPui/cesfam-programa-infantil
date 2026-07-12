@@ -17,7 +17,6 @@ type FormState = {
     direccion: string;
     sector: string;
     comuna: string;
-    nhc: string;
     prevision: string;
     fecha_inscripcion: string;
     es_sename: boolean;
@@ -45,6 +44,22 @@ const hoyLocal = () => {
     return local.toISOString().slice(0, 10);
 };
 
+// Inserta el guion automáticamente antes del dígito verificador mientras se escribe.
+// Ej: "211183977" -> "21118397-7"
+function formatearRut(valor: string): string {
+    const limpio = valor.replace(/[^0-9kK]/g, "").toUpperCase();
+    if (limpio.length <= 1) return limpio;
+    const cuerpo = limpio.slice(0, -1);
+    const dv = limpio.slice(-1);
+    return `${cuerpo}-${dv}`;
+}
+
+
+const OPCIONES_SECTOR = ["Sector 1 - Azul", "Sector 2 - Rojo"];
+
+
+const OPCIONES_COMUNA = ["Concepción"];
+
 const initialState: FormState = {
     rut: "",
     nombre: "",
@@ -54,8 +69,7 @@ const initialState: FormState = {
     nacionalidad: "Chilena",
     direccion: "",
     sector: "",
-    comuna: "",
-    nhc: "",
+    comuna: "Concepción",
     prevision: "",
     fecha_inscripcion: hoyLocal(),
     es_sename: false,
@@ -67,11 +81,11 @@ const initialState: FormState = {
     tutor_rut: "",
     tutor_nombre: "",
     tutor_apellido: "",
-    tutor_telefono: "",
+    tutor_telefono: "+569",
     tutor_parentesco: "",
     tutor_correo: "",
     tutor_direccion: "",
-    tutor_comuna: "",
+    tutor_comuna: "Concepción",
 };
 
 const fieldClass = (hasError: boolean) =>
@@ -111,7 +125,6 @@ export default function InscribirPaciente() {
             ["direccion", "La dirección del paciente es obligatoria."],
             ["sector", "El sector es obligatorio."],
             ["comuna", "La comuna es obligatoria."],
-            ["nhc", "El NHC es obligatorio."],
             ["prevision", "La previsión es obligatoria."],
             ["fecha_inscripcion", "La fecha de inscripción es obligatoria."],
             ["tutor_rut", "El RUT del tutor es obligatorio."],
@@ -119,7 +132,6 @@ export default function InscribirPaciente() {
             ["tutor_apellido", "El apellido del tutor es obligatorio."],
             ["tutor_telefono", "El teléfono del tutor es obligatorio."],
             ["tutor_parentesco", "El parentesco es obligatorio."],
-            ["tutor_correo", "El correo del tutor es obligatorio."],
             ["tutor_direccion", "La dirección del tutor es obligatoria."],
             ["tutor_comuna", "La comuna del tutor es obligatoria."],
         ];
@@ -140,6 +152,7 @@ export default function InscribirPaciente() {
             }
         }
 
+        // El correo del tutor es opcional; solo se valida el formato si se ingresó algo.
         if (form.tutor_correo.trim() && !/^\S+@\S+\.\S+$/.test(form.tutor_correo.trim())) {
             nextErrors.tutor_correo = "Ingresa un correo válido.";
         }
@@ -158,6 +171,25 @@ export default function InscribirPaciente() {
         });
     };
 
+    const actualizarRut = (campo: "rut" | "tutor_rut", valorCrudo: string) => {
+        actualizarCampo(campo, formatearRut(valorCrudo));
+    };
+
+    function formatearTelefono(valor: string): string {
+        const PREFIJO = "+569";
+
+        // Si el valor entrante es más corto que el prefijo (el usuario borró parte de él),
+        // simplemente volvemos al prefijo completo, sin intentar rescatar dígitos sueltos.
+        if (valor.length <= PREFIJO.length) {
+            return PREFIJO;
+        }
+
+        // A partir de acá, el valor es al menos tan largo como el prefijo.
+        // Tomamos solo lo que viene después, filtramos que sean dígitos, y limitamos a 8.
+        const resto = valor.slice(PREFIJO.length).replace(/[^0-9]/g, "");
+        return PREFIJO + resto.slice(0, 8);
+    }
+
     const payload = useMemo(() => ({
         paciente: {
             rut: form.rut.trim(),
@@ -169,7 +201,6 @@ export default function InscribirPaciente() {
             direccion: form.direccion.trim(),
             sector: form.sector.trim(),
             comuna: form.comuna.trim(),
-            nhc: form.nhc.trim(),
             prevision: form.prevision.trim(),
             fecha_inscripcion: form.fecha_inscripcion,
             es_sename: form.es_sename,
@@ -308,7 +339,14 @@ export default function InscribirPaciente() {
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">RUT *</label>
-                                <input type="text" value={form.rut} onChange={(e) => actualizarCampo("rut", e.target.value)} className={fieldClass(Boolean(errors.rut))} placeholder="12.345.678-9" />
+                                <input
+                                    type="text"
+                                    value={form.rut}
+                                    onChange={(e) => actualizarRut("rut", e.target.value)}
+                                    className={fieldClass(Boolean(errors.rut))}
+                                    placeholder="12345678-9"
+                                    maxLength={10}
+                                />
                                 {errors.rut && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.rut}</span>}
                             </div>
                             <div>
@@ -332,8 +370,8 @@ export default function InscribirPaciente() {
                                     <option value="">Seleccionar...</option>
                                     <option value="Masculino">Masculino</option>
                                     <option value="Femenino">Femenino</option>
-                                    <option value="Intersex">Intersex</option>
-                                </select>                                {errors.sexo_biologico && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.sexo_biologico}</span>}
+                                </select>
+                                {errors.sexo_biologico && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.sexo_biologico}</span>}
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Nacionalidad</label>
@@ -356,18 +394,23 @@ export default function InscribirPaciente() {
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Sector *</label>
-                                <input type="text" value={form.sector} onChange={(e) => actualizarCampo("sector", e.target.value)} className={fieldClass(Boolean(errors.sector))} placeholder="Sector" />
+                                <select value={form.sector} onChange={(e) => actualizarCampo("sector", e.target.value)} className={fieldClass(Boolean(errors.sector))}>
+                                    <option value="">Seleccionar...</option>
+                                    {OPCIONES_SECTOR.map((s) => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
                                 {errors.sector && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.sector}</span>}
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Comuna *</label>
-                                <input type="text" value={form.comuna} onChange={(e) => actualizarCampo("comuna", e.target.value)} className={fieldClass(Boolean(errors.comuna))} placeholder="Comuna" />
+                                <select value={form.comuna} onChange={(e) => actualizarCampo("comuna", e.target.value)} className={fieldClass(Boolean(errors.comuna))}>
+                                    <option value="">Seleccionar...</option>
+                                    {OPCIONES_COMUNA.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
                                 {errors.comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.comuna}</span>}
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-bold text-slate-700">NHC *</label>
-                                <input type="text" value={form.nhc} onChange={(e) => actualizarCampo("nhc", e.target.value)} className={fieldClass(Boolean(errors.nhc))} placeholder="Número de ficha" />
-                                {errors.nhc && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.nhc}</span>}
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Previsión *</label>
@@ -377,7 +420,6 @@ export default function InscribirPaciente() {
                                     <option value="ISAPRE">ISAPRE</option>
                                     <option value="FFAA">FFAA</option>
                                     <option value="Sin previsión">Sin previsión</option>
-
                                 </select>
                                 {errors.prevision && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.prevision}</span>}
                             </div>
@@ -441,12 +483,26 @@ export default function InscribirPaciente() {
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">RUT *</label>
-                                <input type="text" value={form.tutor_rut} onChange={(e) => actualizarCampo("tutor_rut", e.target.value)} className={fieldClass(Boolean(errors.tutor_rut))} placeholder="12.345.678-9" />
+                                <input
+                                    type="text"
+                                    value={form.tutor_rut}
+                                    onChange={(e) => actualizarRut("tutor_rut", e.target.value)}
+                                    className={fieldClass(Boolean(errors.tutor_rut))}
+                                    placeholder="12345678-9"
+                                    maxLength={10}
+                                />
                                 {errors.tutor_rut && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_rut}</span>}
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono *</label>
-                                <input type="text" value={form.tutor_telefono} onChange={(e) => actualizarCampo("tutor_telefono", e.target.value)} className={fieldClass(Boolean(errors.tutor_telefono))} placeholder="+56 9 xxxx xxxx" />
+                                <input
+                                    type="text"
+                                    value={form.tutor_telefono}
+                                    onChange={(e) => actualizarCampo("tutor_telefono", formatearTelefono(e.target.value))}
+                                    className={fieldClass(Boolean(errors.tutor_telefono))}
+                                    placeholder="+56912345678"
+                                    maxLength={12}
+                                />
                                 {errors.tutor_telefono && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_telefono}</span>}
                             </div>
                             <div>
@@ -472,8 +528,8 @@ export default function InscribirPaciente() {
                                 {errors.tutor_parentesco && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_parentesco}</span>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Correo *</label>
-                                <input type="email" value={form.tutor_correo} onChange={(e) => actualizarCampo("tutor_correo", e.target.value)} className={fieldClass(Boolean(errors.tutor_correo))} placeholder="correo@dominio.cl" />
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Correo</label>
+                                <input type="email" value={form.tutor_correo} onChange={(e) => actualizarCampo("tutor_correo", e.target.value)} className={fieldClass(Boolean(errors.tutor_correo))} placeholder="correo@dominio.cl (opcional)" />
                                 {errors.tutor_correo && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_correo}</span>}
                             </div>
                             <div className="md:col-span-2">
@@ -483,7 +539,12 @@ export default function InscribirPaciente() {
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Comuna *</label>
-                                <input type="text" value={form.tutor_comuna} onChange={(e) => actualizarCampo("tutor_comuna", e.target.value)} className={fieldClass(Boolean(errors.tutor_comuna))} placeholder="Comuna" />
+                                <select value={form.tutor_comuna} onChange={(e) => actualizarCampo("tutor_comuna", e.target.value)} className={fieldClass(Boolean(errors.tutor_comuna))}>
+                                    <option value="">Seleccionar...</option>
+                                    {OPCIONES_COMUNA.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
                                 {errors.tutor_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_comuna}</span>}
                             </div>
                         </div>

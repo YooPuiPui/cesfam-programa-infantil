@@ -148,7 +148,7 @@ export default function NuevoControl() {
                 <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">Registro clínico</p>
                     <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Registro de Atención Clínica</h1>
-                    <p className="mt-1 text-sm font-medium text-slate-500">Completa los datos del control para este paciente.</p>
+                    <p className="mt-1 text-sm font-medium text-slate-900">Completa los datos del control para este paciente.</p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
                     <button
@@ -181,7 +181,7 @@ export default function NuevoControl() {
                         <p className="text-sm font-semibold text-slate-000">RUT: <span className="text-slate-700">{paciente?.rut}</span></p>
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Último control registrado</p>
+                        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-900">Último control registrado</p>
                         {ultimoControl ? (
                             <p className="font-semibold text-slate-700">
                                 {new Date(ultimoControl.fecha_control).toLocaleDateString('es-CL', { timeZone: 'UTC' })} — {ultimoControl.peso_kg} kg / {ultimoControl.talla_cm} cm / IMC {ultimoControl.imc}
