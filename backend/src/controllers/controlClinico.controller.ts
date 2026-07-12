@@ -1,6 +1,10 @@
 import { Request, Response, RequestHandler } from "express";
 import * as controlService from '../services/controlClinico.service';
 import prisma from "../../src/config/prisma";
+import { hoyChileMediodiaUTC } from '../utils/fechaChile';
+
+
+
 
 export const crearControl: RequestHandler = async (req, res): Promise<void> => {
     try {
@@ -42,6 +46,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
 
         // mapeo y conversión de tipos usando el ID que acabamos de encontrar
         const controlLimpio = {
+            fecha_control: hoyChileMediodiaUTC(),
             motivo_consulta: control.motivo_consulta || null,
             anamnesis: control.anamnesis || null,
             exploracion_fisica: control.exploracion_fisica || null,
