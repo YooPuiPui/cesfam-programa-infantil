@@ -12,8 +12,20 @@ const ESTAMENTO_PROFESIONAL = 'Médico';
 
 const EDAD_MINIMA_MESES_TRANS = 48;
 
+// Edad máxima (en meses) para asignar el flag de "Prematuro/NANEAS" en el seed.
+// El seguimiento específico por prematurez tiene sentido clínico sobre todo
+// en los primeros años (edad corregida); un escolar de 7-8 años no debería
+// aparecer con esta etiqueta salvo casos excepcionales que no modelamos aquí.
+const EDAD_MAXIMA_MESES_NANEAS = 60; // 5 años
+
 function fechaSoloDia(year: number, month: number, day: number): Date {
     return new Date(Date.UTC(year, month, day, 12, 0, 0));
+}
+
+function sumarDias(fecha: Date, dias: number): Date {
+    const nueva = new Date(fecha);
+    nueva.setUTCDate(nueva.getUTCDate() + dias);
+    return nueva;
 }
 
 const hoyChile = obtenerHoyChile();
@@ -203,20 +215,34 @@ interface ControlGenerado {
     esUltimo: boolean;
 }
 
+// diasDesdeUltimoControl: cuántos días atrás (respecto a "hoy") ocurrió el último
+// control real de este paciente. Antes este valor estaba fijo en 0 para todos
+// los pacientes -> hacía que el control más reciente de TODOS cayera siempre
+// en el mismo día ("hoy"), y generaba contradicciones como "atendido hoy, pero
+// con la próxima cita ya vencida hace 45 días". Ahora se distribuye para que
+// los controles más recientes queden repartidos en las últimas semanas/meses,
+// igual que ocurriría en la vida real.
 function generarSerieControles(
     edadMesesActual: number,
     numControles: number,
-    tipoForzado: TipoForzado
+    tipoForzado: TipoForzado,
+    diasDesdeUltimoControl: number
 ): ControlGenerado[] {
     const factorPersonal = faker.number.float({ min: 0.88, max: 1.12, fractionDigits: 2 });
     const intervaloMeses = faker.number.int({ min: 1, max: 4 });
+
+    const anclaBase = sumarDias(fechaSoloDia(HOY_ANIO, HOY_MES, HOY_DIA), -diasDesdeUltimoControl);
+    const anclaAnio = anclaBase.getUTCFullYear();
+    const anclaMes = anclaBase.getUTCMonth();
+    const anclaDia = anclaBase.getUTCDate();
+    const edadAncla = Math.max(edadMesesActual - Math.round(diasDesdeUltimoControl / 30), 0);
 
     const controles: ControlGenerado[] = [];
 
     for (let k = 0; k < numControles; k++) {
         const iDesdeElFinal = numControles - 1 - k;
-        const edad = Math.max(edadMesesActual - iDesdeElFinal * intervaloMeses, 0);
-        const fecha = fechaSoloDia(HOY_ANIO, HOY_MES - iDesdeElFinal * intervaloMeses, HOY_DIA);
+        const edad = Math.max(edadAncla - iDesdeElFinal * intervaloMeses, 0);
+        const fecha = fechaSoloDia(anclaAnio, anclaMes - iDesdeElFinal * intervaloMeses, anclaDia);
 
         const ruidoPeso = faker.number.float({ min: -0.2, max: 0.2, fractionDigits: 2 });
         const ruidoTalla = faker.number.float({ min: -0.3, max: 0.3, fractionDigits: 2 });
@@ -238,10 +264,6 @@ function generarSerieControles(
         });
     }
 
-    // Caso intencional: se sobreescribe el ÚLTIMO control respecto al PENÚLTIMO,
-    // con un salto claramente por encima del umbral (varias veces más grande que
-    // lo esperado para cualquier edad), para que el ejemplo sea inequívoco en la
-    // demo sin necesidad de explicar el umbral relativo a la edad.
     if (tipoForzado !== 'ninguno' && controles.length >= 2) {
         const penultimo = controles[controles.length - 2];
         const ultimo = controles[controles.length - 1];
@@ -372,6 +394,12 @@ async function main() {
         const esSename = indicesAmbos.has(i) || indicesSoloSename.has(i);
         const esPoblacionTrans = indicesAmbos.has(i) || indicesSoloTrans.has(i);
 
+        // El flag de Prematuro/NANEAS solo se asigna a pacientes de hasta
+        // EDAD_MAXIMA_MESES_NANEAS, evitando escolares de 7-8 años con esta etiqueta.
+        const esNaneasPrematuro = edadMesesActual <= EDAD_MAXIMA_MESES_NANEAS
+            ? faker.datatype.boolean({ probability: 0.1 })
+            : false;
+
         let nombreSocial: string | null = null;
         let identidadGenero: string | null = null;
         if (esPoblacionTrans) {
@@ -392,7 +420,7 @@ async function main() {
                 comuna: COMUNA_UNICA,
                 nacionalidad: faker.helpers.arrayElement(['Chilena', 'Chilena', 'Chilena', 'Venezolana', 'Haitiana']),
                 es_sename: esSename,
-                es_naneas_prematuro: faker.datatype.boolean({ probability: 0.08 }),
+                es_naneas_prematuro: esNaneasPrematuro,
                 es_poblacion_trans: esPoblacionTrans,
                 es_migrante: faker.datatype.boolean({ probability: 0.1 }),
                 nombre_social: nombreSocial,
@@ -413,7 +441,11 @@ async function main() {
         if (indicesGanancia.has(i) && numControles >= 2) tipoForzado = 'ganancia';
         else if (indicesPerdida.has(i) && numControles >= 2) tipoForzado = 'perdida';
 
-        const serie = generarSerieControles(edadMesesActual, numControles, tipoForzado);
+        // Cada paciente tuvo su último control real hace entre 0 y 60 días,
+        // no exactamente "hoy" para todos.
+        const diasDesdeUltimoControl = faker.number.int({ min: 0, max: 60 });
+
+        const serie = generarSerieControles(edadMesesActual, numControles, tipoForzado, diasDesdeUltimoControl);
 
         for (const c of serie) {
             const imc = parseFloat((c.peso / Math.pow(c.talla / 100, 2)).toFixed(2));
@@ -451,6 +483,7 @@ async function main() {
     console.log(`  -> ${CANTIDAD_ALERTA_PERDIDA} con perdida de peso forzada`);
     console.log(`  -> ${CANTIDAD_SENAME_TOTAL} con SENAME`);
     console.log(`  -> poblacion trans asignada solo a pacientes de ${EDAD_MINIMA_MESES_TRANS / 12}+ anios`);
+    console.log(`  -> prematuro/NANEAS asignado solo a pacientes de hasta ${EDAD_MAXIMA_MESES_NANEAS / 12} anios`);
     console.log(`Login: RUT ${RUT_PROFESIONAL} | Password: ${passwordPlano}`);
 }
 
