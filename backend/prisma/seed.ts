@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker/locale/es';
 import bcrypt from 'bcrypt';
+import { obtenerHoyChile } from '../src/utils/fechaChile';
 
 const prisma = new PrismaClient();
 
@@ -15,10 +16,10 @@ function fechaSoloDia(year: number, month: number, day: number): Date {
     return new Date(Date.UTC(year, month, day, 12, 0, 0));
 }
 
-const HOY_LOCAL = new Date();
-const HOY_ANIO = HOY_LOCAL.getFullYear();
-const HOY_MES = HOY_LOCAL.getMonth();
-const HOY_DIA = HOY_LOCAL.getDate();
+const hoyChile = obtenerHoyChile();
+const HOY_ANIO = hoyChile.anio;
+const HOY_MES = hoyChile.mes;
+const HOY_DIA = hoyChile.dia;
 
 const ANCLAS_ANIO = [1960, 1970, 1980, 1990, 2000, 2010, 2015, 2018, 2020, 2022, 2024, 2026];
 const ANCLAS_RUT = [4000000, 6500000, 9000000, 11800000, 14000000, 18500000, 21000000, 23000000, 24500000, 26000000, 27300000, 28300000];
