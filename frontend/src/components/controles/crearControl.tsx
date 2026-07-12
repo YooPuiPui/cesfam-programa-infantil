@@ -146,7 +146,6 @@ export default function NuevoControl() {
             {/* BARRA SUPERIOR DE ACCIÓN */}
             <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-md md:flex-row md:items-center md:justify-between">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">Registro clínico</p>
                     <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Registro de Atención Clínica</h1>
                     <p className="mt-1 text-sm font-medium text-slate-900">Completa los datos del control para este paciente.</p>
                 </div>
@@ -219,15 +218,6 @@ export default function NuevoControl() {
                             {errors.anamnesis && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.anamnesis.message}</span>}
                         </div>
 
-                        <div>
-                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Fecha próximo control</label>
-                            <input
-                                type="date"
-                                {...register("fecha_proximoControl")}
-                                className={fieldClass(false)}
-                            />
-                            <p className="mt-1.5 text-xs font-medium text-slate-500">Si no se completa, se registrará por defecto a 6 meses.</p>
-                        </div>
                     </div>
                 </div>
 
@@ -305,6 +295,16 @@ export default function NuevoControl() {
                                 placeholder="Derivaciones, indicaciones, terapia indicada..."
                             />
                             {errors.indicaciones_acuerdos && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.indicaciones_acuerdos.message}</span>}
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Fecha próximo control</label>
+                            <input
+                                type="date"
+                                {...register("fecha_proximoControl")}
+                                className={fieldClass(false)}
+                            />
+                            <p className="mt-1.5 text-xs font-medium text-slate-900">Si no se completa, se registrará por defecto a 6 meses.</p>
                         </div>
                     </div>
                 </div>

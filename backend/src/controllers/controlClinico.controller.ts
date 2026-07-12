@@ -231,8 +231,9 @@ export const obtenerControlesPaginado: RequestHandler = async (req, res): Promis
         const fechaDesde = req.query.fechaDesde as string | undefined;
         const fechaHasta = req.query.fechaHasta as string | undefined;
         const orden = req.query.orden as string | undefined;
+        const busqueda = req.query.busqueda as string | undefined;
 
-        const resultado = await controlService.buscarControlPaginado(page, limit, filtro, fechaDesde, fechaHasta, orden);
+        const resultado = await controlService.buscarControlPaginado(page, limit, filtro, fechaDesde, fechaHasta, orden, busqueda);
         res.status(200).json(resultado);
     } catch (error: any) {
         console.error('ERROR AL OBTENER CONTROLES PAGINADOS:', error.message);
