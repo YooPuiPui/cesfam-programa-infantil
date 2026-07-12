@@ -62,7 +62,7 @@ export default function PlantillaControl() {
     const { paciente } = controlData;
 
     return (
-        <div className="min-h-screen bg-slate-000 p-6 md:p-8 font-sans">
+        <div className="min-h-screen bg-slate-000 p-6 md:p-8 font-sans print:min-h-0 print:p-0">
 
             {/* BOTONES DE ACCIÓN*/}
             <div className="max-w-4xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-300 print:hidden">
@@ -81,7 +81,7 @@ export default function PlantillaControl() {
             </div>
 
             {/* DOCUMENTO OFICIAL TIPO IMPRENTA (Blanco y Negro) */}
-            <div className="max-w-4xl mx-auto bg-white p-10 shadow-lg min-h-[1056px] text-black text-sm print:shadow-none print:p-0">
+            <div className="max-w-4xl mx-auto bg-white p-10 shadow-lg min-h-[1056px] text-black text-sm print:shadow-none print:p-0 print:min-h-0">
 
                 {/* ENCABEZADO INSTITUCIONAL */}
                 <div className="flex justify-between items-center border-2 border-black p-3 mb-6">

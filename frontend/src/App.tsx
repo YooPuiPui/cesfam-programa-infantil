@@ -10,7 +10,7 @@ import AgendaControles from "./components/agenda/agendaControles";
 import Dashboard from "./components/dashboard/Dashboard";
 import RutaProtegida from "./components/login/rutaProtegida";
 import ReportesList from "./components/reportes/listaReportes";
-import ReporteDetalle from "./components/reportes/datalleReportes";
+import ReporteDetalle from "./components/reportes/detalleReportes";
 
 export default function App() {
   return (

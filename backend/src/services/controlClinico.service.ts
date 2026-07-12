@@ -70,6 +70,7 @@ export const buscarControlPaginado = async (
     fechaDesde?: string,
     fechaHasta?: string,
     orden?: string,
+    busqueda?: string,
 ) => {
     const skip = (page - 1) * limit;
 
@@ -104,9 +105,22 @@ export const buscarControlPaginado = async (
                 where.fecha_proximoControl = { gte: desde, lt: hastaExclusivo };
             }
             break;
-        }
+    }
 
-    const direccionOrden = orden === 'desc' ? 'desc' : 'asc';    
+    // Búsqueda por RUT del paciente o por nombre/apellido, sin distinguir mayúsculas
+    if (busqueda && busqueda.trim() !== '') {
+        const palabras = busqueda.trim().split(/\s+/);
+
+        where.AND = palabras.map((palabra) => ({
+            OR: [
+                { rut_paciente: { contains: palabra, mode: 'insensitive' } },
+                { paciente: { nombre: { contains: palabra, mode: 'insensitive' } } },
+                { paciente: { apellido: { contains: palabra, mode: 'insensitive' } } },
+            ],
+        }));
+    }
+
+    const direccionOrden = orden === 'desc' ? 'desc' : 'asc';
     const [data, total] = await Promise.all([
         prisma.controlClinico.findMany({
             where,
