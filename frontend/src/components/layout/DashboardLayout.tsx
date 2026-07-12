@@ -28,9 +28,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-800">
+        <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-800 print:block print:h-auto print:w-auto print:overflow-visible">
             {/* SIDEBAR */}
-            <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
+            <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white print:hidden">
                 <div className="flex items-center gap-3 border-b border-slate-50 px-6 py-5">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
                         <Stethoscope className="h-5 w-5" />
@@ -54,9 +54,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </aside>
 
             {/* CONTENIDO PRINCIPAL */}
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex flex-1 flex-col overflow-hidden print:block print:overflow-visible">
                 {/* header permanente*/}
-                <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
+                <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 print:hidden">
                     <h1 className="text-base font-semibold text-slate-800">
                         {navItems.find(i => i.path === location.pathname)?.label || ""}
                     </h1>
@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-auto p-6">
+                <main className="flex-1 overflow-auto p-6 print:overflow-visible print:p-0">
                     {children}
                 </main>
             </div>
