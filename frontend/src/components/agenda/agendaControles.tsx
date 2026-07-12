@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, CalendarDays, ArrowRight, ArrowLeft, SearchX, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, CalendarRange, ArrowUpDown } from "lucide-react";
+import { Loader2, CalendarDays, ArrowRight, ArrowLeft, SearchX, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, CalendarRange, ArrowUpDown, Search } from "lucide-react";
 import type { ControlClinico, Paciente } from "../../types";
 import { API_BASE_URL } from '../../service/api';
 
@@ -87,12 +87,21 @@ export default function AgendaControles() {
     const [fechaDesde, setFechaDesde] = useState("");
     const [fechaHasta, setFechaHasta] = useState("");
 
+    const [busqueda, setBusqueda] = useState("");
+    const [busquedaDebounced, setBusquedaDebounced] = useState("");
+
     const [conteos, setConteos] = useState<Conteos>({ hoy: 0, atrasados: 0, semana: 0 });
     const [cargandoConteos, setCargandoConteos] = useState(true);
 
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRegistros, setTotalRegistros] = useState(0);
+
+    // Debounce: espera 400ms de silencio antes de aplicar la búsqueda real
+    useEffect(() => {
+        const timeout = setTimeout(() => setBusquedaDebounced(busqueda.trim()), 400);
+        return () => clearTimeout(timeout);
+    }, [busqueda]);
 
     // Carga los conteos globales una sola vez (independiente de la paginación/filtro)
     useEffect(() => {
@@ -121,12 +130,12 @@ export default function AgendaControles() {
         cargarConteos();
     }, []);
 
-    // Vuelve a página 1 cada vez que cambia el filtro o el orden
+    // Vuelve a página 1 cada vez que cambia el filtro, el orden o la búsqueda
     useEffect(() => {
         setPage(1);
-    }, [filtro, orden]);
+    }, [filtro, orden, busquedaDebounced]);
 
-    // Carga los controles paginados según filtro + orden + página actual
+    // Carga los controles paginados según filtro + orden + búsqueda + página actual
     useEffect(() => {
         // Si es rango personalizado pero aún no se completan ambas fechas, no consultamos todavía
         if (filtro === "rango" && (!fechaDesde || !fechaHasta)) {
@@ -156,6 +165,10 @@ export default function AgendaControles() {
                     params.set("fechaHasta", fechaHasta);
                 }
 
+                if (busquedaDebounced !== "") {
+                    params.set("busqueda", busquedaDebounced);
+                }
+
                 const response = await fetch(
                     `${API_BASE_URL}/control/agenda/paginado?${params.toString()}`,
                     {
@@ -183,7 +196,7 @@ export default function AgendaControles() {
         };
 
         cargarAgenda();
-    }, [filtro, page, fechaDesde, fechaHasta, orden]);
+    }, [filtro, page, fechaDesde, fechaHasta, orden, busquedaDebounced]);
 
     // Solo se calcula esAtrasado/diasAtraso sobre la página actual (el backend ya filtró por fecha)
     const controlesConCategoria = useMemo(() => {
@@ -295,6 +308,20 @@ export default function AgendaControles() {
                     <ArrowUpDown className="h-4 w-4" />
                     {orden === "asc" ? "Más urgentes primero" : "Más lejanos primero"}
                 </button>
+            </div>
+
+            {/* Buscador por RUT o nombre */}
+            <div className="relative w-full sm:max-w-sm">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Search className="h-5 w-5 text-slate-500" />
+                </div>
+                <input
+                    type="text"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    placeholder="Buscar por RUT o nombre..."
+                    className="w-full rounded-lg border border-slate-400 bg-white pl-10 pr-4 py-2.5 text-sm font-medium text-slate-900 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-50"
+                />
             </div>
 
             {/* Inputs de rango, solo visibles cuando el chip "rango" está activo */}

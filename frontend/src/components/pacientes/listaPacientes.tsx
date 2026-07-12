@@ -69,7 +69,7 @@ export default function PatientList() {
 
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalPacientes, setTotalPacientes] = useState(0); // <- nuevo
+    const [totalPacientes, setTotalPacientes] = useState(0);
 
     const [riesgo, setRiesgo] = useState<FiltroRiesgo>("todos");
 
@@ -97,8 +97,7 @@ export default function PatientList() {
                     limit: "30",
                 });
                 if (riesgo !== "todos") params.set("riesgo", riesgo);
-                const pareceRut = /\d/.test(busquedaDebounced);
-                if (busquedaDebounced !== "" && pareceRut) params.set("busqueda", busquedaDebounced);
+                if (busquedaDebounced !== "") params.set("busqueda", busquedaDebounced);
 
                 const respuesta = await fetch(`${API_BASE_URL}/pacientes?${params.toString()}`, {
                     method: "GET",
@@ -114,7 +113,7 @@ export default function PatientList() {
 
                 setPacientes(respuestaJson.data);
                 setTotalPages(respuestaJson.meta.totalPages);
-                setTotalPacientes(respuestaJson.meta.total); // <- nuevo
+                setTotalPacientes(respuestaJson.meta.total);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -145,7 +144,7 @@ export default function PatientList() {
                         <input
                             type="text"
                             className="bg-white border border-slate-400 text-slate-900 text-sm font-medium rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full pl-10 p-2.5 outline-none transition-all shadow-sm"
-                            placeholder="Buscar paciente por RUT..."
+                            placeholder="Buscar por RUT o nombre..."
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                         />
