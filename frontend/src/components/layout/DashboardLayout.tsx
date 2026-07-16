@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
                         <Stethoscope className="h-5 w-5" />
                     </div>
-                    <p className="font-semibold text-slate-800">CESFAM Pediátrico</p>
+                    <p className="font-semibold text-slate-800">SGPI</p>
                 </div>
 
                 <nav className="flex flex-1 flex-col gap-1 p-3">

@@ -44,6 +44,33 @@ export default function Dashboard() {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
 
+    const renderRiesgoLabel = ({ cx, cy, midAngle, outerRadius, name, value }: any) => {
+        const RADIAN = Math.PI / 180;
+        const labelRadius = outerRadius + 42;
+        const lineStartRadius = outerRadius + 10;
+        const lineEndRadius = outerRadius + 30;
+        const sin = Math.sin(-midAngle * RADIAN);
+        const cos = Math.cos(-midAngle * RADIAN);
+
+        const sx = cx + lineStartRadius * cos;
+        const sy = cy + lineStartRadius * sin;
+        const mx = cx + lineEndRadius * cos;
+        const my = cy + lineEndRadius * sin;
+        const ex = cx + labelRadius * cos;
+        const ey = cy + labelRadius * sin;
+        const textAnchor = cos >= 0 ? "start" : "end";
+        const dx = cos >= 0 ? 6 : -6;
+
+        return (
+            <g>
+                <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke="#94a3b8" fill="none" />
+                <text x={ex + dx} y={ey} fill="#334155" textAnchor={textAnchor} dominantBaseline="central" fontSize={12}>
+                    {`${name}: ${value}`}
+                </text>
+            </g>
+        );
+    };
+
     useEffect(() => {
         const cargarDatos = async () => {
             setCargando(true);
@@ -148,26 +175,28 @@ export default function Dashboard() {
             </div>
 
             {/* GRÁFICOS */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="mb-4 text-lg font-bold text-slate-800">Distribución por Riesgo Social</h2>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
+            <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+                <div className="rounded-2x1 border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 className="mb-7 text-lg font-bold text-slate-900">Distribución por Riesgo Social</h2>
+                    <ResponsiveContainer width="100%" height={340}>
+                        <PieChart margin={{ top: 8, right: 12, bottom: 44, left: 12 }}>
                             <Pie
                                 data={datosRiesgo}
                                 dataKey="value"
                                 nameKey="name"
                                 cx="50%"
-                                cy="50%"
-                                outerRadius={100}
-                                label={({ name, value }) => `${name}: ${value}`}
+                                cy="48%"
+                                outerRadius={92}
+                                paddingAngle={2}
+                                labelLine={false}
+                                label={renderRiesgoLabel}
                             >
                                 {datosRiesgo.map((entry, index) => (
                                     <Cell key={index} fill={entry.color} />
                                 ))}
                             </Pie>
                             <Tooltip />
-                            <Legend />
+                            <Legend wrapperStyle={{ paddingTop: 24 }} />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>

@@ -43,7 +43,7 @@ export default function Login() {
 
                 {/* Encabezado */}
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-slate-800"> Acceso a Gestion Programa Infantil</h1>
+                    <h1 className="text-2xl font-bold text-slate-800">SGPI - Sistema de Gestión del Programa Infantil</h1>
                 </div>
 
                 {/* Mensaje de Error (solo aparece si hay error) */}
