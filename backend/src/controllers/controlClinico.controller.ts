@@ -1,6 +1,6 @@
 import { Request, Response, RequestHandler } from "express";
 import * as controlService from '../services/controlClinico.service';
-import prisma from "../../src/config/prisma";
+import prisma from "../config/prisma";
 import { hoyChileMediodiaUTC } from '../utils/fechaChile';
 
 
