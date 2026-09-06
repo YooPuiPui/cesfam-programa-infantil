@@ -10,54 +10,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// enums
+enum EstadoConvocatoria {
+  no_contactado
+  contactado
+  confirma
+  no_confirma
+  no_contesta
+  no_puede
+  reconfirmar
+}
+
+enum EstadoAsistencia {
+  pendiente
+  asiste
+  no_asiste
+}
+
 // 1. Tabla Profesionales
 model Profesional {
-  id_profesional      Int      @id @default(autoincrement())
-  rut                 String   @unique @db.VarChar(12)
-  nombre              String   @db.VarChar(100)
-  apellido            String   @db.VarChar(100)
-  estamento           String   @db.VarChar(50)
-  activo              Boolean  @default(true)
-  creado_en           DateTime @default(now())
+  id_profesional Int      @id @default(autoincrement())
+  rut            String   @unique @db.VarChar(12)
+  nombre         String   @db.VarChar(100)
+  apellido       String   @db.VarChar(100)
+  estamento      String   @db.VarChar(50)
+  activo         Boolean  @default(true)
+  creado_en      DateTime @default(now())
 
   // relacion 
-  controlClinico      ControlClinico[]
+  controlClinico ControlClinico[]
+  sesionesTaller SesionTaller[]
 }
 
 // 2. Tabla Tutores
 model Tutor {
-  id_tutor            Int      @id @default(autoincrement())
-  rut                 String?  @unique @db.VarChar(12)
-  nombre              String   @db.VarChar(100)
-  apellido            String   @db.VarChar(100)
-  telefono            String   @db.VarChar(15)
-  parentesco          String   @db.VarChar(50)
-  correo              String?  @db.VarChar(100)
-  direccion           String   @db.VarChar(100)
-  sector              String?  @db.VarChar(100)
-  comuna              String @db.VarChar(100)
+  id_tutor   Int        @id @default(autoincrement())
+  rut        String?    @unique @db.VarChar(12)
+  nombre     String     @db.VarChar(100)
+  apellido   String     @db.VarChar(100)
+  telefono   String     @db.VarChar(15)
+  parentesco String     @db.VarChar(50)
+  correo     String?    @db.VarChar(100)
+  direccion  String     @db.VarChar(100)
+  sector     String?    @db.VarChar(100)
+  comuna     String     @db.VarChar(100)
   // Una relación de uno a muchos: un tutor puede tener muchos Pacientes
-  pacientes           Paciente[]
+  pacientes  Paciente[]
 }
 
 // 3. Tabla de Pacientes
 model Paciente {
-  id_paciente         Int      @id @default(autoincrement())
-  rut                 String   @unique @db.VarChar(15)
-  nombre             String   @db.VarChar(100)
-  apellido           String   @db.VarChar(100)
-  nombre_social       String?  @db.VarChar(100)
-  fecha_nacimiento    DateTime @db.Date
-  sexo_biologico      String   @db.VarChar(20)
-  identidad_genero    String?  @db.VarChar(50)
-  nacionalidad        String?  @default("Chilena") @db.VarChar(50)
-  direccion           String
-  sector              String?  @db.VarChar(50)
-  comuna              String @db.VarChar(50)
-  nhc                 String? @db.VarChar(50)   // numero hostorial clinico
-  prevision           String? @db.VarChar(50)   // ej fonasa gpo-a 
-  fecha_inscripcion   DateTime @default(now())   // en que se inscribio en el cesfam
-  activo              Boolean @default(true)    
+  id_paciente       Int      @id @default(autoincrement())
+  rut               String   @unique @db.VarChar(15)
+  nombre            String   @db.VarChar(100)
+  apellido          String   @db.VarChar(100)
+  nombre_social     String?  @db.VarChar(100)
+  fecha_nacimiento  DateTime @db.Date
+  sexo_biologico    String   @db.VarChar(20)
+  identidad_genero  String?  @db.VarChar(50)
+  nacionalidad      String?  @default("Chilena") @db.VarChar(50)
+  direccion         String
+  sector            String?  @db.VarChar(50)
+  comuna            String   @db.VarChar(50)
+  nhc               String?  @db.VarChar(50) // numero hostorial clinico
+  prevision         String?  @db.VarChar(50) // ej fonasa gpo-a 
+  fecha_inscripcion DateTime @default(now()) // en que se inscribio en el cesfam
+  activo            Boolean  @default(true)
 
   // Flags de riesgo social 
   es_sename           Boolean  @default(false)
@@ -67,61 +85,113 @@ model Paciente {
   creado_en           DateTime @default(now())
 
   // Relación con el tutor
-  id_tutor_principal  Int
-  tutor               Tutor    @relation(fields: [id_tutor_principal], references: [id_tutor])
+  id_tutor_principal Int
+  tutor              Tutor @relation(fields: [id_tutor_principal], references: [id_tutor])
 
   controlClinico      ControlClinico[]
+  inscripcionesTaller InscripcionTaller[]
 }
 
-
 model ControlClinico {
-  id_control          Int @id @default(autoincrement())
-  fecha_control       DateTime @default(now())
+  id_control    Int      @id @default(autoincrement())
+  fecha_control DateTime @default(now())
 
-  motivo_consulta     String? @db.Text
-  anamnesis           String? @db.Text
-  exploracion_fisica  String? @db.Text
-  
+  motivo_consulta    String? @db.Text
+  anamnesis          String? @db.Text
+  exploracion_fisica String? @db.Text
+
   // medidas
-  edad_meses          Int
-  peso_kg             Float
-  talla_cm            Float
-  perimetro_cefalico  Float?
-  imc                 Float
-  presion_arterial    String? @db.VarChar(30)
+  edad_meses         Int
+  peso_kg            Float
+  talla_cm           Float
+  perimetro_cefalico Float?
+  imc                Float
+  presion_arterial   String? @db.VarChar(30)
 
   // nutricion
-  diagnostico_nutricional   String? @db.VarChar(500)
-  tipo_lactancia      String? @db.VarChar(100)
+  diagnostico_nutricional String? @db.VarChar(500)
+  tipo_lactancia          String? @db.VarChar(100)
 
   // desarrollo y evaluacion
-  resultado_dpm       String? @db.VarChar(100)
-  meses_dpm_aplicado  Int?
-  score_ira           String? @db.VarChar(100)
+  resultado_dpm      String? @db.VarChar(100)
+  meses_dpm_aplicado Int?
+  score_ira          String? @db.VarChar(100)
 
   // notas clinicas
-  problemas_diagnosticados  String? @db.Text
-  indicaciones_acuerdos   String? @db.Text
+  problemas_diagnosticados String? @db.Text
+  indicaciones_acuerdos    String? @db.Text
 
   // gestion control
   fecha_proximoControl DateTime @db.Date
 
   // forean key - relacion
-  rut_paciente      String
-  paciente          Paciente @relation(fields: [rut_paciente], references : [rut])
+  rut_paciente String
+  paciente     Paciente @relation(fields: [rut_paciente], references: [rut])
 
-  rut_profesional    String
-  Profesional        Profesional @relation(fields: [rut_profesional], references: [rut])
+  rut_profesional String
+  Profesional     Profesional @relation(fields: [rut_profesional], references: [rut])
 
-  creado_en         DateTime  @default(now())
+  creado_en DateTime @default(now())
 }
 
 model Usuario {
-  id               Int @default(autoincrement())
-  rut              String @unique
-  password         String 
-  nombre           String
-  rol              String @default("Medico")
-  createdAt        DateTime @default(now())
+  id        Int      @default(autoincrement())
+  rut       String   @unique
+  password  String
+  nombre    String
+  rol       String   @default("Medico")
+  createdAt DateTime @default(now())
+}
 
+model Taller {
+  id_taller   Int     @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(100)
+  descripcion String? @db.Text
+
+  edad_min  Int      @default(0)
+  edad_max  Int      @default(17)
+  activo    Boolean  @default(true)
+  creado_en DateTime @default(now())
+
+  sesiones SesionTaller[]
+}
+
+model SesionTaller {
+  id_sesion Int @id @default(autoincrement())
+
+  id_taller Int
+  taller    Taller @relation(fields: [id_taller], references: [id_taller])
+
+  fecha       DateTime @db.Date
+  cupo_maximo Int? // sin validacion ya que no existe maximo
+
+  rut_profesional     String?      @db.VarChar(12)
+  profesional         Profesional? @relation(fields: [rut_profesional], references: [rut])
+  profesional_externo String?      @db.VarChar(150) // para interno o de otro cesfam
+
+  observaciones String?  @db.Text
+  creado_en     DateTime @default(now())
+
+  inscripciones InscripcionTaller[]
+}
+
+model InscripcionTaller {
+  id_inscripcion Int @id @default(autoincrement())
+
+  rut_paciente String
+  paciente     Paciente     @relation(fields: [rut_paciente], references: [rut])
+  id_sesion    Int
+  sesion       SesionTaller @relation(fields: [id_sesion], references: [id_sesion])
+
+  estado_convocatoria EstadoConvocatoria @default(no_contactado)
+  estado_asistencia   EstadoAsistencia   @default(pendiente)
+
+  telefono_contacto String? @db.VarChar(20)
+  observaciones     String? @db.Text
+
+  fecha_contacto DateTime?
+  creado_en      DateTime  @default(now())
+  actualizado_en DateTime  @updatedAt
+
+  @@unique([rut_paciente, id_sesion])
 }
