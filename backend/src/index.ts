@@ -7,6 +7,10 @@ import tutorRoutes from './routes/tutor.routes';
 import controlRoutes from './routes/controlClinico.routes';
 import authRoutes from './routes/auth.routes';
 import reportesRoutes from './routes/reportes.routes';
+import tallerRoutes from './routes/taller.routes';
+
+
+
 import 'dotenv/config';
 
 
@@ -44,6 +48,7 @@ app.use('/api/tutores', tutorRoutes);
 app.use('/api/control', controlRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/reportes', reportesRoutes);
+app.use('/api/talleres', tallerRoutes);
 
 
 
