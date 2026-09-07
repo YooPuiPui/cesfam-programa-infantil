@@ -1,6 +1,5 @@
 import { Request, Response, RequestHandler } from "express";
 import * as tallerService from '../services/taller.service';
-import { UndoIcon } from "lucide-react";
 
 
 
@@ -17,12 +16,44 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
             return;
         }
 
+        //! parseInt('abc') es NaN y Prisma lo rechaza con un error opaco (500),
+        //! asi que las edades se validan aca y se responde 400.
+        let edadMinLimpia: number | undefined;
+        let edadMaxLimpia: number | undefined;
+
+        if (edad_min !== undefined && edad_min !== null && edad_min !== '') {
+            edadMinLimpia = parseInt(edad_min);
+
+            if (isNaN(edadMinLimpia) || edadMinLimpia < 0) {
+                res.status(400).json({error: 'La edad minima debe ser un numero entero mayor o igual a cero'});
+                return;
+            }
+        }
+
+        if (edad_max !== undefined && edad_max !== null && edad_max !== '') {
+            edadMaxLimpia = parseInt(edad_max);
+
+            if (isNaN(edadMaxLimpia) || edadMaxLimpia < 0) {
+                res.status(400).json({error: 'La edad maxima debe ser un numero entero mayor o igual a cero'});
+                return;
+            }
+        }
+
+        //? Comparamos contra los valores por defecto del schema (0 y 17) para
+        //? cubrir el caso de que venga solo una de las dos edades.
+        const minEfectiva = edadMinLimpia !== undefined ? edadMinLimpia : 0;
+        const maxEfectiva = edadMaxLimpia !== undefined ? edadMaxLimpia : 17;
+
+        if (minEfectiva > maxEfectiva) {
+            res.status(400).json({error: 'La edad minima no puede ser mayor que la edad maxima'});
+            return;
+        }
+
         const tallerLimpio = {
             nombre: nombre.trim(),
             descripcion: descripcion || null,
-            edad_min: edad_min !== undefined ? parseInt(edad_min) : undefined,
-            edad_max: edad_max !== undefined ? parseInt(edad_max) : undefined,
-            
+            edad_min: edadMinLimpia,
+            edad_max: edadMaxLimpia,
         };
 
         const resultado = await tallerService.crearTaller(tallerLimpio);
@@ -42,7 +73,7 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
             return;
         }
 
-        res.status(500).json({error: 'Error interno en la base de datos', detalle: error.menssage});
+        res.status(500).json({error: 'Error interno en la base de datos', detalle: error.message});
     }
 }
 
@@ -54,7 +85,7 @@ export const obtenerTalleres: RequestHandler = async (req, res): Promise<void> =
         res.status(200).json(talleres);
 
     }catch(error: any){
-        console.error('Error al obtener los talleres', error.menssage);
+        console.error('Error al obtener los talleres', error.message);
         res.status(500).json({error: 'Error interno al consultar la base de datos'});
     }
 };
@@ -74,14 +105,14 @@ export const obtenerTallerPorId: RequestHandler = async (req, res): Promise<void
         const taller = await tallerService.buscarTallerPorId(id);
 
         if(!taller){
-            res.status(400).json({error: 'El taller solicitado no existe'});
+            res.status(404).json({error: 'El taller solicitado no existe'});
             return;
         }
 
         res.status(200).json(taller);
     } catch (error: any) {
-        console.error('Error al obtener el taller: ', error.menssage);
-        res.status(500).json({error: 'Error interno al consultgar el taller '});
+        console.error('Error al obtener el taller: ', error.message);
+        res.status(500).json({error: 'Error interno al consultar el taller '});
     }
 };
 
@@ -102,10 +133,59 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
         const datosLimpios: any = {};
 
         //? actualizar con lo que viene en el body
-        if (datos.nombre !== undefined) datosLimpios.nombre = datos.nombre.trim();
+        if (datos.nombre !== undefined) {
+            //! Un nombre null pasaba el !== undefined y reventaba en .trim() con
+            //! un 500; y el nombre es obligatorio en el schema, no puede vaciarse.
+            if (typeof datos.nombre !== 'string' || datos.nombre.trim() === '') {
+                res.status(400).json({error: 'El nombre del taller no puede quedar vacio'});
+                return;
+            }
+
+            datosLimpios.nombre = datos.nombre.trim();
+        }
+
         if (datos.descripcion !== undefined) datosLimpios.descripcion = datos.descripcion;
-        if (datos.edad_min !== undefined) datosLimpios.edad_min = parseInt(datos.edad_min);
-        if (datos.edad_max !== undefined) datosLimpios.edad_max = parseInt(datos.edad_max);
+
+        if (datos.edad_min !== undefined) {
+            const edadMin = parseInt(datos.edad_min);
+
+            if (isNaN(edadMin) || edadMin < 0) {
+                res.status(400).json({error: 'La edad minima debe ser un numero entero mayor o igual a cero'});
+                return;
+            }
+
+            datosLimpios.edad_min = edadMin;
+        }
+
+        if (datos.edad_max !== undefined) {
+            const edadMax = parseInt(datos.edad_max);
+
+            if (isNaN(edadMax) || edadMax < 0) {
+                res.status(400).json({error: 'La edad maxima debe ser un numero entero mayor o igual a cero'});
+                return;
+            }
+
+            datosLimpios.edad_max = edadMax;
+        }
+
+        //? Si se toca una sola edad hay que compararla con la que ya esta en la
+        //? base, no con la del body: el rango resultante es el que debe ser valido.
+        if (datosLimpios.edad_min !== undefined || datosLimpios.edad_max !== undefined) {
+            const actual = await tallerService.buscarTallerPorId(id);
+
+            if (!actual) {
+                res.status(404).json({error: 'El taller que intentas editar no existe'});
+                return;
+            }
+
+            const minFinal = datosLimpios.edad_min !== undefined ? datosLimpios.edad_min : actual.edad_min;
+            const maxFinal = datosLimpios.edad_max !== undefined ? datosLimpios.edad_max : actual.edad_max;
+
+            if (minFinal > maxFinal) {
+                res.status(400).json({error: 'La edad minima no puede ser mayor que la edad maxima'});
+                return;
+            }
+        }
 
         const resultado = await tallerService.editarTaller(id, datosLimpios);
 
@@ -147,13 +227,13 @@ export const desactivarTaller: RequestHandler = async(req, res): Promise<void> =
         res.status(200).json({mensaje: `El taller con id ${id} fue desactivado` });
 
     } catch (error:any) {
-        console.error('Error al desactivar el taller: ', error.menssage);
+        console.error('Error al desactivar el taller: ', error.message);
 
         if (error.code === 'P2025') {
             res.status(404).json({error: 'El taller que intenta desactivar no existe'});
             return;
         }
-    }
 
-    res.status(500).json({error: 'Error interno al desactivar el taller'});
+        res.status(500).json({error: 'Error interno al desactivar el taller'});
+    }
 }
