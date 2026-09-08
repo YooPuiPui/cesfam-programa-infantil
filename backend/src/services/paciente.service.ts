@@ -95,3 +95,11 @@ export const obtenerConteosPacientes = async () => {
 
     return { total, sename, naneas, trans, migrante, regular };
 };
+
+
+export const buscarPacientePorRut = async (rut: string) => {
+    return await prisma.paciente.findUnique({
+        where: { rut },
+        select: { rut: true, fecha_nacimiento: true }
+    });
+};
