@@ -6,6 +6,7 @@ import CrearControl from "./components/controles/crearControl";
 import FichaPacientes from "./components/pacientes/fichaPacientes";
 import PlantillaControl from './components/controles/plantillaControl';
 import InscribirPaciente from "./components/pacientes/inscribirPaciente";
+import EditarPaciente from "./components/pacientes/editarPaciente";
 import AgendaControles from "./components/agenda/agendaControles";
 import Dashboard from "./components/dashboard/Dashboard";
 import RutaProtegida from "./components/login/rutaProtegida";
@@ -49,6 +50,17 @@ export default function App() {
             <RutaProtegida>
               <DashboardLayout>
                 <InscribirPaciente />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/editar-paciente/:rut"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <EditarPaciente />
               </DashboardLayout>
             </RutaProtegida>
           }

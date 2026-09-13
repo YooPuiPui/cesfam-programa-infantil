@@ -113,14 +113,24 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         if (datos.prevision) datosLimpios.prevision = datos.prevision;
         if (datos.fecha_inscripcion) datosLimpios.fecha_inscripcion = datos.fecha_inscripcion;
         if (datos.activo !== undefined) datosLimpios.activo = datos.activo;
-        const resultado = await pacienteService.actualizarPaciente(id, datosLimpios);
+
+        // Flags de riesgo social — usan "!== undefined" y no un chequeo "truthy",
+        // porque si no, desmarcar una casilla (mandar "false") se interpretaría
+        // como "no vino el dato" y la edición no surtiría efecto.
+        if (datos.es_sename !== undefined) datosLimpios.es_sename = datos.es_sename;
+        if (datos.es_naneas_prematuro !== undefined) datosLimpios.es_naneas_prematuro = datos.es_naneas_prematuro;
+        if (datos.es_migrante !== undefined) datosLimpios.es_migrante = datos.es_migrante;
+        if (datos.es_poblacion_trans !== undefined) datosLimpios.es_poblacion_trans = datos.es_poblacion_trans;
         if (datos.es_salud_mental !== undefined) datosLimpios.es_salud_mental = datos.es_salud_mental;
+
         if (datos.diagnosticos !== undefined) datosLimpios.diagnosticos = datos.diagnosticos;
         if (datos.credencial_discapacidad !== undefined) datosLimpios.credencial_discapacidad = datos.credencial_discapacidad;
         if (datos.credencial_discapacidad_detalle !== undefined) datosLimpios.credencial_discapacidad_detalle = datos.credencial_discapacidad_detalle;
         if (datos.cuidador_nombre !== undefined) datosLimpios.cuidador_nombre = datos.cuidador_nombre;
         if (datos.cuidador_telefono !== undefined) datosLimpios.cuidador_telefono = datos.cuidador_telefono;
         if (datos.cuidador_parentesco !== undefined) datosLimpios.cuidador_parentesco = datos.cuidador_parentesco;
+
+        const resultado = await pacienteService.actualizarPaciente(id, datosLimpios);
 
         res.status(200).json({
             mensaje: 'Paciente actualizado con exito',
@@ -142,7 +152,19 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         });
     }
 };
+/*
+export const obtenerTodosLosPacientes = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const pacientes = await pacienteService.obtenerTodosLosPacientes();
 
+        res.status(200).json(pacientes);
+    } catch (error: any) {
+
+        console.error(' Error al obtener pacientas', error.message);
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
+    }
+};
+*/
 
 export const obtenerPacientes = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -232,7 +254,6 @@ export const obtenerPaciente: RequestHandler = async (req, res): Promise<void> =
         const paciente = await pacienteService.obtenerPacientePorId(id);
 
         if (!paciente) {
-            // 🚨 AQUÍ ESTABA EL ERROR DE SINTAXIS. Ahora tiene su "clave: valor"
             res.status(404).json({ error: 'El paciente no existe en los registros' });
             return;
         }
