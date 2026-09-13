@@ -103,3 +103,12 @@ export const buscarPacientePorRut = async (rut: string) => {
         select: { rut: true, fecha_nacimiento: true }
     });
 };
+
+export const buscarPacientePorRutConTutor = async (rut: string) => {
+    return await prisma.paciente.findUnique({
+        where: { rut },
+        include: {
+            tutor: true
+        }
+    });
+};
