@@ -285,12 +285,7 @@ export const obtenerPacientePorRut: RequestHandler = async (req, res): Promise<v
         }
 
         // 3. Prisma ya no se quejará
-        const paciente = await prisma.paciente.findUnique({
-            where: { rut: rut },
-            include: {
-                tutor: true
-            }
-        });
+        const paciente = await pacienteService.buscarPacientePorRutConTutor(rut);
 
         if (!paciente) {
             res.status(404).json({ error: 'El paciente no existe en los registros' });
