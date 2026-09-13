@@ -129,14 +129,22 @@ export default function FichaPaciente() {
                     ) : (
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente?.nombre} {paciente?.apellido}</h1>
                     )}
-                    <p className="text-sm font-medium text-slate-900 mt-1">RUT: <span className="text-slate-900 font-bold">{paciente?.rut}</span></p>
+                    <p className="text-sm font-medium text-slate-500 mt-1">RUT: <span className="text-slate-900 font-bold">{paciente?.rut}</span></p>
                 </div>
-                <button
-                    onClick={() => navigate(`/nuevo-control?rut=${rut}`)}
-                    className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl transition shadow-md hover:shadow-lg w-full md:w-auto active:scale-95"
-                >
-                    + Iniciar Nuevo Control
-                </button>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <button
+                        onClick={() => navigate(`/editar-paciente/${rut}`)}
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+                    >
+                        Editar paciente
+                    </button>
+                    <button
+                        onClick={() => navigate(`/nuevo-control?rut=${rut}`)}
+                        className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl transition shadow-md hover:shadow-lg w-full md:w-auto active:scale-95"
+                    >
+                        + Iniciar Nuevo Control
+                    </button>
+                </div>
             </div>
 
             {/* CUERPO DE LA FICHA */}
@@ -150,12 +158,12 @@ export default function FichaPaciente() {
                         <h2 className="text-base font-bold text-slate-800 mb-5 border-b border-slate-100 pb-2">Antecedentes generales</h2>
                         <dl className="space-y-5">
                             <div>
-                                <dt className="text-sm font-medium text-slate-900">Edad actual</dt>
+                                <dt className="text-sm font-medium text-slate-500">Edad actual</dt>
                                 <dd className="text-sm font-bold text-slate-800 mt-1">{obtenerEdadDetallada(paciente?.fecha_nacimiento)}</dd>
                             </div>
 
                             <div>
-                                <dt className="text-sm font-medium text-slate-900 mb-2">Sector</dt>
+                                <dt className="text-sm font-medium text-slate-500 mb-2">Sector</dt>
                                 <dd>
                                     <span className={`inline-block px-3 py-1.5 text-xs font-bold rounded-lg shadow-sm ${obtenerColorSector(paciente?.sector)}`}>
                                         {paciente?.sector || 'No registrado'}
@@ -165,7 +173,7 @@ export default function FichaPaciente() {
 
                             {/* Riesgos Sociales Dinámicos */}
                             <div>
-                                <dt className="text-sm font-medium text-slate-900 mb-2">Riesgos socioclínicos</dt>
+                                <dt className="text-sm font-medium text-slate-500 mb-2">Riesgos socioclínicos</dt>
                                 <dd className="flex flex-wrap gap-2">
                                     {riesgos.length > 0 ? (
                                         riesgos.map((r, i) => (
@@ -205,7 +213,7 @@ export default function FichaPaciente() {
                                 </span>
                             )}
                         </div>
-                        <p className="text-sm font-medium text-slate-900 mt-1">Tel: <span className="text-slate-900 font-bold">{paciente?.tutor?.telefono || 'No disponible'}</span></p>
+                        <p className="text-sm font-medium text-slate-500 mt-1">Tel: <span className="text-slate-900 font-bold">{paciente?.tutor?.telefono || 'No disponible'}</span></p>
 
                         {paciente?.cuidador_nombre && (
                             <div className="mt-4 pt-4 border-t border-slate-100">
