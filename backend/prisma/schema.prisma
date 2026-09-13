@@ -27,6 +27,13 @@ enum EstadoAsistencia {
   no_asiste
 }
 
+enum EstadoCredencialDiscapacidad {
+  sin_dato
+  si
+  no
+  en_tramite
+}
+
 // 1. Tabla Profesionales
 model Profesional {
   id_profesional Int      @id @default(autoincrement())
@@ -82,7 +89,20 @@ model Paciente {
   es_naneas_prematuro Boolean  @default(false)
   es_poblacion_trans  Boolean  @default(false)
   es_migrante         Boolean  @default(false)
+  es_salud_mental     Boolean  @default(false) // pertenece al programa de salud mental
   creado_en           DateTime @default(now())
+
+  // diagnosticos como lista simple 
+  diagnosticos String[]
+
+  //  credencial de discapacidad
+  credencial_discapacidad         EstadoCredencialDiscapacidad @default(sin_dato)
+  credencial_discapacidad_detalle String?                      @db.Text
+
+  //cuidador (distinto del tutor legal, opcional)
+  cuidador_nombre     String? @db.VarChar(100)
+  cuidador_telefono   String? @db.VarChar(15)
+  cuidador_parentesco String? @db.VarChar(50)
 
   // Relación con el tutor
   id_tutor_principal Int

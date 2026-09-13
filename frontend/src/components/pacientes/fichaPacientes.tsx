@@ -43,6 +43,15 @@ export default function FichaPaciente() {
         return riesgos;
     };
 
+    // color del sector segun el nombre real 
+    const obtenerColorSector = (sector?: string) => {
+        if (!sector) return "bg-slate-100 text-slate-700 border border-slate-200";
+        const s = sector.toLowerCase();
+        if (s.includes('azul')) return "bg-blue-100 text-blue-800 border border-blue-200";
+        if (s.includes('rojo')) return "bg-red-100 text-red-800 border border-red-200";
+        return "bg-slate-100 text-slate-700 border border-slate-200";
+    };
+
     useEffect(() => {
         const cargarDatosFicha = async () => {
             if (!rut) {
@@ -120,7 +129,7 @@ export default function FichaPaciente() {
                     ) : (
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente?.nombre} {paciente?.apellido}</h1>
                     )}
-                    <p className="text-slate-000 font-medium mt-1">RUT: <span className="text-slate-000">{paciente?.rut}</span></p>
+                    <p className="text-sm font-medium text-slate-900 mt-1">RUT: <span className="text-slate-900 font-bold">{paciente?.rut}</span></p>
                 </div>
                 <button
                     onClick={() => navigate(`/nuevo-control?rut=${rut}`)}
@@ -138,16 +147,25 @@ export default function FichaPaciente() {
 
                     {/* Antecedentes */}
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
-                        <h2 className="text-xs font-bold text-slate-000 uppercase tracking-wider mb-5 border-b pb-2">Antecedentes Generales</h2>
+                        <h2 className="text-base font-bold text-slate-800 mb-5 border-b border-slate-100 pb-2">Antecedentes generales</h2>
                         <dl className="space-y-5">
                             <div>
-                                <dt className="text-sm font-semibold text-slate-000 uppercase tracking-wide">Edad Actual</dt>
+                                <dt className="text-sm font-medium text-slate-900">Edad actual</dt>
                                 <dd className="text-sm font-bold text-slate-800 mt-1">{obtenerEdadDetallada(paciente?.fecha_nacimiento)}</dd>
+                            </div>
+
+                            <div>
+                                <dt className="text-sm font-medium text-slate-900 mb-2">Sector</dt>
+                                <dd>
+                                    <span className={`inline-block px-3 py-1.5 text-xs font-bold rounded-lg shadow-sm ${obtenerColorSector(paciente?.sector)}`}>
+                                        {paciente?.sector || 'No registrado'}
+                                    </span>
+                                </dd>
                             </div>
 
                             {/* Riesgos Sociales Dinámicos */}
                             <div>
-                                <dt className="text-sm font-semibold text-slate-000 uppercase tracking-wide mb-2">Riesgos Socioclínicos</dt>
+                                <dt className="text-sm font-medium text-slate-900 mb-2">Riesgos socioclínicos</dt>
                                 <dd className="flex flex-wrap gap-2">
                                     {riesgos.length > 0 ? (
                                         riesgos.map((r, i) => (
@@ -156,15 +174,19 @@ export default function FichaPaciente() {
                                             </span>
                                         ))
                                     ) : (
-                                        <span className="text-sm font-medium text-slate-000 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">Sin riesgos registrados</span>
+                                        <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">Sin riesgos registrados</span>
                                     )}
                                 </dd>
                             </div>
 
                             {paciente?.es_poblacion_trans && paciente?.identidad_genero && (
-                                <div className="font-bold  border-slate-100">
-                                    <dt className="text-sm font-semibold text-slate-000 uppercase tracking-wide">Identidad de Género</dt>
-                                    <dd className="text-sm font-bold text-blue-700 mt-1">{paciente.identidad_genero}</dd>
+                                <div>
+                                    <dt className="text-sm font-medium text-slate-500 mb-2">Identidad de género</dt>
+                                    <dd>
+                                        <span className="inline-block px-3 py-1.5 text-xs font-bold rounded-lg shadow-sm bg-purple-100 text-purple-800 border border-purple-200">
+                                            {paciente.identidad_genero}
+                                        </span>
+                                    </dd>
                                 </div>
                             )}
                         </dl>
@@ -172,11 +194,35 @@ export default function FichaPaciente() {
 
                     {/* Tutor */}
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
-                        <h2 className="text-sm font-bold text-slate-000 uppercase tracking-wider mb-4 border-b pb-2">Tutor Legal / Cuidador</h2>
-                        <p className="text-base font-bold text-slate-000">
-                            {paciente?.tutor ? `${paciente.tutor.nombre} ${paciente.tutor.apellido}` : 'Sin tutor registrado'}
-                        </p>
-                        <p className="text-sm font-medium text-slate-000 mt-1">Tel: {paciente?.tutor?.telefono || 'No disponible'}</p>
+                        <h2 className="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tutor legal</h2>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-base font-bold text-slate-900">
+                                {paciente?.tutor ? `${paciente.tutor.nombre} ${paciente.tutor.apellido}` : 'Sin tutor registrado'}
+                            </p>
+                            {paciente?.tutor?.parentesco && (
+                                <span className="px-2 py-0.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                                    {paciente.tutor.parentesco}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-sm font-medium text-slate-900 mt-1">Tel: <span className="text-slate-900 font-bold">{paciente?.tutor?.telefono || 'No disponible'}</span></p>
+
+                        {paciente?.cuidador_nombre && (
+                            <div className="mt-4 pt-4 border-t border-slate-100">
+                                <h3 className="text-sm font-bold text-slate-800 mb-2">Cuidador</h3>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-base font-bold text-slate-900">{paciente.cuidador_nombre}</p>
+                                    {paciente.cuidador_parentesco && (
+                                        <span className="px-2 py-0.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                                            {paciente.cuidador_parentesco}
+                                        </span>
+                                    )}
+                                </div>
+                                {paciente.cuidador_telefono && (
+                                    <p className="text-sm font-medium text-slate-500 mt-1">Tel: <span className="text-slate-900 font-bold">{paciente.cuidador_telefono}</span></p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -204,9 +250,9 @@ export default function FichaPaciente() {
                             <table className="min-w-full divide-y divide-slate-200">
                                 <thead className="bg-slate-50">
                                     <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-000 uppercase tracking-wider">Fecha de Atención</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-000 uppercase tracking-wider">Resumen Clínico</th>
-                                        <th className="px-6 py-4 text-right text-xs font-bold text-slate-000 uppercase tracking-wider">Acciones</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha de Atención</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Resumen Clínico</th>
+                                        <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-slate-200">
@@ -216,10 +262,10 @@ export default function FichaPaciente() {
                                                 <div className="text-sm font-bold text-slate-900">{new Date(control.fecha_control).toLocaleDateString('es-CL', { timeZone: 'UTC' })}</div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="text-sm font-bold text-slate-800 line-clamp-1 max-w-[300px]" title={control.motivo_consulta}>
+                                                <div className="text-sm font-bold text-slate-800 line-clamp-1 max-w-[300px]" title={control.motivo_consulta ?? undefined}>
                                                     {control.motivo_consulta || 'Control Sano'}
                                                 </div>
-                                                <div className="text-xs font-medium text-slate-500 line-clamp-1 max-w-[300px]" title={control.problemas_diagnosticados}>
+                                                <div className="text-xs font-medium text-slate-500 line-clamp-1 max-w-[300px]" title={control.problemas_diagnosticados ?? undefined}>
                                                     {control.problemas_diagnosticados || 'Sin diagnóstico registrado'}
                                                 </div>
                                             </td>

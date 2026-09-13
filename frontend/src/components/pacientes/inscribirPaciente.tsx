@@ -25,6 +25,19 @@ type FormState = {
     es_poblacion_trans: boolean;
     nombre_social: string;
     identidad_genero: string;
+    dx_tea: boolean;
+    dx_epilepsia: boolean;
+    dx_tgd: boolean;
+    dx_sindrome_down: boolean;
+    dx_paralisis_cerebral: boolean;
+    dx_otro: boolean;
+    dx_otro_texto: string;
+    es_salud_mental: boolean;
+    credencial_discapacidad: string;
+    credencial_discapacidad_detalle: string;
+    cuidador_nombre: string;
+    cuidador_telefono: string;
+    cuidador_parentesco: string;
     tutor_rut: string;
     tutor_nombre: string;
     tutor_apellido: string;
@@ -78,6 +91,19 @@ const initialState: FormState = {
     es_poblacion_trans: false,
     nombre_social: "",
     identidad_genero: "",
+    dx_tea: false,
+    dx_epilepsia: false,
+    dx_tgd: false,
+    dx_sindrome_down: false,
+    dx_paralisis_cerebral: false,
+    dx_otro: false,
+    dx_otro_texto: "",
+    es_salud_mental: false,
+    credencial_discapacidad: "sin_dato",
+    credencial_discapacidad_detalle: "",
+    cuidador_nombre: "",
+    cuidador_telefono: "",
+    cuidador_parentesco: "",
     tutor_rut: "",
     tutor_nombre: "",
     tutor_apellido: "",
@@ -209,6 +235,20 @@ export default function InscribirPaciente() {
             es_poblacion_trans: form.es_poblacion_trans,
             nombre_social: form.es_poblacion_trans ? form.nombre_social.trim() : "",
             identidad_genero: form.es_poblacion_trans ? form.identidad_genero.trim() : "",
+            diagnosticos: [
+                ...(form.dx_tea ? ["TEA"] : []),
+                ...(form.dx_epilepsia ? ["Epilepsia"] : []),
+                ...(form.dx_tgd ? ["Trastornos Generalizados del Desarrollo"] : []),
+                ...(form.dx_sindrome_down ? ["Síndrome de Down"] : []),
+                ...(form.dx_paralisis_cerebral ? ["Parálisis Cerebral"] : []),
+                ...(form.dx_otro && form.dx_otro_texto.trim() ? [form.dx_otro_texto.trim()] : []),
+            ],
+            es_salud_mental: form.es_salud_mental,
+            credencial_discapacidad: form.credencial_discapacidad,
+            credencial_discapacidad_detalle: form.credencial_discapacidad !== "sin_dato" ? form.credencial_discapacidad_detalle.trim() : "",
+            cuidador_nombre: form.cuidador_nombre.trim(),
+            cuidador_telefono: form.cuidador_telefono.trim(),
+            cuidador_parentesco: form.cuidador_parentesco.trim(),
         },
         tutor: {
             rut: form.tutor_rut.trim(),
@@ -280,8 +320,7 @@ export default function InscribirPaciente() {
         <div className="max-w-7xl mx-auto space-y-6">
             <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-md md:flex-row md:items-center md:justify-between">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">Nuevo registro</p>
-                    <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Inscripción de Paciente</h1>
+                    <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Inscripción de paciente</h1>
                     <p className="mt-1 text-sm font-medium text-slate-500">Completa los datos del paciente y de su tutor para crear el expediente inicial.</p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
@@ -424,6 +463,21 @@ export default function InscribirPaciente() {
                                 {errors.prevision && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.prevision}</span>}
                             </div>
                             <div>
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Credencial de discapacidad</label>
+                                <select value={form.credencial_discapacidad} onChange={(e) => actualizarCampo("credencial_discapacidad", e.target.value)} className={fieldClass(false)}>
+                                    <option value="sin_dato">Sin dato</option>
+                                    <option value="si">Sí</option>
+                                    <option value="no">No</option>
+                                    <option value="en_tramite">En trámite</option>
+                                </select>
+                            </div>
+                            {form.credencial_discapacidad !== "sin_dato" && (
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-bold text-slate-700">Detalle (porcentaje, vigencia, etc.)</label>
+                                    <input type="text" value={form.credencial_discapacidad_detalle} onChange={(e) => actualizarCampo("credencial_discapacidad_detalle", e.target.value)} className={fieldClass(false)} placeholder="Ej: 35%, vigente hasta 2030" />
+                                </div>
+                            )}
+                            <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Fecha de inscripción *</label>
                                 <input type="date" value={form.fecha_inscripcion} onChange={(e) => actualizarCampo("fecha_inscripcion", e.target.value)} className={fieldClass(Boolean(errors.fecha_inscripcion))} />
                                 {errors.fecha_inscripcion && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.fecha_inscripcion}</span>}
@@ -452,6 +506,10 @@ export default function InscribirPaciente() {
                                     <input type="checkbox" checked={form.es_poblacion_trans} onChange={(e) => actualizarCampo("es_poblacion_trans", e.target.checked)} className={checkboxClass} />
                                     Es población trans
                                 </label>
+                                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                                    <input type="checkbox" checked={form.es_salud_mental} onChange={(e) => actualizarCampo("es_salud_mental", e.target.checked)} className={checkboxClass} />
+                                    Programa de salud mental
+                                </label>
                             </div>
 
                             {form.es_poblacion_trans && (
@@ -466,6 +524,46 @@ export default function InscribirPaciente() {
                                         <input type="text" value={form.identidad_genero} onChange={(e) => actualizarCampo("identidad_genero", e.target.value)} className={fieldClass(Boolean(errors.identidad_genero))} placeholder="Identidad de género" />
                                         {errors.identidad_genero && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.identidad_genero}</span>}
                                     </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-700">
+                                <ShieldAlert className="h-4 w-4 text-blue-700" />
+                                Diagnósticos
+                            </div>
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                                    <input type="checkbox" checked={form.dx_tea} onChange={(e) => actualizarCampo("dx_tea", e.target.checked)} className={checkboxClass} />
+                                    TEA
+                                </label>
+                                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                                    <input type="checkbox" checked={form.dx_epilepsia} onChange={(e) => actualizarCampo("dx_epilepsia", e.target.checked)} className={checkboxClass} />
+                                    Epilepsia
+                                </label>
+                                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                                    <input type="checkbox" checked={form.dx_tgd} onChange={(e) => actualizarCampo("dx_tgd", e.target.checked)} className={checkboxClass} />
+                                    Trastornos Generalizados del Desarrollo
+                                </label>
+                                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                                    <input type="checkbox" checked={form.dx_sindrome_down} onChange={(e) => actualizarCampo("dx_sindrome_down", e.target.checked)} className={checkboxClass} />
+                                    Síndrome de Down
+                                </label>
+                                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                                    <input type="checkbox" checked={form.dx_paralisis_cerebral} onChange={(e) => actualizarCampo("dx_paralisis_cerebral", e.target.checked)} className={checkboxClass} />
+                                    Parálisis Cerebral
+                                </label>
+                                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                                    <input type="checkbox" checked={form.dx_otro} onChange={(e) => actualizarCampo("dx_otro", e.target.checked)} className={checkboxClass} />
+                                    Otro (especificar)
+                                </label>
+                            </div>
+
+                            {form.dx_otro && (
+                                <div className="mt-4">
+                                    <label className="mb-1.5 block text-sm font-bold text-slate-700">Especifica el diagnóstico</label>
+                                    <input type="text" value={form.dx_otro_texto} onChange={(e) => actualizarCampo("dx_otro_texto", e.target.value)} className={fieldClass(false)} placeholder="Nombre del diagnóstico" />
                                 </div>
                             )}
                         </div>
@@ -546,6 +644,31 @@ export default function InscribirPaciente() {
                                     ))}
                                 </select>
                                 {errors.tutor_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_comuna}</span>}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md transition-shadow hover:shadow-lg xl:col-span-2">
+                        <div className="mb-6 flex items-center gap-3 border-b border-slate-100 pb-4">
+                            <div className="rounded-lg bg-blue-50 p-2 text-blue-700"><UsersRound className="h-6 w-6" /></div>
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-800">Cuidador (opcional)</h2>
+                                <p className="text-sm font-medium text-slate-500">Solo si es distinto del tutor legal.</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre</label>
+                                <input type="text" value={form.cuidador_nombre} onChange={(e) => actualizarCampo("cuidador_nombre", e.target.value)} className={fieldClass(false)} placeholder="Nombre del cuidador" />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono</label>
+                                <input type="text" value={form.cuidador_telefono} onChange={(e) => actualizarCampo("cuidador_telefono", e.target.value)} className={fieldClass(false)} placeholder="+56912345678" />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Parentesco</label>
+                                <input type="text" value={form.cuidador_parentesco} onChange={(e) => actualizarCampo("cuidador_parentesco", e.target.value)} className={fieldClass(false)} placeholder="Ej: tía, vecina, etc." />
                             </div>
                         </div>
                     </section>
