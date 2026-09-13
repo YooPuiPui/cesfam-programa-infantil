@@ -125,7 +125,7 @@ model ControlClinico {
   peso_kg            Float
   talla_cm           Float
   perimetro_cefalico Float?
-  imc                Float
+  imc                Float?
   presion_arterial   String? @db.VarChar(30)
 
   // nutricion
