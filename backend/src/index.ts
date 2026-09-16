@@ -10,12 +10,7 @@ import reportesRoutes from './routes/reportes.routes';
 import tallerRoutes from './routes/taller.routes';
 import { routerAnidado as sesionTallerRoutesAnidado, routerPlano as sesionTallerRoutesPlano } from './routes/sesionTaller.routes';
 import { routerPorSesion as inscripcionTallerRoutesPorSesion, routerPorPaciente as inscripcionTallerRoutesPorPaciente, routerPlano as inscripcionTallerRoutesPlano } from './routes/inscripcionTaller.routes';
-
-
-
-
-
-
+import importacionRoutes from './routes/importacion.routes';
 import 'dotenv/config';
 
 
@@ -59,6 +54,8 @@ app.use('/api/sesiones', sesionTallerRoutesPlano);
 app.use('/api/sesiones/:idSesion/inscripciones', inscripcionTallerRoutesPorSesion);
 app.use('/api/pacientes/:rut/inscripciones-talleres', inscripcionTallerRoutesPorPaciente);
 app.use('/api/inscripciones', inscripcionTallerRoutesPlano);
+app.use('/api/importacion', importacionRoutes);
+
 
 
 // Iniciar el servidor
