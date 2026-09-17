@@ -24,8 +24,8 @@ export interface ResumenImportacion {
     errores: { rut: string; motivo: string }[];
 }
 
-// --- Normalizadores ---
-// Cada uno documenta la regla que aplica, para que se pueda auditar despues.
+// normalizadores 
+// cada uno documenta la regla que aplica, para que se pueda auditar despues
 
 function normalizarRut(valor: unknown): string | null {
     if (!valor) return null;
@@ -67,7 +67,7 @@ function normalizarCredencial(raw: unknown): 'sin_dato' | 'si' | 'no' | 'en_tram
     return 'sin_dato';
 }
 
-// "EUDALIA CARCAMO (MADRE)" -> { nombre: "EUDALIA CARCAMO", parentesco: "MADRE" }
+// EUDALIA CARCAMO (MADRE) -> nombre: "EUDALIA CARCAMO", parentesco: "MADRE" 
 function separarCuidador(raw: unknown): { nombre: string | null; parentesco: string | null } {
     if (!raw) return { nombre: null, parentesco: null };
     const texto = String(raw).trim();
@@ -78,7 +78,6 @@ function separarCuidador(raw: unknown): { nombre: string | null; parentesco: str
     return { nombre: texto, parentesco: null };
 }
 
-// Convencion chilena: se asume que los ultimos 1-2 tokens son apellidos.
 function separarNombreApellido(nombreCompleto: string): { nombre: string; apellido: string } {
     const palabras = nombreCompleto.trim().split(/\s+/).filter(Boolean);
     if (palabras.length <= 1) return { nombre: palabras[0] || '', apellido: '' };
@@ -92,7 +91,7 @@ function leerHoja(workbook: XLSX.WorkBook, nombreHoja: 'NANEAS' | 'TEA'): FilaIm
     const ws = workbook.Sheets[nombreHoja];
     if (!ws) return [];
 
-    const filasRaw: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: null });
+    const filasRaw: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
     const headers: string[] = (filasRaw[0] || []).map((h: any) => (h ? String(h).trim().toUpperCase() : ''));
 
     const idx = (nombre: string) => headers.findIndex((h) => h.includes(nombre));
@@ -117,10 +116,17 @@ function leerHoja(workbook: XLSX.WorkBook, nombreHoja: 'NANEAS' | 'TEA'): FilaIm
         const rut = normalizarRut(iRut >= 0 ? fila[iRut] : null);
         if (!rut) continue; // fila fantasma (formula HOY arrastrada) o sin RUT real
 
+
+        let fechaNacimiento: Date | null = null;
+        if (iFecha >= 0 && fila[iFecha]) {
+            const candidata = fila[iFecha] instanceof Date ? fila[iFecha] : new Date(fila[iFecha]);
+            if (!isNaN(candidata.getTime())) fechaNacimiento = candidata;
+        }
+
         filas.push({
             rut,
             nombreCompleto: iNombre >= 0 ? String(fila[iNombre] || '').trim() : '',
-            fechaNacimiento: iFecha >= 0 && fila[iFecha] ? new Date(fila[iFecha]) : null,
+            fechaNacimiento,
             sexo: iSexo >= 0 ? fila[iSexo] : null,
             direccion: iDireccion >= 0 ? fila[iDireccion] : null,
             sector: iSector >= 0 ? fila[iSector] : null,
@@ -187,7 +193,7 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                 resumen.detalle_actualizados.push({ rut: fila.rut });
             } else {
                 if (!fila.nombreCompleto || !fila.fechaNacimiento) {
-                    resumen.errores.push({ rut: fila.rut, motivo: 'Falta nombre o fecha de nacimiento en el Excel; no se pudo crear.' });
+                    resumen.errores.push({ rut: fila.rut, motivo: 'Este paciente no se pudo agregar porque el Excel no trae su nombre completo o su fecha de nacimiento.' });
                     continue;
                 }
 
@@ -221,6 +227,7 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                                     direccion: fila.direccion ? String(fila.direccion) : 'Sin dato',
                                     comuna: 'Concepción',
                                     verificado: false,
+                                    
                                 },
                             },
                         },
@@ -230,7 +237,15 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                 resumen.detalle_creados.push({ rut: fila.rut, nombre: `${nombre} ${apellido}` });
             }
         } catch (error: any) {
-            resumen.errores.push({ rut: fila.rut, motivo: error.message });
+            console.error(`Error al importar el paciente con RUT ${fila.rut}:`, error);
+
+
+            const esMensajePropio = error.message && error.message.length < 150 && !error.message.includes('prisma.');
+            resumen.errores.push({
+                rut: fila.rut,
+                motivo: esMensajePropio ? error.message : 'Este paciente no se pudo agregar por un problema con sus datos. Pide a quien administra el sistema que revise el detalle en el registro del servidor.',
+            });
+
         }
     }
 

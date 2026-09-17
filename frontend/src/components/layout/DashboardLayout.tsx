@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, CalendarCheck, FileBarChart, Stethoscope, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, CalendarCheck, FileBarChart, Stethoscope, LogOut, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 
@@ -9,6 +9,7 @@ const navItems = [
     { path: "/pacientes", label: "Pacientes", icon: Users },
     { path: "/agenda", label: "Agenda de Controles", icon: CalendarCheck },
     { path: "/reportes", label: "Reportes", icon: FileBarChart },
+    { path: "/importar-excel", label: "Importar Excel", icon: Upload },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
