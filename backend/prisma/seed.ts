@@ -290,6 +290,7 @@ async function main() {
     console.log('Limpiando base de datos...');
 
     await prisma.controlClinico.deleteMany();
+    await prisma.inscripcionTaller.deleteMany();
     await prisma.paciente.deleteMany();
     await prisma.tutor.deleteMany();
     await prisma.profesional.deleteMany();
