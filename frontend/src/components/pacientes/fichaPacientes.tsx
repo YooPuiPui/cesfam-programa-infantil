@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, Calendar, History, ArrowLeft } from 'lucide-react';
+import { FileText, Calendar, History, ArrowLeft, AlertTriangle } from 'lucide-react';
 import type { ControlClinico, Paciente } from '../../types';
 import { API_BASE_URL } from '../../service/api';
 
@@ -203,6 +203,16 @@ export default function FichaPaciente() {
                     {/* Tutor */}
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
                         <h2 className="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tutor legal</h2>
+
+                        {paciente?.tutor && paciente.tutor.verificado === false && (
+                            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 mb-4 text-amber-800">
+                                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                                <p className="text-xs font-bold">
+                                    Datos de contacto no verificados — pendiente de confirmar con la familia.
+                                </p>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-base font-bold text-slate-900">
                                 {paciente?.tutor ? `${paciente.tutor.nombre} ${paciente.tutor.apellido}` : 'Sin tutor registrado'}
