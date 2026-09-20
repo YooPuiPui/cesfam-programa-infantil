@@ -39,6 +39,7 @@ type FormState = {
     tutor_nombre: string;
     tutor_apellido: string;
     tutor_telefono: string;
+    tutor_telefono_secundario: string;
     tutor_parentesco: string;
     tutor_correo: string;
     tutor_direccion: string;
@@ -94,6 +95,7 @@ const initialState: FormState = {
     tutor_nombre: "",
     tutor_apellido: "",
     tutor_telefono: "",
+    tutor_telefono_secundario: "",
     tutor_parentesco: "",
     tutor_correo: "",
     tutor_direccion: "",
@@ -179,6 +181,7 @@ export default function EditarPaciente() {
                     tutor_nombre: p.tutor?.nombre ?? "",
                     tutor_apellido: p.tutor?.apellido ?? "",
                     tutor_telefono: p.tutor?.telefono ?? "",
+                    tutor_telefono_secundario: p.tutor?.telefono_secundario ?? "",
                     tutor_parentesco: p.tutor?.parentesco ?? "",
                     tutor_correo: p.tutor?.correo ?? "",
                     tutor_direccion: p.tutor?.direccion ?? "",
@@ -286,6 +289,7 @@ export default function EditarPaciente() {
         nombre: form.tutor_nombre.trim(),
         apellido: form.tutor_apellido.trim(),
         telefono: form.tutor_telefono.trim(),
+        telefono_secundario: form.tutor_telefono_secundario.trim() || null,
         parentesco: form.tutor_parentesco.trim(),
         correo: form.tutor_correo.trim(),
         direccion: form.tutor_direccion.trim(),
@@ -614,6 +618,10 @@ export default function EditarPaciente() {
                             <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono *</label>
                             <input type="text" value={form.tutor_telefono} onChange={(e) => actualizarCampo("tutor_telefono", e.target.value)} className={fieldClass(Boolean(errors.tutor_telefono))} placeholder="+56912345678" />
                             {errors.tutor_telefono && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_telefono}</span>}
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono alternativo</label>
+                            <input type="text" value={form.tutor_telefono_secundario} onChange={(e) => actualizarCampo("tutor_telefono_secundario", e.target.value)} className={fieldClass(false)} placeholder="+56912345678 (opcional)" />
                         </div>
                         <div>
                             <label className="mb-1.5 block text-sm font-bold text-slate-700">Parentesco *</label>

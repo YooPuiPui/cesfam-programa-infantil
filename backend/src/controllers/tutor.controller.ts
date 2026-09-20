@@ -118,6 +118,7 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
         if (datos.nombre) datosLimpios.nombre = datos.nombre;
         if (datos.apellido) datosLimpios.apellido = datos.apellido;
         if (datos.telefono) datosLimpios.telefono = datos.telefono;
+        if (datos.telefono_secundario !== undefined) datosLimpios.telefono_secundario = datos.telefono_secundario;
         if (datos.parentesco) datosLimpios.parentesco = datos.parentesco;
         if (datos.correo !== undefined) datosLimpios.correo = datos.correo;
         if (datos.direccion) datosLimpios.direccion = datos.direccion;
