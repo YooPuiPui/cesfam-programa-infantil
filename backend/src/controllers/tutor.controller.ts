@@ -124,6 +124,11 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
         if (datos.sector !== undefined) datosLimpios.sector = datos.sector;
         if (datos.comuna) datosLimpios.comuna = datos.comuna;
 
+        // Guardar datos reales del tutor es lo que lo marca como verificado.
+        // Se fuerza aquí, no se acepta desde el body, para que nadie pueda
+        // marcarlo verificado sin pasar por esta edición.
+        datosLimpios.verificado = true;
+
         const resultado = await tutorService.editarTutor(id, datosLimpios);
 
         res.status(200).json({
