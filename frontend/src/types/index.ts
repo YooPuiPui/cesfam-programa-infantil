@@ -4,6 +4,7 @@ export interface Tutor {
     nombre: string;
     apellido: string;
     telefono: string;
+    telefono_secundario?: string;
     parentesco: string;
     correo?: string;
     direccion: string;

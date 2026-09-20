@@ -49,6 +49,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             nombre: tutor.nombre,
             apellido: tutor.apellido,
             telefono: tutor.telefono,
+            telefono_secundario: tutor.telefono_secundario || null,
             parentesco: tutor.parentesco,
             correo: tutor.correo,
             direccion: tutor.direccion,

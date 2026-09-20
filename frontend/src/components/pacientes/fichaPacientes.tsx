@@ -43,10 +43,26 @@ export default function FichaPaciente() {
         return riesgos;
     };
 
-    // color del sector segun el nombre real 
+    // Datos viejos de la importación de Excel pueden traer el sector como
+    // valor crudo ("1", "2", "FS") en vez del texto completo que usa el
+    // formulario manual ("Sector 1 - Azul", etc). Se traduce acá como red de
+    // seguridad, aunque la importación ya debería guardar el texto completo.
+    const NOMBRE_SECTOR_CRUDO: Record<string, string> = {
+        '1': 'Sector 1 - Azul',
+        '2': 'Sector 2 - Rojo',
+        'fs': 'Fuera de Sector',
+    };
+
+    const obtenerNombreSector = (sector?: string) => {
+        if (!sector) return null;
+        const s = sector.trim();
+        return NOMBRE_SECTOR_CRUDO[s.toLowerCase()] || s;
+    };
+
+    // color del sector segun el nombre real
     const obtenerColorSector = (sector?: string) => {
         if (!sector) return "bg-slate-100 text-slate-700 border border-slate-200";
-        const s = sector.toLowerCase();
+        const s = (obtenerNombreSector(sector) || sector).toLowerCase();
         if (s.includes('azul')) return "bg-blue-100 text-blue-800 border border-blue-200";
         if (s.includes('rojo')) return "bg-red-100 text-red-800 border border-red-200";
         return "bg-slate-100 text-slate-700 border border-slate-200";
@@ -166,7 +182,7 @@ export default function FichaPaciente() {
                                 <dt className="text-sm font-medium text-slate-900 mb-2">Sector</dt>
                                 <dd>
                                     <span className={`inline-block px-3 py-1.5 text-xs font-bold rounded-lg shadow-sm ${obtenerColorSector(paciente?.sector)}`}>
-                                        {paciente?.sector || 'No registrado'}
+                                        {obtenerNombreSector(paciente?.sector) || 'No registrado'}
                                     </span>
                                 </dd>
                             </div>
@@ -223,6 +239,9 @@ export default function FichaPaciente() {
                                         Sin verificar
                                     </span>
                                 </div>
+                                {paciente.tutor.telefono_secundario && (
+                                    <p className="text-sm font-medium text-slate-900 mt-1">Tel. alternativo: <span className="text-slate-900 font-bold">{paciente.tutor.telefono_secundario}</span></p>
+                                )}
                             </div>
                         ) : (
                             <>
@@ -237,6 +256,9 @@ export default function FichaPaciente() {
                                     )}
                                 </div>
                                 <p className="text-sm font-medium text-slate-900 mt-1">Tel: <span className="text-slate-900 font-bold">{paciente?.tutor?.telefono || 'No disponible'}</span></p>
+                                {paciente?.tutor?.telefono_secundario && (
+                                    <p className="text-sm font-medium text-slate-900 mt-1">Tel. alternativo: <span className="text-slate-900 font-bold">{paciente.tutor.telefono_secundario}</span></p>
+                                )}
                             </>
                         )}
 
