@@ -9,6 +9,7 @@ export interface Tutor {
     direccion: string;
     sector?: string;
     comuna: string;
+    verificado: boolean;
 }
 
 export interface Paciente {

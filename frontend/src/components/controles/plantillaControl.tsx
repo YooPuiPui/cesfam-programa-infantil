@@ -116,6 +116,11 @@ export default function PlantillaControl() {
                         </div>
                         <div className="col-span-2 p-2">
                             <span className="font-bold">Tutor:</span> {paciente?.tutor?.nombre} {paciente?.tutor?.apellido}
+                            {paciente?.tutor?.verificado === false && (
+                                <span className="ml-1 font-black uppercase bg-gray-300 border border-black px-1 py-0.5 text-[10px] align-middle">
+                                    (Dato no verificado)
+                                </span>
+                            )}
                         </div>
                         <div className="p-2">
                             <span className="font-bold">Teléfono:</span> {paciente?.tutor?.telefono || '---'}
