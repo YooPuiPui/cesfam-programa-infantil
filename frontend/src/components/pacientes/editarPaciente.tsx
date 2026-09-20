@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, Loader2, UserRound, UsersRound, ShieldAlert, CheckCircle2, CircleAlert } from "lucide-react";
+import { ArrowLeft, Save, Loader2, UserRound, UsersRound, UserCheck, ShieldAlert, CheckCircle2, CircleAlert } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
 
 type FormFieldValue = string | boolean;
 
 type FormState = {
     id_paciente: number | null;
+    id_tutor: number | null;
     rut: string;
     nombre: string;
     apellido: string;
@@ -35,12 +36,22 @@ type FormState = {
     cuidador_nombre: string;
     cuidador_telefono: string;
     cuidador_parentesco: string;
+    tutor_nombre: string;
+    tutor_apellido: string;
+    tutor_telefono: string;
+    tutor_telefono_secundario: string;
+    tutor_parentesco: string;
+    tutor_correo: string;
+    tutor_direccion: string;
+    tutor_sector: string;
+    tutor_comuna: string;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
 const OPCIONES_SECTOR = ["Sector 1 - Azul", "Sector 2 - Rojo"];
 const OPCIONES_COMUNA = ["Concepción"];
+const OPCIONES_PARENTESCO = ["Madre", "Padre", "Abuela/o", "Tutor legal", "Otro familiar"];
 
 const DIAGNOSTICOS_CONOCIDOS = [
     { campo: "dx_tea" as const, nombre: "TEA" },
@@ -52,6 +63,7 @@ const DIAGNOSTICOS_CONOCIDOS = [
 
 const initialState: FormState = {
     id_paciente: null,
+    id_tutor: null,
     rut: "",
     nombre: "",
     apellido: "",
@@ -80,6 +92,15 @@ const initialState: FormState = {
     cuidador_nombre: "",
     cuidador_telefono: "",
     cuidador_parentesco: "",
+    tutor_nombre: "",
+    tutor_apellido: "",
+    tutor_telefono: "",
+    tutor_telefono_secundario: "",
+    tutor_parentesco: "",
+    tutor_correo: "",
+    tutor_direccion: "",
+    tutor_sector: "",
+    tutor_comuna: "",
 };
 
 const fieldClass = (hasError: boolean) =>
@@ -128,6 +149,7 @@ export default function EditarPaciente() {
 
                 setForm({
                     id_paciente: p.id_paciente,
+                    id_tutor: p.tutor?.id_tutor ?? null,
                     rut: p.rut ?? "",
                     nombre: p.nombre ?? "",
                     apellido: p.apellido ?? "",
@@ -156,6 +178,15 @@ export default function EditarPaciente() {
                     cuidador_nombre: p.cuidador_nombre ?? "",
                     cuidador_telefono: p.cuidador_telefono ?? "",
                     cuidador_parentesco: p.cuidador_parentesco ?? "",
+                    tutor_nombre: p.tutor?.nombre ?? "",
+                    tutor_apellido: p.tutor?.apellido ?? "",
+                    tutor_telefono: p.tutor?.telefono ?? "",
+                    tutor_telefono_secundario: p.tutor?.telefono_secundario ?? "",
+                    tutor_parentesco: p.tutor?.parentesco ?? "",
+                    tutor_correo: p.tutor?.correo ?? "",
+                    tutor_direccion: p.tutor?.direccion ?? "",
+                    tutor_sector: p.tutor?.sector ?? "",
+                    tutor_comuna: p.tutor?.comuna ?? "",
                 });
             } catch (err) {
                 setErrorCarga(err instanceof Error ? err.message : "Error al cargar el paciente.");
@@ -195,6 +226,12 @@ export default function EditarPaciente() {
             ["sector", "El sector es obligatorio."],
             ["comuna", "La comuna es obligatoria."],
             ["prevision", "La previsión es obligatoria."],
+            ["tutor_nombre", "El nombre del tutor es obligatorio."],
+            ["tutor_apellido", "El apellido del tutor es obligatorio."],
+            ["tutor_telefono", "El teléfono del tutor es obligatorio."],
+            ["tutor_parentesco", "El parentesco del tutor es obligatorio."],
+            ["tutor_direccion", "La dirección del tutor es obligatoria."],
+            ["tutor_comuna", "La comuna del tutor es obligatoria."],
         ];
 
         requiredFields.forEach(([field, message]) => {
@@ -248,6 +285,18 @@ export default function EditarPaciente() {
         cuidador_parentesco: form.cuidador_parentesco.trim(),
     }), [form]);
 
+    const payloadTutor = useMemo(() => ({
+        nombre: form.tutor_nombre.trim(),
+        apellido: form.tutor_apellido.trim(),
+        telefono: form.tutor_telefono.trim(),
+        telefono_secundario: form.tutor_telefono_secundario.trim() || null,
+        parentesco: form.tutor_parentesco.trim(),
+        correo: form.tutor_correo.trim(),
+        direccion: form.tutor_direccion.trim(),
+        sector: form.tutor_sector.trim(),
+        comuna: form.tutor_comuna.trim(),
+    }), [form]);
+
     const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setErrorGeneral("");
@@ -281,6 +330,24 @@ export default function EditarPaciente() {
             if (!response.ok) {
                 setErrorGeneral(data?.detalle || data?.error || "No fue posible guardar los cambios.");
                 return;
+            }
+
+            if (form.id_tutor) {
+                const responseTutor = await fetch(`${API_BASE_URL}/tutores/${form.id_tutor}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(payloadTutor),
+                });
+
+                const dataTutor = await responseTutor.json().catch(() => ({}));
+
+                if (!responseTutor.ok) {
+                    setErrorGeneral(dataTutor?.detalle || dataTutor?.error || "Los datos del paciente se guardaron, pero no fue posible actualizar el tutor.");
+                    return;
+                }
             }
 
             setMensajeExito("Cambios guardados con éxito. Volviendo a la ficha...");
@@ -524,6 +591,76 @@ export default function EditarPaciente() {
                                 <input type="text" value={form.dx_otro_texto} onChange={(e) => actualizarCampo("dx_otro_texto", e.target.value)} className={fieldClass(false)} placeholder="Nombre del diagnóstico" />
                             </div>
                         )}
+                    </div>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md">
+                    <div className="mb-6 flex items-center gap-3 border-b border-slate-100 pb-4">
+                        <div className="rounded-lg bg-blue-50 p-2 text-blue-700"><UserCheck className="h-6 w-6" /></div>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800">Tutor legal</h2>
+                            <p className="text-sm font-medium text-slate-500">Guardar estos datos confirma al tutor como verificado.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre *</label>
+                            <input type="text" value={form.tutor_nombre} onChange={(e) => actualizarCampo("tutor_nombre", e.target.value)} className={fieldClass(Boolean(errors.tutor_nombre))} />
+                            {errors.tutor_nombre && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_nombre}</span>}
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellido *</label>
+                            <input type="text" value={form.tutor_apellido} onChange={(e) => actualizarCampo("tutor_apellido", e.target.value)} className={fieldClass(Boolean(errors.tutor_apellido))} />
+                            {errors.tutor_apellido && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_apellido}</span>}
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono *</label>
+                            <input type="text" value={form.tutor_telefono} onChange={(e) => actualizarCampo("tutor_telefono", e.target.value)} className={fieldClass(Boolean(errors.tutor_telefono))} placeholder="+56912345678" />
+                            {errors.tutor_telefono && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_telefono}</span>}
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono alternativo</label>
+                            <input type="text" value={form.tutor_telefono_secundario} onChange={(e) => actualizarCampo("tutor_telefono_secundario", e.target.value)} className={fieldClass(false)} placeholder="+56912345678 (opcional)" />
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Parentesco *</label>
+                            <select value={form.tutor_parentesco} onChange={(e) => actualizarCampo("tutor_parentesco", e.target.value)} className={fieldClass(Boolean(errors.tutor_parentesco))}>
+                                <option value="">Seleccionar...</option>
+                                {OPCIONES_PARENTESCO.map((p) => (
+                                    <option key={p} value={p}>{p}</option>
+                                ))}
+                            </select>
+                            {errors.tutor_parentesco && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_parentesco}</span>}
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Correo (opcional)</label>
+                            <input type="email" value={form.tutor_correo} onChange={(e) => actualizarCampo("tutor_correo", e.target.value)} className={fieldClass(false)} placeholder="correo@ejemplo.com" />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Dirección *</label>
+                            <input type="text" value={form.tutor_direccion} onChange={(e) => actualizarCampo("tutor_direccion", e.target.value)} className={fieldClass(Boolean(errors.tutor_direccion))} />
+                            {errors.tutor_direccion && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_direccion}</span>}
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Sector</label>
+                            <select value={form.tutor_sector} onChange={(e) => actualizarCampo("tutor_sector", e.target.value)} className={fieldClass(false)}>
+                                <option value="">Seleccionar...</option>
+                                {OPCIONES_SECTOR.map((s) => (
+                                    <option key={s} value={s}>{s}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Comuna *</label>
+                            <select value={form.tutor_comuna} onChange={(e) => actualizarCampo("tutor_comuna", e.target.value)} className={fieldClass(Boolean(errors.tutor_comuna))}>
+                                <option value="">Seleccionar...</option>
+                                {OPCIONES_COMUNA.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                            {errors.tutor_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_comuna}</span>}
+                        </div>
                     </div>
                 </section>
 

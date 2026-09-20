@@ -118,11 +118,17 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
         if (datos.nombre) datosLimpios.nombre = datos.nombre;
         if (datos.apellido) datosLimpios.apellido = datos.apellido;
         if (datos.telefono) datosLimpios.telefono = datos.telefono;
+        if (datos.telefono_secundario !== undefined) datosLimpios.telefono_secundario = datos.telefono_secundario;
         if (datos.parentesco) datosLimpios.parentesco = datos.parentesco;
         if (datos.correo !== undefined) datosLimpios.correo = datos.correo;
         if (datos.direccion) datosLimpios.direccion = datos.direccion;
         if (datos.sector !== undefined) datosLimpios.sector = datos.sector;
         if (datos.comuna) datosLimpios.comuna = datos.comuna;
+
+        // Guardar datos reales del tutor es lo que lo marca como verificado.
+        // Se fuerza aquí, no se acepta desde el body, para que nadie pueda
+        // marcarlo verificado sin pasar por esta edición.
+        datosLimpios.verificado = true;
 
         const resultado = await tutorService.editarTutor(id, datosLimpios);
 

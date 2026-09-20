@@ -39,6 +39,25 @@ function normalizarRut(valor: unknown): string | null {
     return limpio;
 }
 
+// El Excel a veces trae mas de un numero en la misma celda (ej.
+// "978501519/ 972128005" o "988267468-992763091"). Tutor.telefono es
+// VarChar(15), asi que un valor asi tal cual revienta el insert. El primer
+// numero va a telefono, el segundo (si existe) a telefono_secundario; si
+// alguno igual queda muy largo, se recorta.
+function normalizarTelefono(valor: unknown): { principal: string; secundario: string | null } {
+    if (!valor) return { principal: 'Sin dato', secundario: null };
+    const v = String(valor).trim();
+    if (!v) return { principal: 'Sin dato', secundario: null };
+
+    const partes = v.split(/[/\-]/).map((p) => p.trim()).filter((p) => p.length > 0);
+    const truncar = (s: string) => (s.length > 15 ? s.slice(0, 15) : s);
+
+    return {
+        principal: truncar(partes[0] || v),
+        secundario: partes[1] ? truncar(partes[1]) : null,
+    };
+}
+
 function normalizarSexo(valor: unknown): string | null {
     if (!valor) return null;
     const v = String(valor).trim().toUpperCase();
@@ -56,6 +75,21 @@ function dividirDiagnosticos(raw: unknown): string[] {
         .split(/[,\-]+/)
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
+}
+
+
+export function normalizarSector(valor: unknown): string | null {
+    if (valor === null || valor === undefined) return null;
+    const v = String(valor).trim();
+    if (!v) return null;
+
+    if (/^1$/.test(v)) return 'Sector 1 - Azul';
+    if (/^2$/.test(v)) return 'Sector 2 - Rojo';
+    if (/^fs$/i.test(v)) return 'Fuera de Sector';
+    if (/^sector 1 - azul$/i.test(v)) return 'Sector 1 - Azul';
+    if (/^sector 2 - rojo$/i.test(v)) return 'Sector 2 - Rojo';
+
+    return v;
 }
 
 function normalizarCredencial(raw: unknown): 'sin_dato' | 'si' | 'no' | 'en_tramite' {
@@ -172,6 +206,8 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
             const credencial = normalizarCredencial(fila.credencialDiscapacidadRaw);
             const credencialDetalle = fila.credencialDiscapacidadRaw ? String(fila.credencialDiscapacidadRaw).trim() : null;
             const { nombre: cuidadorNombre, parentesco: cuidadorParentesco } = separarCuidador(fila.cuidadorRaw);
+            const sectorNormalizado = normalizarSector(fila.sector);
+            const telefonoTutor = normalizarTelefono(fila.telefono);
 
             const existente = await prisma.paciente.findUnique({ where: { rut: fila.rut } });
 
@@ -186,6 +222,7 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                             credencial_discapacidad_detalle: credencialDetalle || existente.credencial_discapacidad_detalle,
                             cuidador_nombre: cuidadorNombre || existente.cuidador_nombre,
                             cuidador_parentesco: cuidadorParentesco || existente.cuidador_parentesco,
+                            sector: sectorNormalizado || existente.sector,
                         },
                     });
                 }
@@ -209,7 +246,7 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                             fecha_nacimiento: fila.fechaNacimiento,
                             sexo_biologico: sexoNormalizado,
                             direccion: fila.direccion ? String(fila.direccion) : 'Sin dato',
-                            sector: fila.sector ? String(fila.sector) : null,
+                            sector: sectorNormalizado,
                             comuna: 'Concepción',
                             activo: true,
                             es_naneas_prematuro: true,
@@ -223,7 +260,8 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                                     nombre: 'Apoderado',
                                     apellido: 'Por confirmar',
                                     parentesco: 'Por confirmar',
-                                    telefono: fila.telefono ? String(fila.telefono) : 'Sin dato',
+                                    telefono: telefonoTutor.principal,
+                                    telefono_secundario: telefonoTutor.secundario,
                                     direccion: fila.direccion ? String(fila.direccion) : 'Sin dato',
                                     comuna: 'Concepción',
                                     verificado: false,

@@ -42,6 +42,7 @@ type FormState = {
     tutor_nombre: string;
     tutor_apellido: string;
     tutor_telefono: string;
+    tutor_telefono_secundario: string;
     tutor_parentesco: string;
     tutor_correo: string;
     tutor_direccion: string;
@@ -108,6 +109,7 @@ const initialState: FormState = {
     tutor_nombre: "",
     tutor_apellido: "",
     tutor_telefono: "+569",
+    tutor_telefono_secundario: "",
     tutor_parentesco: "",
     tutor_correo: "",
     tutor_direccion: "",
@@ -255,6 +257,7 @@ export default function InscribirPaciente() {
             nombre: form.tutor_nombre.trim(),
             apellido: form.tutor_apellido.trim(),
             telefono: form.tutor_telefono.trim(),
+            telefono_secundario: form.tutor_telefono_secundario.trim() || null,
             parentesco: form.tutor_parentesco.trim(),
             correo: form.tutor_correo.trim(),
             direccion: form.tutor_direccion.trim(),
@@ -602,6 +605,17 @@ export default function InscribirPaciente() {
                                     maxLength={12}
                                 />
                                 {errors.tutor_telefono && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_telefono}</span>}
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono alternativo</label>
+                                <input
+                                    type="text"
+                                    value={form.tutor_telefono_secundario}
+                                    onChange={(e) => actualizarCampo("tutor_telefono_secundario", formatearTelefono(e.target.value))}
+                                    className={fieldClass(false)}
+                                    placeholder="+56912345678 (opcional)"
+                                    maxLength={12}
+                                />
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre *</label>
