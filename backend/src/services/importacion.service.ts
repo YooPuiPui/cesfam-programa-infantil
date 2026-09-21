@@ -39,11 +39,9 @@ function normalizarRut(valor: unknown): string | null {
     return limpio;
 }
 
-// El Excel a veces trae mas de un numero en la misma celda (ej.
-// "978501519/ 972128005" o "988267468-992763091"). Tutor.telefono es
-// VarChar(15), asi que un valor asi tal cual revienta el insert. El primer
-// numero va a telefono, el segundo (si existe) a telefono_secundario; si
-// alguno igual queda muy largo, se recorta.
+//? el excel a veces trae mas de un numero en la misma celda, el primero
+//? numero va a telefono, el segundo (si existe) a telefono_secundario; 
+
 function normalizarTelefono(valor: unknown): { principal: string; secundario: string | null } {
     if (!valor) return { principal: 'Sin dato', secundario: null };
     const v = String(valor).trim();
@@ -66,6 +64,47 @@ function normalizarSexo(valor: unknown): string | null {
     return null;
 }
 
+
+const MAPA_DIAGNOSTICOS_CANONICOS: Record<string, string> = {
+    TEA: 'TEA',
+    OBSTEA: 'Obs TEA',
+    TEAGRADO1: 'TEA Grado 1',
+    TEAG1: 'TEA Grado 1',
+    TEAGRADO2: 'TEA Grado 2',
+    TDHA: 'TDAH',
+    TDAH: 'TDAH',
+    EPILEPSIA: 'Epilepsia',
+    SDDOWN: 'Síndrome de Down',
+    ENESTUDIOGENETICA: 'En Estudio de Genética',
+    ESTUDIOENGENETICA: 'En Estudio de Genética',
+    TANSIOSO: 'Trastorno Ansioso',
+    HIPOTIROIDISMO: 'Hipotiroidismo',
+    HIPOTIROIDIMO: 'Hipotiroidismo',
+    TELEXPRESIVO: 'TEL Expresivo',
+    TELEXP: 'TEL Expresivo',
+    TCONDUCTUAL: 'Trastorno Conductual',
+    TCONDUCTA: 'Trastorno Conductual',
+    TOPOSIC: 'TOD',
+    TOD: 'TOD',
+};
+
+// Valores que aparecen en el campo diagnosticos pero son notas de estado o
+// administrativas, no diagnosticos clinicos -> se descartan al normalizar.
+const NOTAS_NO_DIAGNOSTICO = new Set([
+    'NOCONFIRMADOCONNEUROLOGOOPSIQUIATRIA',
+    'TRASLADOATEMUCO',
+]);
+
+function claveDiagnostico(s: string): string {
+    return s.trim().toUpperCase().replace(/[.'’]/g, '').replace(/\s+/g, '');
+}
+
+function normalizarDiagnostico(s: string): string | null {
+    const clave = claveDiagnostico(s);
+    if (NOTAS_NO_DIAGNOSTICO.has(clave)) return null;
+    return MAPA_DIAGNOSTICOS_CANONICOS[clave] ?? s;
+}
+
 // "TEA, TDAH, TOD" -> ["TEA","TDAH","TOD"]; "TEA-ASMA" -> ["TEA","ASMA"]
 // Un guion entre dos numeros (ej. "TEA G1-2") es notacion de grado/rango
 // clinico, no un separador de diagnosticos -> se protege antes de partir.
@@ -77,10 +116,14 @@ function dividirDiagnosticos(raw: unknown): string[] {
 
     const textoProtegido = String(raw).replace(/(\d)-(\d)/g, '$1~$2');
 
-    return textoProtegido
+    const diagnosticos = textoProtegido
         .split(/[,\-]+/)
         .map((s) => s.trim().replace(/~/g, '-'))
-        .filter((s) => s.length > 0);
+        .filter((s) => s.length > 0)
+        .map(normalizarDiagnostico)
+        .filter((s): s is string => s !== null);
+
+    return Array.from(new Set(diagnosticos));
 }
 
 
