@@ -344,3 +344,15 @@ export const obtenerConteosPacientes = async (req: Request, res: Response): Prom
         res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };
+
+export const obtenerCaracterizacionPacientes: RequestHandler = async (req, res): Promise<void> => {
+    try {
+        const caracterizacion = await pacienteService.obtenerCaracterizacionPacientes();
+
+        res.status(200).json(caracterizacion);
+
+    } catch (error: any) {
+        console.error('Error al obtener la caracterizacion de pacientes:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
+    }
+};
