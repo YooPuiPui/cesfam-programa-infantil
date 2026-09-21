@@ -4,7 +4,8 @@ import {
     crearPaciente,
     editarPaciente, borrarPaciente,
     obtenerPacientePorRut,
-    obtenerConteosPacientes
+    obtenerConteosPacientes,
+    obtenerCaracterizacionPacientes
 }
 from '../controllers/paciente.controller';
 
@@ -21,7 +22,7 @@ router.get('/', verificarToken, obtenerPacientes);
 router.put('/:id', verificarToken, editarPaciente);
 router.delete('/:id', verificarToken, borrarPaciente);
 router.get('/estadisticas/riesgo', verificarToken, obtenerConteosPacientes);
-
+router.get('/estadisticas/caracterizacion', verificarToken, obtenerCaracterizacionPacientes);
 
 
 

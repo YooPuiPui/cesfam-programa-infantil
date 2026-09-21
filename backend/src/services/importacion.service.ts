@@ -67,13 +67,19 @@ function normalizarSexo(valor: unknown): string | null {
 }
 
 // "TEA, TDAH, TOD" -> ["TEA","TDAH","TOD"]; "TEA-ASMA" -> ["TEA","ASMA"]
-// Limitacion conocida: frases con guion que no son separadores (poco frecuentes en el excel real)
-// quedan cortadas igual. Revisar detalle_creados/actualizados despues de importar.
+// Un guion entre dos numeros (ej. "TEA G1-2") es notacion de grado/rango
+// clinico, no un separador de diagnosticos -> se protege antes de partir.
+// Limitacion conocida: otras frases con guion que no son separadores (poco
+// frecuentes en el excel real) quedan cortadas igual. Revisar
+// detalle_creados/actualizados despues de importar.
 function dividirDiagnosticos(raw: unknown): string[] {
     if (!raw) return [];
-    return String(raw)
+
+    const textoProtegido = String(raw).replace(/(\d)-(\d)/g, '$1~$2');
+
+    return textoProtegido
         .split(/[,\-]+/)
-        .map((s) => s.trim())
+        .map((s) => s.trim().replace(/~/g, '-'))
         .filter((s) => s.length > 0);
 }
 
