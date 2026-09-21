@@ -30,6 +30,19 @@ type ConteosAgenda = {
     todos: number;
 };
 
+type ItemGrafico = {
+    name: string;
+    value: number;
+};
+
+type Caracterizacion = {
+    edad: ItemGrafico[];
+    estado: ItemGrafico[];
+    diagnosticos: ItemGrafico[];
+    credencial_discapacidad: ItemGrafico[];
+    cuidador: ItemGrafico[];
+};
+
 const COLORES_RIESGO = {
     regular: "#475569",   // slate oscuro, en vez del gris pálido
     sename: "#dc2626",    // rojo más saturado
@@ -38,9 +51,12 @@ const COLORES_RIESGO = {
     migrante: "#2563eb",  // azul más fuerte
 };
 
+const COLOR_CARACTERIZACION = "#2563eb";
+
 export default function Dashboard() {
     const [conteosPacientes, setConteosPacientes] = useState<ConteosPacientes | null>(null);
     const [conteosAgenda, setConteosAgenda] = useState<ConteosAgenda | null>(null);
+    const [caracterizacion, setCaracterizacion] = useState<Caracterizacion | null>(null);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
 
@@ -72,6 +88,7 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
+
         const cargarDatos = async () => {
             setCargando(true);
             setError("");
@@ -79,20 +96,23 @@ export default function Dashboard() {
                 const token = localStorage.getItem("token");
                 const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
-                const [resPacientes, resAgenda] = await Promise.all([
+                const [resPacientes, resAgenda, resCaracterizacion] = await Promise.all([
                     fetch(`${API_BASE_URL}/pacientes/estadisticas/riesgo`, { headers }),
                     fetch(`${API_BASE_URL}/control/agenda/conteos`, { headers }),
+                    fetch(`${API_BASE_URL}/pacientes/estadisticas/caracterizacion`, { headers }),
                 ]);
 
-                if (!resPacientes.ok || !resAgenda.ok) {
+                if (!resPacientes.ok || !resAgenda.ok || !resCaracterizacion.ok) {
                     throw new Error("No se pudieron cargar las estadísticas del dashboard.");
                 }
 
                 const dataPacientes: ConteosPacientes = await resPacientes.json();
                 const dataAgenda: ConteosAgenda = await resAgenda.json();
+                const dataCaracterizacion: Caracterizacion = await resCaracterizacion.json();
 
                 setConteosPacientes(dataPacientes);
                 setConteosAgenda(dataAgenda);
+                setCaracterizacion(dataCaracterizacion);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Error al cargar el dashboard.");
             } finally {
@@ -114,7 +134,7 @@ export default function Dashboard() {
         );
     }
 
-    if (error || !conteosPacientes || !conteosAgenda) {
+    if (error || !conteosPacientes || !conteosAgenda || !caracterizacion) {
         return <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center font-bold text-red-700">{error || "No hay datos disponibles."}</div>;
     }
 
@@ -216,6 +236,77 @@ export default function Dashboard() {
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* CARACTERIZACIÓN DE LA POBLACIÓN */}
+            <div>
+                <h2 className="mb-4 text-lg font-bold text-slate-900">Caracterización de la Población</h2>
+                <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="mb-4 text-lg font-bold text-slate-800">Edad</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={caracterizacion.edad}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={COLOR_CARACTERIZACION} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="mb-4 text-lg font-bold text-slate-800">Estado del Paciente</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={caracterizacion.estado}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={COLOR_CARACTERIZACION} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+                        <h3 className="mb-4 text-lg font-bold text-slate-800">Diagnósticos</h3>
+                        <ResponsiveContainer width="100%" height={320}>
+                            <BarChart data={caracterizacion.diagnosticos} margin={{ bottom: 40 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" angle={-25} textAnchor="end" interval={0} tick={{ fontSize: 11 }} />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={COLOR_CARACTERIZACION} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="mb-4 text-lg font-bold text-slate-800">Credencial de Discapacidad</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={caracterizacion.credencial_discapacidad}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={COLOR_CARACTERIZACION} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="mb-4 text-lg font-bold text-slate-800">Cuidador</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={caracterizacion.cuidador}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={COLOR_CARACTERIZACION} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </div>
         </div>
