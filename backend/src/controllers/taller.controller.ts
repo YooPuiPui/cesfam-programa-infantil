@@ -78,11 +78,18 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
 }
 
 
-//* get/talleres lista todos los talleres activos
+//* get/talleres lista todos los talleres del catalogo (activos e inactivos)
 export const obtenerTalleres: RequestHandler = async (req, res): Promise<void> => {
     try{
         const talleres = await tallerService.buscarTalleres();
-        res.status(200).json(talleres);
+
+        //? el frontend recibe sesionesCount, no el _count anidado de Prisma
+        const talleresConConteo = talleres.map(({_count, ...taller}) => ({
+            ...taller,
+            sesionesCount: _count.sesiones,
+        }));
+
+        res.status(200).json(talleresConConteo);
 
     }catch(error: any){
         console.error('Error al obtener los talleres', error.message);

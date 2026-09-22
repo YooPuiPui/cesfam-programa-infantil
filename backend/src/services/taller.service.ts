@@ -11,11 +11,11 @@ export const crearTaller = async (datosTaller: Prisma.TallerUncheckedCreateInput
     });
 }
 
-//* lista solo los talleres en el catalogo
+//* lista todos los talleres del catalogo (activos e inactivos), con la cantidad de sesiones de cada uno
 export const buscarTalleres = async() => {
     return await prisma.taller.findMany({
-        where: {activo: true},
-        orderBy: {nombre: 'asc'}
+        orderBy: {nombre: 'asc'},
+        include: {_count: {select: {sesiones: true}}}
     });
 
 }
