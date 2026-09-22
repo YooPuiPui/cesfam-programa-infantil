@@ -172,7 +172,7 @@ model Taller {
   descripcion String? @db.Text
 
   edad_min  Int      @default(0)
-  edad_max  Int      @default(17)
+  edad_max  Int      @default(18)
   activo    Boolean  @default(true)
   creado_en DateTime @default(now())
 
