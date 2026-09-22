@@ -116,7 +116,16 @@ export const obtenerTallerPorId: RequestHandler = async (req, res): Promise<void
             return;
         }
 
-        res.status(200).json(taller);
+        //? el frontend recibe inscritosCount, no el _count anidado de Prisma
+        const tallerConConteos = {
+            ...taller,
+            sesiones: taller.sesiones.map(({_count, ...sesion}) => ({
+                ...sesion,
+                inscritosCount: _count.inscripciones,
+            })),
+        };
+
+        res.status(200).json(tallerConConteos);
     } catch (error: any) {
         console.error('Error al obtener el taller: ', error.message);
         res.status(500).json({error: 'Error interno al consultar el taller '});

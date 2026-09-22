@@ -21,11 +21,19 @@ export const buscarTalleres = async() => {
 }
 
 
-//* buscar un taller por id, trayendo tambien las sesiones
+//* buscar un taller por id, trayendo tambien las sesiones con su profesional y cantidad de inscritos
 export const buscarTallerPorId = async (idTaller: number) => {
     return await prisma.taller.findUnique({
         where: {id_taller: idTaller},
-        include: {sesiones: true} 
+        include: {
+            sesiones: {
+                include: {
+                    profesional: true,
+                    _count: { select: { inscripciones: true } },
+                },
+                orderBy: { fecha: 'desc' },
+            },
+        },
     });
 }
 
