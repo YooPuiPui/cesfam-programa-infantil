@@ -1,16 +1,18 @@
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, UserRound, GraduationCap, ChevronDown, Search, X, UserPlus } from "lucide-react";
+import { ArrowLeft, ChevronRight, Loader2, Plus, Save, UserRound, GraduationCap } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
 import { formatearFecha } from '../../utils/formatters';
 
 interface SesionTaller {
     id_sesion: number;
     fecha: string;
-    cupo_maximo: number | null;
     rut_profesional: string | null;
     profesional_externo: string | null;
+    profesional: { nombre: string; apellido: string } | null;
     observaciones: string | null;
+    inscritosCount: number;
 }
 
 interface TallerConSesiones {
@@ -23,19 +25,7 @@ interface TallerConSesiones {
     sesiones: SesionTaller[];
 }
 
-type EstadoAsistencia = "pendiente" | "asiste" | "no_asiste";
-
-interface Inscripcion {
-    id_inscripcion: number;
-    rut_paciente: string;
-    estado_asistencia: EstadoAsistencia;
-    paciente: {
-        nombre: string;
-        apellido: string;
-    };
-}
-
-interface PacienteBusqueda {
+interface Profesional {
     rut: string;
     nombre: string;
     apellido: string;
@@ -43,16 +33,28 @@ interface PacienteBusqueda {
 
 // rut_profesional y profesional_externo son mutuamente excluyentes (Tema 4)
 const responsableSesion = (sesion: SesionTaller): string => {
-    if (sesion.rut_profesional) return sesion.rut_profesional;
+    if (sesion.profesional) return `${sesion.profesional.nombre} ${sesion.profesional.apellido}`;
     if (sesion.profesional_externo) return sesion.profesional_externo;
     return "Sin asignar";
 };
 
-const estilosAsistencia: Record<EstadoAsistencia, string> = {
-    pendiente: "bg-amber-100 text-amber-800",
-    asiste: "bg-green-100 text-green-800",
-    no_asiste: "bg-red-100 text-red-700",
+type TipoResponsable = "interno" | "externo";
+
+const fieldClass = (hasError: boolean) =>
+    `w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition-all ${hasError
+        ? "border-red-400 ring-4 ring-red-50"
+        : "border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:bg-white"
+    }`;
+
+const initialFormSesion = {
+    fecha: "",
+    tipoResponsable: "interno" as TipoResponsable,
+    rutProfesional: "",
+    profesionalExterno: "",
+    observaciones: "",
 };
+
+type FormSesion = typeof initialFormSesion;
 
 export default function DetalleTaller() {
     const { id } = useParams<{ id: string }>();
@@ -61,190 +63,125 @@ export default function DetalleTaller() {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
 
-    const [sesionAbierta, setSesionAbierta] = useState<number | null>(null);
-    const [inscripcionesPorSesion, setInscripcionesPorSesion] = useState<Record<number, Inscripcion[]>>({});
-    const [cargandoInscripciones, setCargandoInscripciones] = useState(false);
-    const [errorInscripcion, setErrorInscripcion] = useState("");
+    const [mostrarFormSesion, setMostrarFormSesion] = useState(false);
+    const [profesionales, setProfesionales] = useState<Profesional[]>([]);
+    const [formSesion, setFormSesion] = useState<FormSesion>(initialFormSesion);
+    const [errorCampo, setErrorCampo] = useState<Partial<Record<keyof FormSesion, string>>>({});
+    const [errorFormSesion, setErrorFormSesion] = useState("");
+    const [guardandoSesion, setGuardandoSesion] = useState(false);
 
-    const [busquedaPaciente, setBusquedaPaciente] = useState("");
-    const [resultadosBusqueda, setResultadosBusqueda] = useState<PacienteBusqueda[]>([]);
-    const [buscandoPaciente, setBuscandoPaciente] = useState(false);
-    const [agregando, setAgregando] = useState(false);
-
-    useEffect(() => {
-        const obtenerTaller = async () => {
-            setCargando(true);
-            setError("");
-            try {
-                const token = localStorage.getItem("token");
-
-                const respuesta = await fetch(`${API_BASE_URL}/talleres/${id}`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (!respuesta.ok) throw new Error("No se pudo obtener el taller solicitado");
-
-                // un solo fetch: las sesiones ya vienen incluidas (Tema 4)
-                const data: TallerConSesiones = await respuesta.json();
-                setTaller(data);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Error desconocido");
-            } finally {
-                setCargando(false);
-            }
-        };
-
-        obtenerTaller();
-    }, [id]); // se re-ejecuta si cambia el id de la URL (Tema 4)
-
-    // busca pacientes por nombre/rut mientras se escribe, solo si hay una sesion desplegada
-    useEffect(() => {
-        if (!sesionAbierta || busquedaPaciente.trim().length < 2) {
-            setResultadosBusqueda([]);
-            return;
-        }
-
-        const timer = setTimeout(async () => {
-            setBuscandoPaciente(true);
-            try {
-                const token = localStorage.getItem("token");
-                const respuesta = await fetch(
-                    `${API_BASE_URL}/pacientes?busqueda=${encodeURIComponent(busquedaPaciente.trim())}&limit=5`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                if (!respuesta.ok) throw new Error();
-
-                const data = await respuesta.json();
-                setResultadosBusqueda(data.data ?? []);
-            } catch {
-                setResultadosBusqueda([]);
-            } finally {
-                setBuscandoPaciente(false);
-            }
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [busquedaPaciente, sesionAbierta]);
-
-    const alternarSesion = async (idSesion: number) => {
-        if (sesionAbierta === idSesion) {
-            setSesionAbierta(null);
-            return;
-        }
-
-        setSesionAbierta(idSesion);
-        setBusquedaPaciente("");
-        setResultadosBusqueda([]);
-        setErrorInscripcion("");
-
-        if (inscripcionesPorSesion[idSesion]) return; // ya esta en cache, no se vuelve a pedir
-
-        setCargandoInscripciones(true);
+    const obtenerTaller = async () => {
+        setCargando(true);
+        setError("");
         try {
             const token = localStorage.getItem("token");
-            const respuesta = await fetch(`${API_BASE_URL}/sesiones/${idSesion}/inscripciones`, {
-                headers: { Authorization: `Bearer ${token}` },
+
+            const respuesta = await fetch(`${API_BASE_URL}/talleres/${id}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
             });
 
-            if (!respuesta.ok) throw new Error("No se pudo obtener la lista de inscritos");
+            if (!respuesta.ok) throw new Error("No se pudo obtener el taller solicitado");
 
-            const data: Inscripcion[] = await respuesta.json();
-            setInscripcionesPorSesion((prev) => ({ ...prev, [idSesion]: data }));
+            // un solo fetch: las sesiones ya vienen incluidas (Tema 4)
+            const data: TallerConSesiones = await respuesta.json();
+            setTaller(data);
         } catch (err) {
-            setErrorInscripcion(err instanceof Error ? err.message : "Error desconocido");
+            setError(err instanceof Error ? err.message : "Error desconocido");
         } finally {
-            setCargandoInscripciones(false);
+            setCargando(false);
         }
     };
 
-    const agregarPaciente = async (idSesion: number, paciente: PacienteBusqueda) => {
-        setAgregando(true);
-        setErrorInscripcion("");
+    useEffect(() => {
+        obtenerTaller();
+    }, [id]); // se re-ejecuta si cambia el id de la URL (Tema 4)
+
+    const abrirFormSesion = async () => {
+        setMostrarFormSesion(true);
+        setErrorFormSesion("");
+        setErrorCampo({});
+        setFormSesion(initialFormSesion);
+
+        if (profesionales.length > 0) return; // ya en cache
+
         try {
             const token = localStorage.getItem("token");
-            const respuesta = await fetch(`${API_BASE_URL}/sesiones/${idSesion}/inscripciones`, {
+            const respuesta = await fetch(`${API_BASE_URL}/profesionales`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!respuesta.ok) throw new Error();
+
+            const data: Profesional[] = await respuesta.json();
+            setProfesionales(data);
+        } catch {
+            setProfesionales([]);
+        }
+    };
+
+    const actualizarCampoSesion = (campo: keyof FormSesion, valor: string) => {
+        setFormSesion((anterior) => ({ ...anterior, [campo]: valor }));
+        setErrorCampo((anterior) => {
+            if (!anterior[campo]) return anterior;
+            const siguiente = { ...anterior };
+            delete siguiente[campo];
+            return siguiente;
+        });
+    };
+
+    const crearSesion = async (e: FormEvent) => {
+        e.preventDefault();
+        setErrorFormSesion("");
+
+        const nextErrors: Partial<Record<keyof FormSesion, string>> = {};
+
+        if (!formSesion.fecha) nextErrors.fecha = "La fecha de la sesión es obligatoria.";
+
+        if (formSesion.tipoResponsable === "interno" && !formSesion.rutProfesional) {
+            nextErrors.rutProfesional = "Selecciona un profesional del CESFAM.";
+        }
+
+        if (formSesion.tipoResponsable === "externo" && !formSesion.profesionalExterno.trim()) {
+            nextErrors.profesionalExterno = "Indica el nombre del profesional externo.";
+        }
+
+        setErrorCampo(nextErrors);
+        if (Object.keys(nextErrors).length > 0) return;
+
+        setGuardandoSesion(true);
+        try {
+            const token = localStorage.getItem("token");
+
+            const payload = {
+                fecha: formSesion.fecha,
+                rut_profesional: formSesion.tipoResponsable === "interno" ? formSesion.rutProfesional : undefined,
+                profesional_externo: formSesion.tipoResponsable === "externo" ? formSesion.profesionalExterno.trim() : undefined,
+                observaciones: formSesion.observaciones.trim() || undefined,
+            };
+
+            const respuesta = await fetch(`${API_BASE_URL}/talleres/${id}/sesiones`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ rut_paciente: paciente.rut }),
+                body: JSON.stringify(payload),
             });
 
-            const data = await respuesta.json();
+            const data = await respuesta.json().catch(() => ({}));
 
-            if (!respuesta.ok) throw new Error(data.error || "No se pudo inscribir al paciente");
+            if (!respuesta.ok) throw new Error(data?.error || "No fue posible crear la sesión.");
 
-            const nuevaInscripcion: Inscripcion = {
-                id_inscripcion: data.datos.id_inscripcion,
-                rut_paciente: paciente.rut,
-                estado_asistencia: "pendiente",
-                paciente: { nombre: paciente.nombre, apellido: paciente.apellido },
-            };
-
-            setInscripcionesPorSesion((prev) => ({
-                ...prev,
-                [idSesion]: [...(prev[idSesion] ?? []), nuevaInscripcion],
-            }));
-            setBusquedaPaciente("");
-            setResultadosBusqueda([]);
+            setMostrarFormSesion(false);
+            await obtenerTaller();
         } catch (err) {
-            setErrorInscripcion(err instanceof Error ? err.message : "Error desconocido");
+            setErrorFormSesion(err instanceof Error ? err.message : "No se pudo conectar con el servidor.");
         } finally {
-            setAgregando(false);
-        }
-    };
-
-    const cambiarAsistencia = async (idSesion: number, idInscripcion: number, nuevoEstado: EstadoAsistencia) => {
-        // optimista: la UI cambia al toque, se revierte si el backend falla
-        const anteriores = inscripcionesPorSesion[idSesion];
-
-        setInscripcionesPorSesion((prev) => ({
-            ...prev,
-            [idSesion]: prev[idSesion].map((i) =>
-                i.id_inscripcion === idInscripcion ? { ...i, estado_asistencia: nuevoEstado } : i
-            ),
-        }));
-
-        try {
-            const token = localStorage.getItem("token");
-            const respuesta = await fetch(`${API_BASE_URL}/inscripciones/${idInscripcion}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ estado_asistencia: nuevoEstado }),
-            });
-
-            if (!respuesta.ok) throw new Error();
-        } catch {
-            setInscripcionesPorSesion((prev) => ({ ...prev, [idSesion]: anteriores }));
-            setErrorInscripcion("No se pudo actualizar la asistencia, intenta de nuevo.");
-        }
-    };
-
-    const quitarInscripcion = async (idSesion: number, idInscripcion: number) => {
-        try {
-            const token = localStorage.getItem("token");
-            const respuesta = await fetch(`${API_BASE_URL}/inscripciones/${idInscripcion}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!respuesta.ok) throw new Error();
-
-            setInscripcionesPorSesion((prev) => ({
-                ...prev,
-                [idSesion]: prev[idSesion].filter((i) => i.id_inscripcion !== idInscripcion),
-            }));
-        } catch {
-            setErrorInscripcion("No se pudo quitar al paciente, intenta de nuevo.");
+            setGuardandoSesion(false);
         }
     };
 
@@ -296,19 +233,117 @@ export default function DetalleTaller() {
                         </div>
                     </div>
 
-                    {taller.sesiones.length === 0 && (
-                        <>
-                            <h2 className="text-lg font-semibold text-slate-800 mb-3">Sesiones</h2>
-                            <div className="p-8 text-center text-slate-500 font-semibold">
-                                Este taller no tiene sesiones registradas todavía.
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-semibold text-slate-800">Sesiones</h2>
+                        <button
+                            type="button"
+                            onClick={() => (mostrarFormSesion ? setMostrarFormSesion(false) : abrirFormSesion())}
+                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-100"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Nueva sesión
+                        </button>
+                    </div>
+
+                    {mostrarFormSesion && (
+                        <form onSubmit={crearSesion} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-4 space-y-3.5">
+                            {errorFormSesion && (
+                                <div className="rounded-lg bg-red-50 border border-red-200 px-3.5 py-2.5 text-sm font-semibold text-red-700">
+                                    {errorFormSesion}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Fecha</label>
+                                <input
+                                    type="date"
+                                    value={formSesion.fecha}
+                                    onChange={(e) => actualizarCampoSesion("fecha", e.target.value)}
+                                    className={`${fieldClass(!!errorCampo.fecha)} max-w-55`}
+                                />
+                                {errorCampo.fecha && <p className="mt-1 text-xs font-semibold text-red-600">{errorCampo.fecha}</p>}
                             </div>
-                        </>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Responsable</label>
+                                <div className="flex gap-4 mb-2">
+                                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                                        <input
+                                            type="radio"
+                                            checked={formSesion.tipoResponsable === "interno"}
+                                            onChange={() => actualizarCampoSesion("tipoResponsable", "interno")}
+                                        />
+                                        Profesional del CESFAM
+                                    </label>
+                                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                                        <input
+                                            type="radio"
+                                            checked={formSesion.tipoResponsable === "externo"}
+                                            onChange={() => actualizarCampoSesion("tipoResponsable", "externo")}
+                                        />
+                                        Profesional externo
+                                    </label>
+                                </div>
+
+                                {formSesion.tipoResponsable === "interno" ? (
+                                    <>
+                                        <select
+                                            value={formSesion.rutProfesional}
+                                            onChange={(e) => actualizarCampoSesion("rutProfesional", e.target.value)}
+                                            className={fieldClass(!!errorCampo.rutProfesional)}
+                                        >
+                                            <option value="">Selecciona un profesional...</option>
+                                            {profesionales.map((p) => (
+                                                <option key={p.rut} value={p.rut}>{p.nombre} {p.apellido}</option>
+                                            ))}
+                                        </select>
+                                        {errorCampo.rutProfesional && <p className="mt-1 text-xs font-semibold text-red-600">{errorCampo.rutProfesional}</p>}
+                                    </>
+                                ) : (
+                                    <>
+                                        <input
+                                            type="text"
+                                            value={formSesion.profesionalExterno}
+                                            onChange={(e) => actualizarCampoSesion("profesionalExterno", e.target.value)}
+                                            placeholder="Ej: Ana Torres (fonoaudióloga externa)"
+                                            className={fieldClass(!!errorCampo.profesionalExterno)}
+                                        />
+                                        {errorCampo.profesionalExterno && <p className="mt-1 text-xs font-semibold text-red-600">{errorCampo.profesionalExterno}</p>}
+                                    </>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Observaciones</label>
+                                <textarea
+                                    value={formSesion.observaciones}
+                                    onChange={(e) => actualizarCampoSesion("observaciones", e.target.value)}
+                                    className={fieldClass(false)}
+                                    rows={2}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={guardandoSesion}
+                                className="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 font-semibold rounded-lg text-sm px-4 py-2.5 transition-colors shadow-sm disabled:opacity-50"
+                            >
+                                {guardandoSesion ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                                Guardar sesión
+                            </button>
+                        </form>
+                    )}
+
+                    {taller.sesiones.length === 0 && (
+                        <div className="p-8 text-center text-slate-500 font-semibold">
+                            Este taller no tiene sesiones registradas todavía.
+                        </div>
                     )}
 
                     {taller.sesiones.length > 0 && (
                         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-3.5">
-                                <h2 className="text-[15px] font-bold text-slate-800">Sesiones</h2>
+                                <h2 className="text-[15px] font-bold text-slate-800">Todas las sesiones</h2>
                                 <span className="text-xs font-semibold text-slate-400">
                                     {taller.sesiones.length} registrada{taller.sesiones.length === 1 ? "" : "s"}
                                 </span>
@@ -318,149 +353,37 @@ export default function DetalleTaller() {
                                     <tr>
                                         <th className="px-6 py-2.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 border-b border-slate-200">Fecha</th>
                                         <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 border-b border-slate-200">Responsable</th>
-                                        <th className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 border-b border-slate-200">Cupo máximo</th>
                                         <th className="px-6 py-2.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 border-b border-slate-200">Observaciones</th>
                                         <th className="px-6 py-2.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 border-b border-slate-200">Asistentes</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {taller.sesiones.map((sesion) => {
-                                        const abierta = sesionAbierta === sesion.id_sesion;
-                                        const inscritos = inscripcionesPorSesion[sesion.id_sesion];
-                                        const resultadosSinInscritos = resultadosBusqueda.filter(
-                                            (p) => !inscritos?.some((i) => i.rut_paciente === p.rut)
-                                        );
-
-                                        return (
-                                            <Fragment key={sesion.id_sesion}>
-                                                <tr className="border-b border-slate-100 last:border-0">
-                                                    <td className="px-6 py-3 font-bold text-slate-800 whitespace-nowrap">
-                                                        {formatearFecha(sesion.fecha)}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-slate-700 font-medium">
-                                                        <span className="flex items-center gap-1.5">
-                                                            <UserRound className="h-3.5 w-3.5 text-slate-400" />
-                                                            {responsableSesion(sesion)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-slate-700 font-semibold">
-                                                        {sesion.cupo_maximo ?? "—"}
-                                                    </td>
-                                                    <td className="px-6 py-3 text-slate-500 font-medium">
-                                                        {sesion.observaciones || "Sin observaciones"}
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => alternarSesion(sesion.id_sesion)}
-                                                            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:border-blue-400 hover:text-blue-700"
-                                                        >
-                                                            {inscritos?.length ?? "···"} inscrito{inscritos?.length === 1 ? "" : "s"}
-                                                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abierta ? "rotate-180" : ""}`} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-
-                                                {abierta && (
-                                                    <tr key={`${sesion.id_sesion}-panel`} className="border-b border-slate-100 last:border-0">
-                                                        <td colSpan={5} className="bg-slate-50 px-6 py-4">
-                                                            {cargandoInscripciones && !inscritos && (
-                                                                <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
-                                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                                    Cargando inscritos...
-                                                                </div>
-                                                            )}
-
-                                                            {inscritos && (
-                                                                <div className="space-y-3">
-                                                                    <div className="relative max-w-sm">
-                                                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                                                        <input
-                                                                            type="text"
-                                                                            value={busquedaPaciente}
-                                                                            onChange={(e) => setBusquedaPaciente(e.target.value)}
-                                                                            placeholder="Buscar paciente por nombre o RUT..."
-                                                                            className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-800 outline-none focus:border-blue-500"
-                                                                        />
-
-                                                                        {busquedaPaciente.trim().length >= 2 && (
-                                                                            <div className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
-                                                                                {buscandoPaciente && (
-                                                                                    <p className="px-3 py-2 text-xs font-semibold text-slate-400">Buscando...</p>
-                                                                                )}
-
-                                                                                {!buscandoPaciente && resultadosSinInscritos.length === 0 && (
-                                                                                    <p className="px-3 py-2 text-xs font-semibold text-slate-400">Sin resultados.</p>
-                                                                                )}
-
-                                                                                {!buscandoPaciente && resultadosSinInscritos.map((p) => (
-                                                                                    <button
-                                                                                        key={p.rut}
-                                                                                        type="button"
-                                                                                        disabled={agregando}
-                                                                                        onClick={() => agregarPaciente(sesion.id_sesion, p)}
-                                                                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-blue-50 disabled:opacity-50"
-                                                                                    >
-                                                                                        <UserPlus className="h-3.5 w-3.5 shrink-0 text-blue-600" />
-                                                                                        <span className="truncate">{p.nombre} {p.apellido}</span>
-                                                                                        <span className="ml-auto shrink-0 text-xs text-slate-400">{p.rut}</span>
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {errorInscripcion && (
-                                                                        <p className="text-xs font-semibold text-red-600">{errorInscripcion}</p>
-                                                                    )}
-
-                                                                    {inscritos.length === 0 && (
-                                                                        <p className="text-sm font-medium text-slate-500">
-                                                                            Todavía no hay pacientes inscritos en esta sesión.
-                                                                        </p>
-                                                                    )}
-
-                                                                    {inscritos.length > 0 && (
-                                                                        <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-                                                                            {inscritos.map((i) => (
-                                                                                <li key={i.id_inscripcion} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                                                                                    <div className="min-w-0">
-                                                                                        <p className="truncate text-sm font-bold text-slate-800">
-                                                                                            {i.paciente.nombre} {i.paciente.apellido}
-                                                                                        </p>
-                                                                                        <p className="text-xs text-slate-400">{i.rut_paciente}</p>
-                                                                                    </div>
-                                                                                    <div className="flex shrink-0 items-center gap-2">
-                                                                                        <select
-                                                                                            value={i.estado_asistencia}
-                                                                                            onChange={(e) => cambiarAsistencia(sesion.id_sesion, i.id_inscripcion, e.target.value as EstadoAsistencia)}
-                                                                                            className={`rounded-full border-0 px-2.5 py-1 text-xs font-bold outline-none cursor-pointer ${estilosAsistencia[i.estado_asistencia]}`}
-                                                                                        >
-                                                                                            <option value="pendiente">Pendiente</option>
-                                                                                            <option value="asiste">Asistió</option>
-                                                                                            <option value="no_asiste">No asistió</option>
-                                                                                        </select>
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => quitarInscripcion(sesion.id_sesion, i.id_inscripcion)}
-                                                                                            title="Quitar de la sesión"
-                                                                                            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                                                                                        >
-                                                                                            <X className="h-3.5 w-3.5" />
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </li>
-                                                                            ))}
-                                                                        </ul>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </Fragment>
-                                        );
-                                    })}
+                                    {taller.sesiones.map((sesion) => (
+                                        <tr
+                                            key={sesion.id_sesion}
+                                            onClick={() => navigate(`/talleres/sesiones/${sesion.id_sesion}`)}
+                                            className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                                        >
+                                            <td className="px-6 py-3 font-bold text-slate-800 whitespace-nowrap">
+                                                {formatearFecha(sesion.fecha)}
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-700 font-medium">
+                                                <span className="flex items-center gap-1.5">
+                                                    <UserRound className="h-3.5 w-3.5 text-slate-400" />
+                                                    {responsableSesion(sesion)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-3 text-slate-500 font-medium">
+                                                {sesion.observaciones || "Sin observaciones"}
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                                                    {sesion.inscritosCount} inscrito{sesion.inscritosCount === 1 ? "" : "s"}
+                                                    <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>

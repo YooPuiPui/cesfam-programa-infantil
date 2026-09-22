@@ -40,16 +40,6 @@ export const crearInscripcion: RequestHandler = async (req, res): Promise<void> 
             return;
         }
 
-        // cupo_maximo === null significa "sin tope"
-        if (sesion.cupo_maximo !== null) {
-            const inscritosActuales = await inscripcionService.contarInscripcionPorSesion(idSesion);
-
-            if (inscritosActuales >= sesion.cupo_maximo) {
-                res.status(409).json({ error: `Esta sesión ya alcanzó su cupo máximo (${sesion.cupo_maximo}).` });
-                return;
-            }
-        }
-
         const inscripcionLimpia = {
             id_sesion: idSesion,
             rut_paciente: rut_paciente.trim(),
