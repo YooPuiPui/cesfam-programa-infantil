@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, CalendarCheck, FileBarChart, Stethoscope, LogOut, Upload } from "lucide-react";
+import { LayoutDashboard, Users, CalendarCheck, FileBarChart, Stethoscope, LogOut, Upload, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 
@@ -8,6 +8,7 @@ const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/pacientes", label: "Pacientes", icon: Users },
     { path: "/agenda", label: "Agenda de Controles", icon: CalendarCheck },
+    { path: "/talleres", label: "Talleres", icon: GraduationCap },
     { path: "/reportes", label: "Reportes", icon: FileBarChart },
     { path: "/importar-excel", label: "Importar Excel", icon: Upload },
 ];
