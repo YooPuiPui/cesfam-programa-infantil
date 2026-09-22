@@ -13,16 +13,6 @@ export const crearInscripcion = async (datosInscripcion: Prisma.InscripcionTalle
 } 
 
 
-//? cuenta cuantos pacientes ya estan inscritos en una sesion (valida cupos)
-export const contarInscripcionPorSesion = async (idSesion: number) =>{
-    return await prisma.inscripcionTaller.count({
-        where: {id_sesion: idSesion},
-
-    });
-
-}
-
-
 //* lista todas las inscripciones de una sesión con los datos del paciente
 export const buscarInscripcionesPorSesion = async (idSesion: number) => {
     return await prisma.inscripcionTaller.findMany({
