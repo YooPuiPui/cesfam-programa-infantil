@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler } from 'express';
 import * as pacienteService from '../services/paciente.service';
 import prisma from '../config/prisma';
+import { normalizarTexto } from '../services/importacion.service';
 
 export const crearPaciente = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -200,16 +201,38 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                 break;
         }
 
+        // Postgres "insensitive" solo ignora mayusculas, no tildes (ej: "angel" no
+        // encontraba a "Ángel"), asi que la busqueda por texto se hace en memoria,
+        // igual que reportes.service.ts. El filtro de riesgo si queda en la consulta.
         if (busqueda && busqueda.trim() !== '') {
-            const palabras = busqueda.trim().split(/\s+/); // separa por cualquier espacio en blanco
+            const palabrasBuscadas = normalizarTexto(busqueda).split(/\s+/);
 
-            where.AND = palabras.map((palabra) => ({
-                OR: [
-                    { rut: { contains: palabra, mode: 'insensitive' } },
-                    { nombre: { contains: palabra, mode: 'insensitive' } },
-                    { apellido: { contains: palabra, mode: 'insensitive' } },
-                ],
-            }));
+            const candidatos = await prisma.paciente.findMany({
+                where,
+                orderBy: { creado_en: 'desc' },
+                include: {
+                    controlClinico: {
+                        orderBy: { fecha_control: 'desc' },
+                        take: 1
+                    }
+                }
+            });
+
+            const filtrados = candidatos.filter((paciente) => {
+                const textoPaciente = normalizarTexto(`${paciente.rut} ${paciente.nombre} ${paciente.apellido}`);
+                return palabrasBuscadas.every((palabra) => textoPaciente.includes(palabra));
+            });
+
+            res.status(200).json({
+                data: filtrados.slice(skip, skip + limit),
+                meta: {
+                    total: filtrados.length,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(filtrados.length / limit)
+                }
+            });
+            return;
         }
 
         const [data, total] = await Promise.all([

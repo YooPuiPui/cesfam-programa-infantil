@@ -78,11 +78,18 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
 }
 
 
-//* get/talleres lista todos los talleres activos
+//* get/talleres lista todos los talleres del catalogo (activos e inactivos)
 export const obtenerTalleres: RequestHandler = async (req, res): Promise<void> => {
     try{
         const talleres = await tallerService.buscarTalleres();
-        res.status(200).json(talleres);
+
+        //? el frontend recibe sesionesCount, no el _count anidado de Prisma
+        const talleresConConteo = talleres.map(({_count, ...taller}) => ({
+            ...taller,
+            sesionesCount: _count.sesiones,
+        }));
+
+        res.status(200).json(talleresConConteo);
 
     }catch(error: any){
         console.error('Error al obtener los talleres', error.message);
@@ -109,7 +116,16 @@ export const obtenerTallerPorId: RequestHandler = async (req, res): Promise<void
             return;
         }
 
-        res.status(200).json(taller);
+        //? el frontend recibe inscritosCount, no el _count anidado de Prisma
+        const tallerConConteos = {
+            ...taller,
+            sesiones: taller.sesiones.map(({_count, ...sesion}) => ({
+                ...sesion,
+                inscritosCount: _count.inscripciones,
+            })),
+        };
+
+        res.status(200).json(tallerConConteos);
     } catch (error: any) {
         console.error('Error al obtener el taller: ', error.message);
         res.status(500).json({error: 'Error interno al consultar el taller '});
