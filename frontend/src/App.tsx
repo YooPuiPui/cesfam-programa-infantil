@@ -13,6 +13,9 @@ import RutaProtegida from "./components/login/rutaProtegida";
 import ReportesList from "./components/reportes/listaReportes";
 import ReporteDetalle from "./components/reportes/detalleReportes";
 import ImportarExcel from "./components/pacientes/importarExcel";
+import Talleres from "./components/talleres/Talleres";
+import CrearTaller from "./components/talleres/crearTaller";
+import DetalleTaller from "./components/talleres/detalleTaller";
 
 
 
@@ -148,6 +151,39 @@ export default function App() {
             <RutaProtegida>
               <DashboardLayout>
                 <ReporteDetalle />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/talleres"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <Talleres />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/talleres/nuevo"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <CrearTaller />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/talleres/:id"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <DetalleTaller />
               </DashboardLayout>
             </RutaProtegida>
           }
