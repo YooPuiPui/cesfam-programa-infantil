@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, CalendarDays, Search, GraduationCap } from "lucide-react";
+import { Loader2, Plus, CalendarDays, Search, Filter, GraduationCap } from "lucide-react";
 import { API_BASE_URL } from "../../service/api";
+import { normalizarTexto } from "../../utils/formatters";
 
 
 
@@ -73,7 +74,7 @@ export default function Talleres() {
     }, []);
 
     const talleresFiltrados = talleres.filter((taller) => {
-        const coincideBusqueda = taller.nombre.toLowerCase().includes(busqueda.trim().toLowerCase());
+        const coincideBusqueda = normalizarTexto(taller.nombre).includes(normalizarTexto(busqueda));
         const coincideEstado =
             filtroEstado === "todos" ||
             (filtroEstado === "activos" && taller.activo) ||
@@ -84,32 +85,39 @@ export default function Talleres() {
 
 
     return (
-        <div>
-            <h1 className="text-xl font-semibold text-slate-800 mb-6">Talleres</h1>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                <div className="flex flex-1 min-w-[260px] gap-2.5">
-                    <div className="relative flex-1 max-w-[340px]">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <div className="bg-white rounded-xl shadow-sm border border-slate-300">
+            <div className="flex flex-col md:flex-row items-center justify-between p-4 gap-3 border-b border-slate-200 bg-slate-50 rounded-t-xl">
+                <div className="flex flex-col sm:flex-row w-full md:w-2/3 gap-3">
+                    <div className="relative w-full sm:w-1/2">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <Search className="h-5 w-5 text-slate-500" />
+                        </div>
                         <input
                             type="text"
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             placeholder="Buscar taller..."
-                            className="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-3 text-sm font-medium text-slate-800 outline-none focus:border-blue-500"
+                            className="bg-white border border-slate-400 text-slate-900 text-sm font-medium rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full pl-10 p-2.5 outline-none transition-all shadow-sm"
                         />
                     </div>
-                    <select
-                        value={filtroEstado}
-                        onChange={(e) => setFiltroEstado(e.target.value as "todos" | "activos" | "inactivos")}
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500"
-                    >
-                        <option value="todos">Todos los estados</option>
-                        <option value="activos">Activos</option>
-                        <option value="inactivos">Inactivos</option>
-                    </select>
+
+                    <div className="relative w-full sm:w-1/2">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <Filter className="h-5 w-5 text-slate-500" />
+                        </div>
+                        <select
+                            value={filtroEstado}
+                            onChange={(e) => setFiltroEstado(e.target.value as "todos" | "activos" | "inactivos")}
+                            className="bg-white border border-slate-400 text-slate-900 text-sm font-medium rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full pl-10 p-2.5 outline-none transition-all shadow-sm appearance-none cursor-pointer"
+                        >
+                            <option value="todos">Todos los estados</option>
+                            <option value="activos">Activos</option>
+                            <option value="inactivos">Inactivos</option>
+                        </select>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3">
+
+                <div className="w-full md:w-auto flex flex-col md:flex-row items-stretch md:items-center justify-end gap-3 flex-shrink-0">
                     <div className="flex items-center justify-center bg-blue-700 text-white font-bold rounded-lg text-sm px-4 py-2.5 shadow-sm whitespace-nowrap">
                         Total: {talleres.length}
                     </div>
@@ -148,7 +156,7 @@ export default function Talleres() {
             )}
 
             {!cargando && !error && talleresFiltrados.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                     {talleresFiltrados.map((taller) => (
                         <button
                             key={taller.id_taller}
