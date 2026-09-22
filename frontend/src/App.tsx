@@ -16,6 +16,7 @@ import ImportarExcel from "./components/pacientes/importarExcel";
 import Talleres from "./components/talleres/Talleres";
 import CrearTaller from "./components/talleres/crearTaller";
 import DetalleTaller from "./components/talleres/detalleTaller";
+import DetalleSesion from "./components/talleres/detalleSesion";
 
 
 
@@ -184,6 +185,17 @@ export default function App() {
             <RutaProtegida>
               <DashboardLayout>
                 <DetalleTaller />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/talleres/sesiones/:idSesion"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <DetalleSesion />
               </DashboardLayout>
             </RutaProtegida>
           }
