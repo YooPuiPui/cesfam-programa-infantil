@@ -83,7 +83,6 @@ export const obtenerTalleres: RequestHandler = async (req, res): Promise<void> =
     try{
         const talleres = await tallerService.buscarTalleres();
 
-        //? el frontend recibe sesionesCount, no el _count anidado de Prisma
         const talleresConConteo = talleres.map(({_count, ...taller}) => ({
             ...taller,
             sesionesCount: _count.sesiones,
@@ -116,7 +115,6 @@ export const obtenerTallerPorId: RequestHandler = async (req, res): Promise<void
             return;
         }
 
-        //? el frontend recibe inscritosCount, no el _count anidado de Prisma
         const tallerConConteos = {
             ...taller,
             sesiones: taller.sesiones.map(({_count, ...sesion}) => ({

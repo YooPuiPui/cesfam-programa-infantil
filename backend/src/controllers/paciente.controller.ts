@@ -201,9 +201,7 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                 break;
         }
 
-        // Postgres "insensitive" solo ignora mayusculas, no tildes (ej: "angel" no
-        // encontraba a "Ángel"), asi que la busqueda por texto se hace en memoria,
-        // igual que reportes.service.ts. El filtro de riesgo si queda en la consulta.
+        // Postgres "insensitive" ignora mayusculas pero no tildes, asi que el texto se filtra en memoria
         if (busqueda && busqueda.trim() !== '') {
             const palabrasBuscadas = normalizarTexto(busqueda).split(/\s+/);
 
