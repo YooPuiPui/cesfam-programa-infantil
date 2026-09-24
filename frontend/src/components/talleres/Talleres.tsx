@@ -61,7 +61,7 @@ export default function Talleres() {
                 setTalleres(data);
 
             } catch (err) {
-                setError(err instanceof Error ? err.message : "Error desconocido");
+                setError(err instanceof Error ? err.message : "Error desconocido ");
             } finally {
                 setCargando(false);
             }
