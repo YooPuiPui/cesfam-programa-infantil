@@ -96,7 +96,6 @@ export default function DetalleSesion() {
         obtenerSesion();
     }, [idSesion]);
 
-    // busca pacientes por nombre/rut mientras se escribe
     useEffect(() => {
         if (busqueda.trim().length < 2) {
             setResultados([]);
