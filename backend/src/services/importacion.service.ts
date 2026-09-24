@@ -65,7 +65,6 @@ function normalizarSexo(valor: unknown): string | null {
 }
 
 //? para comparar texto sin importar mayusculas/minusculas ni tildes (ej: "angel" debe encontrar "Ángel")
-//? se usa tanto al importar el excel como en la busqueda de pacientes (paciente.controller.ts)
 
 export function normalizarTexto(texto: string): string {
     return texto
