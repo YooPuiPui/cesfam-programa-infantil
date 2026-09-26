@@ -177,6 +177,16 @@ export function truncarTexto(texto: string, max: number = 50): string {
     return texto.substring(0, max) + '...';
 }
 
+//? normaliza para comparar texto sin importar mayusculas/minusculas ni tildes (ej: "angel" debe encontrar "Ángel")
+
+export function normalizarTexto(texto: string): string {
+    return texto
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
 
 //? Obtiene la fecha actual en formato localizado
 

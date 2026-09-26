@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, CalendarCheck, FileBarChart, Stethoscope, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, CalendarCheck, FileBarChart, Stethoscope, LogOut, Upload, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 
@@ -8,7 +8,9 @@ const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/pacientes", label: "Pacientes", icon: Users },
     { path: "/agenda", label: "Agenda de Controles", icon: CalendarCheck },
+    { path: "/talleres", label: "Talleres", icon: GraduationCap },
     { path: "/reportes", label: "Reportes", icon: FileBarChart },
+    { path: "/importar-excel", label: "Importar Excel", icon: Upload },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -81,7 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-auto p-6 print:overflow-visible print:p-0">
+                <main className="app-main-bg flex-1 overflow-auto p-6 print:overflow-visible print:p-0">
                     {children}
                 </main>
             </div>

@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler } from 'express';
 import * as pacienteService from '../services/paciente.service';
 import prisma from '../config/prisma';
+import { normalizarTexto } from '../services/importacion.service';
 
 export const crearPaciente = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -34,6 +35,13 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             es_naneas_prematuro: paciente.es_naneas_prematuro !== undefined ? paciente.es_naneas_prematuro : false,
             es_poblacion_trans: paciente.es_poblacion_trans !== undefined ? paciente.es_poblacion_trans : false,
             es_migrante: paciente.es_migrante !== undefined ? paciente.es_migrante : false,
+            es_salud_mental: paciente.es_salud_mental !== undefined ? paciente.es_salud_mental : false,
+            diagnosticos: paciente.diagnosticos || [],
+            credencial_discapacidad: paciente.credencial_discapacidad || 'sin_dato',
+            credencial_discapacidad_detalle: paciente.credencial_discapacidad_detalle || null,
+            cuidador_nombre: paciente.cuidador_nombre || null,
+            cuidador_telefono: paciente.cuidador_telefono || null,
+            cuidador_parentesco: paciente.cuidador_parentesco || null,
         };
 
 
@@ -42,6 +50,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             nombre: tutor.nombre,
             apellido: tutor.apellido,
             telefono: tutor.telefono,
+            telefono_secundario: tutor.telefono_secundario || null,
             parentesco: tutor.parentesco,
             correo: tutor.correo,
             direccion: tutor.direccion,
@@ -106,6 +115,23 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         if (datos.prevision) datosLimpios.prevision = datos.prevision;
         if (datos.fecha_inscripcion) datosLimpios.fecha_inscripcion = datos.fecha_inscripcion;
         if (datos.activo !== undefined) datosLimpios.activo = datos.activo;
+
+        // Flags de riesgo social — usan "!== undefined" y no un chequeo "truthy",
+        // porque si no, desmarcar una casilla (mandar "false") se interpretaría
+        // como "no vino el dato" y la edición no surtiría efecto.
+        if (datos.es_sename !== undefined) datosLimpios.es_sename = datos.es_sename;
+        if (datos.es_naneas_prematuro !== undefined) datosLimpios.es_naneas_prematuro = datos.es_naneas_prematuro;
+        if (datos.es_migrante !== undefined) datosLimpios.es_migrante = datos.es_migrante;
+        if (datos.es_poblacion_trans !== undefined) datosLimpios.es_poblacion_trans = datos.es_poblacion_trans;
+        if (datos.es_salud_mental !== undefined) datosLimpios.es_salud_mental = datos.es_salud_mental;
+
+        if (datos.diagnosticos !== undefined) datosLimpios.diagnosticos = datos.diagnosticos;
+        if (datos.credencial_discapacidad !== undefined) datosLimpios.credencial_discapacidad = datos.credencial_discapacidad;
+        if (datos.credencial_discapacidad_detalle !== undefined) datosLimpios.credencial_discapacidad_detalle = datos.credencial_discapacidad_detalle;
+        if (datos.cuidador_nombre !== undefined) datosLimpios.cuidador_nombre = datos.cuidador_nombre;
+        if (datos.cuidador_telefono !== undefined) datosLimpios.cuidador_telefono = datos.cuidador_telefono;
+        if (datos.cuidador_parentesco !== undefined) datosLimpios.cuidador_parentesco = datos.cuidador_parentesco;
+
         const resultado = await pacienteService.actualizarPaciente(id, datosLimpios);
 
         res.status(200).json({
@@ -175,16 +201,36 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                 break;
         }
 
+        // Postgres "insensitive" ignora mayusculas pero no tildes, asi que el texto se filtra en memoria
         if (busqueda && busqueda.trim() !== '') {
-            const palabras = busqueda.trim().split(/\s+/); // separa por cualquier espacio en blanco
+            const palabrasBuscadas = normalizarTexto(busqueda).split(/\s+/);
 
-            where.AND = palabras.map((palabra) => ({
-                OR: [
-                    { rut: { contains: palabra, mode: 'insensitive' } },
-                    { nombre: { contains: palabra, mode: 'insensitive' } },
-                    { apellido: { contains: palabra, mode: 'insensitive' } },
-                ],
-            }));
+            const candidatos = await prisma.paciente.findMany({
+                where,
+                orderBy: { creado_en: 'desc' },
+                include: {
+                    controlClinico: {
+                        orderBy: { fecha_control: 'desc' },
+                        take: 1
+                    }
+                }
+            });
+
+            const filtrados = candidatos.filter((paciente) => {
+                const textoPaciente = normalizarTexto(`${paciente.rut} ${paciente.nombre} ${paciente.apellido}`);
+                return palabrasBuscadas.every((palabra) => textoPaciente.includes(palabra));
+            });
+
+            res.status(200).json({
+                data: filtrados.slice(skip, skip + limit),
+                meta: {
+                    total: filtrados.length,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(filtrados.length / limit)
+                }
+            });
+            return;
         }
 
         const [data, total] = await Promise.all([
@@ -230,7 +276,6 @@ export const obtenerPaciente: RequestHandler = async (req, res): Promise<void> =
         const paciente = await pacienteService.obtenerPacientePorId(id);
 
         if (!paciente) {
-            // 🚨 AQUÍ ESTABA EL ERROR DE SINTAXIS. Ahora tiene su "clave: valor"
             res.status(404).json({ error: 'El paciente no existe en los registros' });
             return;
         }
@@ -285,12 +330,7 @@ export const obtenerPacientePorRut: RequestHandler = async (req, res): Promise<v
         }
 
         // 3. Prisma ya no se quejará
-        const paciente = await prisma.paciente.findUnique({
-            where: { rut: rut },
-            include: {
-                tutor: true
-            }
-        });
+        const paciente = await pacienteService.buscarPacientePorRutConTutor(rut);
 
         if (!paciente) {
             res.status(404).json({ error: 'El paciente no existe en los registros' });
@@ -322,6 +362,18 @@ export const obtenerConteosPacientes = async (req: Request, res: Response): Prom
         res.status(200).json(conteos);
     } catch (error: any) {
         console.error('Error al obtener conteos de pacientes:', error.message);
+        res.status(500).json({ error: 'Error interno al consultar la base de datos' });
+    }
+};
+
+export const obtenerCaracterizacionPacientes: RequestHandler = async (req, res): Promise<void> => {
+    try {
+        const caracterizacion = await pacienteService.obtenerCaracterizacionPacientes();
+
+        res.status(200).json(caracterizacion);
+
+    } catch (error: any) {
+        console.error('Error al obtener la caracterizacion de pacientes:', error.message);
         res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };

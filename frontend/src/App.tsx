@@ -6,11 +6,26 @@ import CrearControl from "./components/controles/crearControl";
 import FichaPacientes from "./components/pacientes/fichaPacientes";
 import PlantillaControl from './components/controles/plantillaControl';
 import InscribirPaciente from "./components/pacientes/inscribirPaciente";
+import EditarPaciente from "./components/pacientes/editarPaciente";
 import AgendaControles from "./components/agenda/agendaControles";
 import Dashboard from "./components/dashboard/Dashboard";
 import RutaProtegida from "./components/login/rutaProtegida";
 import ReportesList from "./components/reportes/listaReportes";
 import ReporteDetalle from "./components/reportes/detalleReportes";
+import ImportarExcel from "./components/pacientes/importarExcel";
+import Talleres from "./components/talleres/Talleres";
+import CrearTaller from "./components/talleres/crearTaller";
+import DetalleTaller from "./components/talleres/detalleTaller";
+import DetalleSesion from "./components/talleres/detalleSesion";
+
+
+
+
+
+
+
+
+
 
 export default function App() {
   return (
@@ -49,6 +64,28 @@ export default function App() {
             <RutaProtegida>
               <DashboardLayout>
                 <InscribirPaciente />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/editar-paciente/:rut"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <EditarPaciente />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/importar-excel"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <ImportarExcel />
               </DashboardLayout>
             </RutaProtegida>
           }
@@ -115,6 +152,50 @@ export default function App() {
             <RutaProtegida>
               <DashboardLayout>
                 <ReporteDetalle />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/talleres"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <Talleres />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/talleres/nuevo"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <CrearTaller />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/talleres/:id"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <DetalleTaller />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/talleres/sesiones/:idSesion"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <DetalleSesion />
               </DashboardLayout>
             </RutaProtegida>
           }
