@@ -83,6 +83,10 @@ export default function NuevoControl() {
     const edadMesesActual = paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : null;
     const aplicaPerimetroCefalico = edadMesesActual !== null && edadMesesActual <= 36;
 
+    // El IMC solo aplica desde los 2 años (24 meses). Antes de esa edad, el indicador
+    // nutricional correcto es peso/edad, que ya se registra con el campo Peso.
+    const aplicaImc = edadMesesActual !== null && edadMesesActual >= 24;
+
     const onSubmit = async (data: ControlFormValues) => {
         setGuardando(true);
         try {
@@ -108,7 +112,7 @@ export default function NuevoControl() {
                     indicaciones_acuerdos: data.indicaciones_acuerdos,
                     rut_profesional: rutDoctor,
                     edad_meses: paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : 0,
-                    imc: parseFloat((data.peso_kg / Math.pow(data.talla_cm / 100, 2)).toFixed(2)),
+                    imc: aplicaImc ? parseFloat((data.peso_kg / Math.pow(data.talla_cm / 100, 2)).toFixed(2)) : null,
                     fecha_proximoControl: data.fecha_proximoControl || new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString()
                 }
             };
@@ -177,13 +181,13 @@ export default function NuevoControl() {
                 <div className="flex flex-col gap-4 border-b border-slate-200 p-6 md:flex-row md:items-center md:justify-between">
                     <div>
                         <p className="text-xl font-black text-slate-900 capitalize">{paciente?.nombre?.toLowerCase()} {paciente?.apellido?.toLowerCase()}</p>
-                        <p className="text-sm font-semibold text-slate-000">RUT: <span className="text-slate-700">{paciente?.rut}</span></p>
+                        <p className="text-sm font-semibold text-slate-500">RUT: <span className="text-slate-700">{paciente?.rut}</span></p>
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                         <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-900">Último control registrado</p>
                         {ultimoControl ? (
                             <p className="font-semibold text-slate-700">
-                                {new Date(ultimoControl.fecha_control).toLocaleDateString('es-CL', { timeZone: 'UTC' })} — {ultimoControl.peso_kg} kg / {ultimoControl.talla_cm} cm / IMC {ultimoControl.imc}
+                                {new Date(ultimoControl.fecha_control).toLocaleDateString('es-CL', { timeZone: 'UTC' })} — {ultimoControl.peso_kg} kg / {ultimoControl.talla_cm} cm{ultimoControl.imc ? ` / IMC ${ultimoControl.imc}` : ''}
                             </p>
                         ) : (
                             <p className="font-medium italic text-slate-500">No registra controles previos</p>
@@ -257,6 +261,14 @@ export default function NuevoControl() {
                             {errors.perimetro_cefalico && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.perimetro_cefalico.message}</span>}
                         </div>
                     </div>
+
+                    <p className="mt-3 text-xs font-medium text-slate-500">
+                        {edadMesesActual === null
+                            ? 'No se pudo determinar la edad del paciente para calcular el indicador nutricional.'
+                            : aplicaImc
+                                ? 'Se calculará el IMC automáticamente al guardar (indicador aplicable desde los 2 años).'
+                                : 'Este paciente tiene menos de 2 años: se evalúa por peso para la edad, no se calculará IMC.'}
+                    </p>
                 </div>
 
                 {/* 3. EVALUACIÓN Y PLAN */}

@@ -1,16 +1,16 @@
-
-
 export interface Tutor {
     id_tutor: number;
     rut: string;
     nombre: string;
     apellido: string;
     telefono: string;
+    telefono_secundario?: string;
     parentesco: string;
     correo?: string;
     direccion: string;
     sector?: string;
     comuna: string;
+    verificado: boolean;
 }
 
 export interface Paciente {
@@ -36,6 +36,17 @@ export interface Paciente {
     es_naneas_prematuro?: boolean;
     es_poblacion_trans?: boolean;
     es_migrante?: boolean;
+    es_salud_mental?: boolean;
+
+    //* diagnosticos y credencial de discapacidad
+    diagnosticos?: string[];
+    credencial_discapacidad?: 'sin_dato' | 'si' | 'no' | 'en_tramite';
+    credencial_discapacidad_detalle?: string;
+
+    //* cuidador (distinto del tutor legal, opcional)
+    cuidador_nombre?: string;
+    cuidador_telefono?: string;
+    cuidador_parentesco?: string;
 
     //* relacion con tutor
     tutor?: Tutor;
@@ -110,4 +121,3 @@ export interface FormCrearPaciente {
     paciente: Omit<Paciente, 'id_paciente' | 'creado_en'>;
     tutor: Omit<Tutor, 'id_tutor'>;
 }
-

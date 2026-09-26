@@ -18,11 +18,23 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
+        // El IMC solo aplica desde los 2 años (24 meses). Antes de esa edad, el indicador
+        // nutricional correcto es peso/edad, que ya se registra en peso_kg.
+        const edadMesesNum = Number(control.edad_meses);
+        const aplicaImc = !Number.isNaN(edadMesesNum) && edadMesesNum >= 24;
+
         //  validación de campos obligatorios del control
-        if (!control.edad_meses || !control.peso_kg || !control.talla_cm || !control.imc ||
-            !control.fecha_proximoControl || !control.rut_profesional) {
+        // Ojo: edad_meses se compara con "=== undefined || === null", no con "!",
+        // porque 0 meses (un recién nacido) es un valor válido que "!" trataría
+        // como si el dato faltara.
+        if (
+            control.edad_meses === undefined || control.edad_meses === null ||
+            !control.peso_kg || !control.talla_cm ||
+            (aplicaImc && !control.imc) ||
+            !control.fecha_proximoControl || !control.rut_profesional
+        ) {
             res.status(400).json({
-                error: 'Faltan datos obligatorios en el control (edad, peso, talla, imc, fecha_proximoControl, id_profesional).'
+                error: 'Faltan datos obligatorios en el control (edad, peso, talla, fecha_proximoControl, rut_profesional, y el imc si el paciente tiene 2 años o más).'
             });
             return;
         }
@@ -54,7 +66,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             peso_kg: parseFloat(control.peso_kg),
             talla_cm: parseFloat(control.talla_cm),
             perimetro_cefalico: control.perimetro_cefalico ? parseFloat(control.perimetro_cefalico) : null,
-            imc: parseFloat(control.imc),
+            imc: aplicaImc ? parseFloat(control.imc) : null,
             presion_arterial: control.presion_arterial || null,
             diagnostico_nutricional: control.diagnostico_nutricional || null,
             tipo_lactancia: control.tipo_lactancia || null,
@@ -143,7 +155,7 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         if (datos.peso_kg !== undefined) datosLimpios.peso_kg = parseFloat(datos.peso_kg);
         if (datos.talla_cm !== undefined) datosLimpios.talla_cm = parseFloat(datos.talla_cm);
         if (datos.perimetro_cefalico !== undefined) datosLimpios.perimetro_cefalico = datos.perimetro_cefalico ? parseFloat(datos.perimetro_cefalico) : null;
-        if (datos.imc !== undefined) datosLimpios.imc = parseFloat(datos.imc);
+        if (datos.imc !== undefined) datosLimpios.imc = datos.imc ? parseFloat(datos.imc) : null;
         if (datos.presion_arterial !== undefined) datosLimpios.presion_arterial = datos.presion_arterial;
         if (datos.diagnostico_nutricional !== undefined) datosLimpios.diagnostico_nutricional = datos.diagnostico_nutricional;
         if (datos.tipo_lactancia !== undefined) datosLimpios.tipo_lactancia = datos.tipo_lactancia;
