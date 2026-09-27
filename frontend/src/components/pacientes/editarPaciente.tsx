@@ -54,11 +54,11 @@ const OPCIONES_COMUNA = ["Concepción"];
 const OPCIONES_PARENTESCO = ["Madre", "Padre", "Abuela/o", "Tutor legal", "Otro familiar"];
 
 const DIAGNOSTICOS_CONOCIDOS = [
-    { campo: "dx_tea" as const, nombre: "TEA" },
-    { campo: "dx_epilepsia" as const, nombre: "Epilepsia" },
-    { campo: "dx_tgd" as const, nombre: "Trastornos Generalizados del Desarrollo" },
-    { campo: "dx_sindrome_down" as const, nombre: "Síndrome de Down" },
-    { campo: "dx_paralisis_cerebral" as const, nombre: "Parálisis Cerebral" },
+    { campo: "dx_tea" as const, nombre: "TEA", valor: "TEA" },
+    { campo: "dx_epilepsia" as const, nombre: "Epilepsia", valor: "Epilepsia" },
+    { campo: "dx_tgd" as const, nombre: "Trastornos Generalizados del Desarrollo", valor: "TRASTORNOS GENERALIZADOS DEL DESARROLLO" },
+    { campo: "dx_sindrome_down" as const, nombre: "Síndrome de Down", valor: "Síndrome de Down" },
+    { campo: "dx_paralisis_cerebral" as const, nombre: "Parálisis Cerebral", valor: "PARALISIS CEREBRAL" },
 ];
 
 const initialState: FormState = {
@@ -144,7 +144,7 @@ export default function EditarPaciente() {
                 const p = await response.json();
 
                 const diagnosticosExistentes: string[] = Array.isArray(p.diagnosticos) ? p.diagnosticos : [];
-                const nombresConocidos = DIAGNOSTICOS_CONOCIDOS.map((d) => d.nombre);
+                const nombresConocidos = DIAGNOSTICOS_CONOCIDOS.map((d) => d.valor);
                 const desconocidos = diagnosticosExistentes.filter((d) => !nombresConocidos.includes(d));
 
                 setForm({
@@ -167,9 +167,9 @@ export default function EditarPaciente() {
                     identidad_genero: p.identidad_genero ?? "",
                     dx_tea: diagnosticosExistentes.includes("TEA"),
                     dx_epilepsia: diagnosticosExistentes.includes("Epilepsia"),
-                    dx_tgd: diagnosticosExistentes.includes("Trastornos Generalizados del Desarrollo"),
+                    dx_tgd: diagnosticosExistentes.includes("TRASTORNOS GENERALIZADOS DEL DESARROLLO"),
                     dx_sindrome_down: diagnosticosExistentes.includes("Síndrome de Down"),
-                    dx_paralisis_cerebral: diagnosticosExistentes.includes("Parálisis Cerebral"),
+                    dx_paralisis_cerebral: diagnosticosExistentes.includes("PARALISIS CEREBRAL"),
                     dx_otro: desconocidos.length > 0,
                     dx_otro_texto: desconocidos.join(", "),
                     es_salud_mental: Boolean(p.es_salud_mental),
@@ -272,9 +272,9 @@ export default function EditarPaciente() {
         diagnosticos: [
             ...(form.dx_tea ? ["TEA"] : []),
             ...(form.dx_epilepsia ? ["Epilepsia"] : []),
-            ...(form.dx_tgd ? ["Trastornos Generalizados del Desarrollo"] : []),
+            ...(form.dx_tgd ? ["TRASTORNOS GENERALIZADOS DEL DESARROLLO"] : []),
             ...(form.dx_sindrome_down ? ["Síndrome de Down"] : []),
-            ...(form.dx_paralisis_cerebral ? ["Parálisis Cerebral"] : []),
+            ...(form.dx_paralisis_cerebral ? ["PARALISIS CEREBRAL"] : []),
             ...(form.dx_otro && form.dx_otro_texto.trim() ? [form.dx_otro_texto.trim()] : []),
         ],
         es_salud_mental: form.es_salud_mental,
