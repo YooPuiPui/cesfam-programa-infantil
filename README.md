@@ -18,7 +18,7 @@ Sistema de gestión clínica para el **Programa Infantil** del CESFAM Santa Sabi
   * [Docker](#docker)
   * [Otros Recursos y Librerías](#otros-recursos-y-librerías)
 
-## Descripción General
+## Descripción General 
 
 `cesfam-programa-infantil` es el sistema de gestión clínica desarrollado como proyecto de título para el Programa Infantil del CESFAM Santa Sabina. Digitaliza el seguimiento de los niños y niñas inscritos en el programa, reemplazando registros manuales por una plataforma centralizada para el equipo de salud.
 
