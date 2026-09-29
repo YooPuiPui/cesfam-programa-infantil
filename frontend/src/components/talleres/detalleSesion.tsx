@@ -48,6 +48,14 @@ const iniciales = (nombre: string, apellido: string): string => {
     return `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
 };
 
+// Compara por dia calendario en America/Santiago, igual que el backend
+// (utils/fechaChile.ts), para no marcar asistencia en sesiones que aun no ocurren.
+const esSesionFutura = (fechaSesion: string): boolean => {
+    const hoyChile = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date());
+    const fechaSesionSoloDia = fechaSesion.slice(0, 10);
+    return fechaSesionSoloDia > hoyChile;
+};
+
 const opcionesAsistencia: { valor: EstadoAsistencia; etiqueta: string; bg: string; fg: string }[] = [
     { valor: "pendiente", etiqueta: "Pendiente", bg: "bg-amber-100", fg: "text-amber-800" },
     { valor: "asiste", etiqueta: "Asistió", bg: "bg-green-100", fg: "text-green-800" },
@@ -367,19 +375,25 @@ export default function DetalleSesion() {
                                         </div>
 
                                         <div className="flex shrink-0 gap-1 rounded-full bg-slate-100 p-1">
-                                            {opcionesAsistencia.map((opcion) => (
-                                                <button
-                                                    key={opcion.valor}
-                                                    type="button"
-                                                    onClick={() => cambiarAsistencia(i.id_inscripcion, opcion.valor)}
-                                                    className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${i.estado_asistencia === opcion.valor
-                                                        ? `${opcion.bg} ${opcion.fg}`
-                                                        : "text-slate-400 hover:text-slate-600"
-                                                        }`}
-                                                >
-                                                    {opcion.etiqueta}
-                                                </button>
-                                            ))}
+                                            {opcionesAsistencia.map((opcion) => {
+                                                const deshabilitado = opcion.valor !== "pendiente" && esSesionFutura(sesion.fecha);
+
+                                                return (
+                                                    <button
+                                                        key={opcion.valor}
+                                                        type="button"
+                                                        disabled={deshabilitado}
+                                                        title={deshabilitado ? "No se puede marcar asistencia antes de la fecha de la sesión" : undefined}
+                                                        onClick={() => cambiarAsistencia(i.id_inscripcion, opcion.valor)}
+                                                        className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${i.estado_asistencia === opcion.valor
+                                                            ? `${opcion.bg} ${opcion.fg}`
+                                                            : "text-slate-400 hover:text-slate-600"
+                                                            } ${deshabilitado ? "cursor-not-allowed opacity-40 hover:text-slate-400" : ""}`}
+                                                    >
+                                                        {opcion.etiqueta}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
 
                                         <button

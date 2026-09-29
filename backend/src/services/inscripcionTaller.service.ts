@@ -39,7 +39,16 @@ export const buscarInscripcionesPorPaciente = async (rutPaciente: string) => {
 }
 
 
-//* actualizar inscripcion 
+//* trae una inscripcion puntual junto con su sesion, para validar reglas de fecha antes de editar
+export const buscarInscripcionPorId = async (idInscripcion: number) => {
+    return await prisma.inscripcionTaller.findUnique({
+        where: { id_inscripcion: idInscripcion },
+        include: { sesion: true }
+    });
+}
+
+
+//* actualizar inscripcion
 export const editarInscripcion = async (idInscripcion: number, datosInscripcion: Prisma.InscripcionTallerUncheckedUpdateInput) => {
     return await prisma.inscripcionTaller.update({
         where: { id_inscripcion: idInscripcion },
