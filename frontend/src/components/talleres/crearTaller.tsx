@@ -15,7 +15,7 @@ const initialState: FormState = {
     nombre: "",
     descripcion: "",
     edad_min: "0",
-    edad_max: "17",
+    edad_max: "18",
 };
 
 const fieldClass = (hasError: boolean) =>
@@ -60,9 +60,17 @@ export default function CrearTaller() {
             nextErrors.edad_max = "La edad máxima debe ser un número entero mayor o igual a cero.";
         }
 
-        // mismos defaults del schema (0 y 17) cuando falta uno de los dos
+        if (!nextErrors.edad_min && form.edad_min.trim() !== "" && edadMin > 18) {
+            nextErrors.edad_min = "La edad mínima no puede ser mayor a 18 años.";
+        }
+
+        if (!nextErrors.edad_max && form.edad_max.trim() !== "" && edadMax > 18) {
+            nextErrors.edad_max = "La edad máxima no puede ser mayor a 18 años.";
+        }
+
+        // mismos defaults del schema (0 y 18) cuando falta uno de los dos
         const minEfectiva = form.edad_min.trim() !== "" && !isNaN(edadMin) ? edadMin : 0;
-        const maxEfectiva = form.edad_max.trim() !== "" && !isNaN(edadMax) ? edadMax : 17;
+        const maxEfectiva = form.edad_max.trim() !== "" && !isNaN(edadMax) ? edadMax : 18;
 
         if (!nextErrors.edad_min && !nextErrors.edad_max && minEfectiva > maxEfectiva) {
             nextErrors.edad_max = "La edad máxima no puede ser menor que la edad mínima.";
