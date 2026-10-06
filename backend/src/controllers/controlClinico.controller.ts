@@ -67,12 +67,6 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             talla_cm: parseFloat(control.talla_cm),
             perimetro_cefalico: control.perimetro_cefalico ? parseFloat(control.perimetro_cefalico) : null,
             imc: aplicaImc ? parseFloat(control.imc) : null,
-            presion_arterial: control.presion_arterial || null,
-            diagnostico_nutricional: control.diagnostico_nutricional || null,
-            tipo_lactancia: control.tipo_lactancia || null,
-            resultado_dpm: control.resultado_dpm || null,
-            meses_dpm_aplicado: control.meses_dpm_aplicado ? parseInt(control.meses_dpm_aplicado) : null,
-            score_ira: control.score_ira || null,
             problemas_diagnosticados: control.problemas_diagnosticados || null,
             indicaciones_acuerdos: control.indicaciones_acuerdos || null,
             fecha_proximoControl: new Date(control.fecha_proximoControl),
@@ -156,12 +150,6 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         if (datos.talla_cm !== undefined) datosLimpios.talla_cm = parseFloat(datos.talla_cm);
         if (datos.perimetro_cefalico !== undefined) datosLimpios.perimetro_cefalico = datos.perimetro_cefalico ? parseFloat(datos.perimetro_cefalico) : null;
         if (datos.imc !== undefined) datosLimpios.imc = datos.imc ? parseFloat(datos.imc) : null;
-        if (datos.presion_arterial !== undefined) datosLimpios.presion_arterial = datos.presion_arterial;
-        if (datos.diagnostico_nutricional !== undefined) datosLimpios.diagnostico_nutricional = datos.diagnostico_nutricional;
-        if (datos.tipo_lactancia !== undefined) datosLimpios.tipo_lactancia = datos.tipo_lactancia;
-        if (datos.resultado_dpm !== undefined) datosLimpios.resultado_dpm = datos.resultado_dpm;
-        if (datos.meses_dpm_aplicado !== undefined) datosLimpios.meses_dpm_aplicado = datos.meses_dpm_aplicado ? parseInt(datos.meses_dpm_aplicado) : null;
-        if (datos.score_ira !== undefined) datosLimpios.score_ira = datos.score_ira;
         if (datos.problemas_diagnosticados !== undefined) datosLimpios.problemas_diagnosticados = datos.problemas_diagnosticados;
         if (datos.indicaciones_acuerdos !== undefined) datosLimpios.indicaciones_acuerdos = datos.indicaciones_acuerdos;
         if (datos.fecha_proximoControl !== undefined) datosLimpios.fecha_proximoControl = new Date(datos.fecha_proximoControl);

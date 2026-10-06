@@ -129,16 +129,6 @@ model ControlClinico {
   talla_cm           Float
   perimetro_cefalico Float?
   imc                Float?
-  presion_arterial   String? @db.VarChar(30)
-
-  // nutricion
-  diagnostico_nutricional String? @db.VarChar(500)
-  tipo_lactancia          String? @db.VarChar(100)
-
-  // desarrollo y evaluacion
-  resultado_dpm      String? @db.VarChar(100)
-  meses_dpm_aplicado Int?
-  score_ira          String? @db.VarChar(100)
 
   // notas clinicas
   problemas_diagnosticados String? @db.Text
