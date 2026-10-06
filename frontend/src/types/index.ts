@@ -84,12 +84,6 @@ export interface Control {
     talla_cm: number;
     perimetro_cefalico?: number | null;
     imc: number;
-    presion_arterial?: string | null;
-    diagnostico_nutricional?: string | null;
-    tipo_lactancia?: string | null;
-    resultado_dpm?: string | null;
-    meses_dpm_aplicado?: number | null;
-    score_ira?: string | null;
     problemas_diagnosticados?: string | null;
     indicaciones_acuerdos?: string | null;
     fecha_proximoControl: string;

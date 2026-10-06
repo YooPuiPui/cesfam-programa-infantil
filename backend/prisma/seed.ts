@@ -152,17 +152,6 @@ const pesoEsperado = (m: number) => interpolar(m, PUNTOS_EDAD, PUNTOS_PESO);
 const tallaEsperada = (m: number) => interpolar(m, PUNTOS_EDAD, PUNTOS_TALLA);
 const perimetroEsperado = (m: number) => interpolar(m, PUNTOS_EDAD, PUNTOS_PERIMETRO);
  
-function diagnosticoNutricional(edadMeses: number, peso: number, talla: number): string {
-    const ref = edadMeses < EDAD_MESES_IMC
-        ? peso / pesoEsperado(edadMeses) // peso/edad en menores de 2
-        : (peso / Math.pow(talla / 100, 2)) / (pesoEsperado(edadMeses) / Math.pow(tallaEsperada(edadMeses) / 100, 2)); // IMC relativo
-    if (ref < 0.85) return 'Desnutrición';
-    if (ref < 0.92) return 'Riesgo de desnutrir';
-    if (ref <= 1.1) return 'Eutrófico';
-    if (ref <= 1.2) return 'Sobrepeso';
-    return 'Obesidad';
-}
- 
 // ---------------------------------------------------------------------------
 // Escenarios clínicos (texto de controles)
 // ---------------------------------------------------------------------------
@@ -178,20 +167,6 @@ const ESCENARIOS: Escenario[] = [
     { motivo: 'Consulta salud mental', anamnesis: 'Tutor consulta por cambios conductuales en el último mes, en contexto escolar.', exploracion: 'Colaborador, sin signos de alarma en examen mental breve.', diagnostico: 'En observación, sin diagnóstico definido', indicaciones: 'Reforzar rutinas y contención familiar. Control para reevaluar.' },
     { motivo: 'Control adolescente', anamnesis: 'Control de salud integral adolescente. Refiere buen rendimiento escolar, actividad física 2 veces por semana.', exploracion: 'Buen estado general. Desarrollo puberal acorde a la edad.', diagnostico: 'Adolescente sano', indicaciones: 'Reforzar hábitos saludables, uso de pantallas y horas de sueño.' },
     { motivo: 'Sobrepeso en seguimiento', anamnesis: 'Control por sobrepeso detectado previamente. Cambios parciales en hábitos.', exploracion: 'Evolución antropométrica en contexto de seguimiento.', diagnostico: 'Sobrepeso leve', indicaciones: 'Alimentación saludable y actividad física diaria. Control de seguimiento.' },
-];
- 
-const TIPOS_LACTANCIA = [
-    { value: 'Lactancia materna exclusiva', weight: 45 },
-    { value: 'Lactancia materna predominante', weight: 15 },
-    { value: 'Lactancia mixta', weight: 25 },
-    { value: 'Fórmula láctea', weight: 15 },
-];
-const EDADES_DPM = [4, 8, 12, 18, 24, 36, 48, 60]; // meses en que se aplica EEDP/TEPSI
-const RESULTADOS_DPM = [
-    { value: 'Normal', weight: 75 },
-    { value: 'Normal con rezago', weight: 12 },
-    { value: 'Riesgo', weight: 9 },
-    { value: 'Retraso', weight: 4 },
 ];
  
 // ---------------------------------------------------------------------------
@@ -453,7 +428,6 @@ async function main() {
             const esc = edadMeses >= 120 && faker.datatype.boolean({ probability: 0.4 })
                 ? ESCENARIOS[8]
                 : faker.helpers.arrayElement(ESCENARIOS.filter((_, j) => j !== 8));
-            const aplicaDpm = EDADES_DPM.includes(c.edadMeses) || (esc.motivo.includes('psicomotor') && c.edadMeses <= 60);
             await prisma.controlClinico.create({
                 data: {
                     fecha_control: c.fecha,
@@ -465,16 +439,6 @@ async function main() {
                     talla_cm: c.talla,
                     perimetro_cefalico: c.edadMeses <= 36 ? +perimetroEsperado(c.edadMeses).toFixed(1) : null,
                     imc: c.edadMeses >= EDAD_MESES_IMC ? +(c.peso / Math.pow(c.talla / 100, 2)).toFixed(2) : null,
-                    presion_arterial: c.edadMeses >= 36 && faker.datatype.boolean({ probability: 0.6 })
-                        ? `${faker.number.int({ min: 90, max: 118 })}/${faker.number.int({ min: 55, max: 76 })}`
-                        : null,
-                    diagnostico_nutricional: diagnosticoNutricional(c.edadMeses, c.peso, c.talla),
-                    tipo_lactancia: c.edadMeses < 24 ? faker.helpers.weightedArrayElement(TIPOS_LACTANCIA) : null,
-                    resultado_dpm: aplicaDpm ? faker.helpers.weightedArrayElement(RESULTADOS_DPM) : null,
-                    meses_dpm_aplicado: aplicaDpm ? c.edadMeses : null,
-                    score_ira: c.edadMeses < 7 ? faker.helpers.weightedArrayElement([
-                        { weight: 80, value: 'Leve' }, { weight: 15, value: 'Moderado' }, { weight: 5, value: 'Grave' },
-                    ]) : null,
                     problemas_diagnosticados: esc.diagnostico,
                     indicaciones_acuerdos: esc.indicaciones,
                     fecha_proximoControl: c.esUltimo ? proximoControlDistribuido() : sumarDias(c.fecha, faker.number.int({ min: 45, max: 150 })),
