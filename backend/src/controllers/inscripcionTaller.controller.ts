@@ -2,6 +2,7 @@ import { Request, Response, RequestHandler } from "express";
 import * as pacienteService from '../services/paciente.service';
 import * as inscripcionService from '../services/inscripcionTaller.service';
 import * as sesionService from '../services/sesionTaller.service';
+import { hoyChileMediodiaUTC, fechaCalendarioAMediodiaUTC } from '../utils/fechaChile';
 
 
 
@@ -133,7 +134,27 @@ export const editarInscripcion: RequestHandler = async (req, res): Promise<void>
 
 
         if (datos.estado_convocatoria !== undefined) datosLimpios.estado_convocatoria = datos.estado_convocatoria;
-        if (datos.estado_asistencia !== undefined) datosLimpios.estado_asistencia = datos.estado_asistencia;
+
+        if (datos.estado_asistencia !== undefined) {
+            if (datos.estado_asistencia === 'asiste' || datos.estado_asistencia === 'no_asiste') {
+                const inscripcion = await inscripcionService.buscarInscripcionPorId(id);
+
+                if (!inscripcion) {
+                    res.status(404).json({ error: 'La inscripción que intentas editar no existe' });
+                    return;
+                }
+
+                const hoy = hoyChileMediodiaUTC();
+                const fechaSesion = fechaCalendarioAMediodiaUTC(inscripcion.sesion.fecha.toISOString());
+
+                if (fechaSesion && fechaSesion.getTime() > hoy.getTime()) {
+                    res.status(400).json({ error: 'No se puede marcar asistencia antes de la fecha de la sesión' });
+                    return;
+                }
+            }
+
+            datosLimpios.estado_asistencia = datos.estado_asistencia;
+        }
         if (datos.telefono_contacto !== undefined) datosLimpios.telefono_contacto = datos.telefono_contacto;
         if (datos.observaciones !== undefined) datosLimpios.observaciones = datos.observaciones;
         if (datos.fecha_contacto !== undefined) datosLimpios.fecha_contacto = datos.fecha_contacto ? new Date(datos.fecha_contacto) : null;

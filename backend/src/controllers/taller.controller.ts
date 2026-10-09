@@ -1,6 +1,9 @@
 import { Request, Response, RequestHandler } from "express";
 import * as tallerService from '../services/taller.service';
 
+//? Tope del rango etario de los talleres; tambien es el default de edad_max en el schema
+const EDAD_TOPE_TALLER = 18;
+
 
 
 
@@ -28,6 +31,11 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
                 res.status(400).json({error: 'La edad minima debe ser un numero entero mayor o igual a cero'});
                 return;
             }
+
+            if (edadMinLimpia > EDAD_TOPE_TALLER) {
+                res.status(400).json({error: `La edad minima no puede ser mayor a ${EDAD_TOPE_TALLER} años`});
+                return;
+            }
         }
 
         if (edad_max !== undefined && edad_max !== null && edad_max !== '') {
@@ -37,12 +45,17 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
                 res.status(400).json({error: 'La edad maxima debe ser un numero entero mayor o igual a cero'});
                 return;
             }
+
+            if (edadMaxLimpia > EDAD_TOPE_TALLER) {
+                res.status(400).json({error: `La edad maxima no puede ser mayor a ${EDAD_TOPE_TALLER} años`});
+                return;
+            }
         }
 
-        //? Comparamos contra los valores por defecto del schema (0 y 17) para
+        //? Comparamos contra los valores por defecto del schema (0 y 18) para
         //? cubrir el caso de que venga solo una de las dos edades.
         const minEfectiva = edadMinLimpia !== undefined ? edadMinLimpia : 0;
-        const maxEfectiva = edadMaxLimpia !== undefined ? edadMaxLimpia : 17;
+        const maxEfectiva = edadMaxLimpia !== undefined ? edadMaxLimpia : EDAD_TOPE_TALLER;
 
         if (minEfectiva > maxEfectiva) {
             res.status(400).json({error: 'La edad minima no puede ser mayor que la edad maxima'});
@@ -53,7 +66,7 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
             nombre: nombre.trim(),
             descripcion: descripcion || null,
             edad_min: edadMinLimpia,
-            edad_max: edadMaxLimpia,
+            edad_max: edadMaxLimpia !== undefined ? edadMaxLimpia : EDAD_TOPE_TALLER,
         };
 
         const resultado = await tallerService.crearTaller(tallerLimpio);
@@ -168,6 +181,11 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
                 return;
             }
 
+            if (edadMin > EDAD_TOPE_TALLER) {
+                res.status(400).json({error: `La edad minima no puede ser mayor a ${EDAD_TOPE_TALLER} años`});
+                return;
+            }
+
             datosLimpios.edad_min = edadMin;
         }
 
@@ -176,6 +194,11 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
 
             if (isNaN(edadMax) || edadMax < 0) {
                 res.status(400).json({error: 'La edad maxima debe ser un numero entero mayor o igual a cero'});
+                return;
+            }
+
+            if (edadMax > EDAD_TOPE_TALLER) {
+                res.status(400).json({error: `La edad maxima no puede ser mayor a ${EDAD_TOPE_TALLER} años`});
                 return;
             }
 

@@ -7,17 +7,31 @@ export const crearProfesional: RequestHandler = async (req, res): Promise<void> 
         const datos = req.body;
 
 
-        if (!datos.rut || !datos.nombre || !datos.apellido || !datos.estamento) {
+        const textoLimpio = (valor: unknown): string =>
+            typeof valor === 'string' ? valor.trim() : '';
+
+        const rut = textoLimpio(datos.rut);
+        const nombre = textoLimpio(datos.nombre);
+        const apellido = textoLimpio(datos.apellido);
+        const estamento = textoLimpio(datos.estamento);
+
+        if (!rut || !nombre || !apellido || !estamento) {
             res.status(400).json({ error: 'Faltan datos obligatorios (RUT, nombre, apellido o estamento)' });
+            return;
+        }
+
+        //! La columna rut es VarChar(12): si se pasa, Prisma revienta con un 500.
+        if (rut.length > 12) {
+            res.status(400).json({ error: 'El RUT no puede superar los 12 caracteres' });
             return;
         }
 
 
         const profesionalLimpio = {
-            rut: datos.rut,
-            nombre: datos.nombre,
-            apellido: datos.apellido,
-            estamento: datos.estamento,
+            rut,
+            nombre,
+            apellido,
+            estamento,
             activo: datos.activo !== undefined ? datos.activo : true,
         };
 
@@ -31,6 +45,12 @@ export const crearProfesional: RequestHandler = async (req, res): Promise<void> 
     } catch (error: any) {
         console.error(' ERROR ATRAPADO EN EL CONTROLADOR ');
         console.error('Motivo del fallo:', error.message);
+
+        if (error.code === 'P2002') {
+            res.status(409).json({ error: 'Ya existe un profesional con ese RUT' });
+            return;
+        }
+
         res.status(500).json({ error: 'Error interno en la Base de Datos', detalle: error.message });
     }
 };
