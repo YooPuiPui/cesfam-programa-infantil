@@ -1,23 +1,31 @@
 // =============================================================================
 // SEED DE DATOS DE PRUEBA — SGPI (CESFAM Programa Infantil)
 // =============================================================================
-// Genera datos FALSOS (faker) coherentes con el schema y las reglas actuales,
-// pensados para que todos los módulos tengan algo que mostrar:
+// Genera una población FICTICIA de 320 niños, niñas y adolescentes para probar
+// todos los módulos del sistema. Ningún nombre, RUT, dirección ni teléfono es
+// real: se generan con faker.
 //
-//   Dashboard ....... flags de riesgo (SENAME, NANEAS, trans, migrante) y
-//                     caracterización (0-9 / 10-18 años, activos, diagnósticos,
-//                     credencial de discapacidad, cuidador)
-//   Pacientes ....... activos/inactivos, tutores verificados y "Por confirmar"
-//                     (como los que crea la importación Excel), hermanos con el
-//                     mismo tutor, pacientes recién inscritos sin controles
+// Lo único tomado del CATASTRO NANEAS (hojas NANEAS y TEA) son los VALORES de
+// diagnóstico y su frecuencia relativa, ya normalizados igual que lo hace la
+// importación Excel (importacion.service.ts), además de la distribución por
+// edad y sexo de esa población. Los controles clínicos son inventados.
+//
+// Población:
+//   - 200 Programa Infantil, 0 a 9 años, sin diagnóstico NANEAS
+//   - 120 NANEAS (TEA y otros diagnósticos), 6 meses a 17 años
+//   Todos los pacientes tienen al menos un control clínico.
+//
+// Qué muestra cada módulo:
+//   Dashboard ....... flags de riesgo y caracterización (edad, activos,
+//                     diagnósticos, credencial de discapacidad, cuidador)
+//   Pacientes ....... activos/inactivos, hermanos con el mismo tutor, tutores
+//                     "Por confirmar" (como los que deja la importación Excel)
 //   Agenda .......... próximos controles atrasados / hoy / esta semana / mes
-//   Controles ....... IMC solo desde los 2 años, perímetro cefálico hasta los 3
-//   Reportes ........ alertas de aumento y pérdida de peso que SÍ superan los
-//                     umbrales de reportes.service.ts
-//   Talleres ........ talleres activos e inactivo, sesiones pasadas (asistencia
-//                     marcada), una sesión HOY y sesiones futuras (pendientes)
-//
-// Alcance: Programa Infantil 0-9 años; solo pacientes NANEAS llegan hasta 18.
+//   Controles ....... historial por paciente; IMC solo desde los 2 años y
+//                     perímetro cefálico hasta los 3
+//   Reportes ........ 6 alertas de aumento y 6 de pérdida de peso
+//   Talleres ........ los 4 talleres del CESFAM con sesiones pasadas
+//                     (asistencia marcada), una sesión HOY y sesiones futuras
 //
 // USO (desde /backend):
 //   npx prisma db seed                    -> solo si la base NO tiene pacientes
@@ -34,7 +42,7 @@
 // importar el Excel del CESFAM): se pierden.
 // =============================================================================
 
-import { PrismaClient, EstadoAsistencia, EstadoConvocatoria, EstadoCredencialDiscapacidad } from '@prisma/client';
+import { PrismaClient, EstadoAsistencia, EstadoConvocatoria, EstadoCredencialDiscapacidad, Prisma } from '@prisma/client';
 import { faker } from '@faker-js/faker/locale/es';
 import bcrypt from 'bcrypt';
 import { obtenerHoyChile } from '../src/utils/fechaChile';
@@ -45,65 +53,156 @@ const RESET = process.argv.includes('--reset');
 // ---------------------------------------------------------------------------
 // Configuración
 // ---------------------------------------------------------------------------
-const TOTAL_TUTORES = 70;
-const TOTAL_PACIENTES_INFANTIL = 100; // 0-9 años sin diagnóstico NANEAS
-const TOTAL_PACIENTES_NANEAS = 50; // 1.5-17 años con diagnóstico
-const PACIENTES_SIN_CONTROL = 8; // recién inscritos, aún sin control
+const TOTAL_PACIENTES_INFANTIL = 200; // 0-9 años sin diagnóstico NANEAS
+const TOTAL_PACIENTES_NANEAS = 120; // con diagnóstico, hasta 17 años
+const TOTAL_TUTORES = 210; // menos tutores que pacientes -> hermanos
+const TUTORES_POR_CONFIRMAR = 8; // pacientes NANEAS "importados" sin apoderado
 const CANTIDAD_ALERTA_GANANCIA = 6;
 const CANTIDAD_ALERTA_PERDIDA = 6;
-const CANTIDAD_SENAME = 10;
-const CANTIDAD_TRANS = 8;
+const CANTIDAD_SENAME = 15;
+const CANTIDAD_TRANS = 10;
 const EDAD_MINIMA_MESES_TRANS = 48;
-const EDAD_MAXIMA_MESES_PREMATURO = 60;
 const EDAD_MESES_IMC = 24; // IMC solo desde los 2 años (validación clínica)
 
 // Profesional principal (login). Mismo RUT que los seeds anteriores.
 const PROFESIONAL_PRINCIPAL = { rut: '21118397-7', nombre: 'Francisca', apellido: 'Huaique', estamento: 'Médico' };
 
+// Distribución de sectores del catastro (normalizados como en la importación)
 const SECTORES = [
-    { value: 'Sector 1 - Azul', weight: 45 },
-    { value: 'Sector 2 - Rojo', weight: 45 },
-    { value: 'Fuera de Sector', weight: 10 },
+    { value: 'Sector 2 - Rojo', weight: 55 },
+    { value: 'Sector 1 - Azul', weight: 37 },
+    { value: 'Fuera de Sector', weight: 3 },
+    { value: null, weight: 5 },
 ];
 const COMUNA_UNICA = 'Concepción';
 
-// Diagnósticos con los mismos valores que guardan la importación Excel
-// (MAPA_DIAGNOSTICOS_CANONICOS) y los checkboxes de editarPaciente.tsx.
-const DIAGNOSTICOS = [
-    { value: 'TEA', weight: 30 },
-    { value: 'TEA Grado 1', weight: 14 },
-    { value: 'TEA Grado 2', weight: 6 },
-    { value: 'Obs TEA', weight: 10 },
-    { value: 'TDAH', weight: 16 },
-    { value: 'TEL Expresivo', weight: 10 },
-    { value: 'Epilepsia', weight: 6 },
-    { value: 'Síndrome de Down', weight: 4 },
-    { value: 'Trastorno Ansioso', weight: 6 },
-    { value: 'Trastorno Conductual', weight: 6 },
-    { value: 'TOD', weight: 5 },
-    { value: 'Hipotiroidismo', weight: 4 },
-    { value: 'En Estudio de Genética', weight: 3 },
-    { value: 'TRASTORNOS GENERALIZADOS DEL DESARROLLO', weight: 3 },
-    { value: 'PARALISIS CEREBRAL', weight: 2 },
-    { value: 'ASMA', weight: 5 },
+// ---------------------------------------------------------------------------
+// Diagnósticos del CATASTRO NANEAS (hojas NANEAS + TEA)
+// ---------------------------------------------------------------------------
+// value  = texto tal como queda después de la normalización de la importación
+// weight = cantidad de pacientes con ese diagnóstico en el catastro
+// min/max = rango de edad en meses en que tiene sentido asignarlo
+// sexo   = solo para los registros de prematurez, que vienen con género
+// tea    = cuenta como diagnóstico del espectro autista (uno por paciente)
+// Se omitieron solo las variantes con errores de tipeo del Excel (ej. "TDHA",
+// "g2", "Deaprendizaje") para que los datos de prueba se vean limpios.
+interface Diagnostico { value: string; weight: number; min?: number; max?: number; sexo?: 'Masculino' | 'Femenino'; tea?: boolean }
+const DIAGNOSTICOS: Diagnostico[] = [
+    { value: 'TEA', weight: 116, min: 18, tea: true },
+    { value: 'TDAH', weight: 27, min: 48 },
+    { value: 'TEA Grado 1', weight: 19, min: 18, tea: true },
+    { value: 'Epilepsia', weight: 16 },
+    { value: 'ASMA', weight: 9, min: 12 },
+    { value: 'Obs TEA', weight: 7, min: 18, max: 84, tea: true },
+    { value: 'Síndrome de Down', weight: 6 },
+    { value: 'En Estudio de Genética', weight: 5 },
+    { value: 'TIS', weight: 5, min: 24 },
+    { value: 'Trastorno Ansioso', weight: 5, min: 60 },
+    { value: 'TEA Grado 2', weight: 4, min: 18, tea: true },
+    { value: 'TRASTORNOS GENERALIZADOS DEL DESARROLLO', weight: 4, min: 18, tea: true },
+    { value: 'TEA (SD DE ASPERGER)', weight: 4, min: 48, tea: true },
+    { value: 'TEL Expresivo', weight: 4, min: 36, max: 144 },
+    { value: 'Hipotiroidismo', weight: 3 },
+    { value: 'TOD', weight: 3, min: 48 },
+    { value: 'PARALISIS CEREBRAL', weight: 3 },
+    { value: 'Trastorno Conductual', weight: 2, min: 48 },
+    { value: 'TEL', weight: 2, min: 36, max: 144 },
+    { value: 'TEA GRADO 3', weight: 2, min: 18, tea: true },
+    { value: 'DEPENDIENTE SEVERO', weight: 2 },
+    { value: 'FIL', weight: 2, min: 60 },
+    { value: 'PREMATURO 30 SEMANAS', weight: 2, max: 60, sexo: 'Masculino' },
+    { value: 'PREMATURA', weight: 2, max: 60, sexo: 'Femenino' },
+    { value: 'PREMATURO 31 SEMANAS', weight: 1, max: 60, sexo: 'Masculino' },
+    { value: 'PREMATURA 34 SEMANAS', weight: 1, max: 60, sexo: 'Femenino' },
+    { value: 'DIABETES MELLITUS', weight: 1, min: 24 },
+    { value: 'SIFILIS CONGENITA', weight: 1 },
+    { value: 'MALFORMACIÓN ANORRECTAL', weight: 1 },
+    { value: 'HIDROCEFALIA', weight: 1 },
+    { value: 'RINITIS', weight: 1, min: 24 },
+    { value: 'HIPOTONIA CONGENITA', weight: 1 },
+    { value: 'RETRASO DSM', weight: 1, max: 72 },
+    { value: 'HIPERTENSION ARTERIAL', weight: 1, min: 72 },
+    { value: 'TEA NO VERBAL', weight: 1, min: 24, tea: true },
+    { value: 'SINDROME DE ASPERGER', weight: 1, min: 48, tea: true },
+    { value: 'Apraxia del Habla', weight: 1, min: 36 },
+    { value: 'MICROCEFALIA', weight: 1 },
+    { value: 'Dispraxia', weight: 1, min: 48 },
+    { value: 'DI leve', weight: 1, min: 60 },
+    { value: 'DI', weight: 1, min: 60 },
+    { value: 'CHIARI G1', weight: 1 },
+    { value: 'OBS NEUROFIBROMATOSIS', weight: 1 },
+    { value: 'MUTISMO', weight: 1, min: 48 },
 ];
-const DIAGNOSTICOS_SALUD_MENTAL = new Set(['TDAH', 'Trastorno Ansioso', 'Trastorno Conductual', 'TOD']);
-const esTEA = (d: string) => d.includes('TEA');
+const VALORES_TEA = new Set(DIAGNOSTICOS.filter((d) => d.tea).map((d) => d.value));
+const DIAGNOSTICOS_SALUD_MENTAL = new Set(['TDAH', 'Trastorno Ansioso', 'Trastorno Conductual', 'TOD', 'MUTISMO']);
+const DIAGNOSTICOS_DEPENDENCIA = new Set(['Síndrome de Down', 'PARALISIS CEREBRAL', 'DEPENDIENTE SEVERO', 'TEA GRADO 3', 'TEA Grado 2', 'HIDROCEFALIA']);
 
+// Edad de la población NANEAS según el catastro (meses)
+const RANGOS_EDAD_NANEAS = [
+    { weight: 2, value: [6, 23] },
+    { weight: 24, value: [24, 59] },
+    { weight: 66, value: [60, 119] },
+    { weight: 49, value: [120, 167] },
+    { weight: 39, value: [168, 215] },
+];
+const RANGOS_EDAD_INFANTIL = [
+    { weight: 30, value: [0, 23] },
+    { weight: 30, value: [24, 59] },
+    { weight: 40, value: [60, 119] },
+];
+
+// ---------------------------------------------------------------------------
+// Profesionales y talleres
+// ---------------------------------------------------------------------------
 const ESTAMENTOS_EXTRA = [
-    'Enfermera/o', 'Enfermera/o', 'Nutricionista', 'Psicóloga/o', 'Fonoaudióloga/o',
-    'Terapeuta Ocupacional', 'Kinesióloga/o', 'Educadora de Párvulos', 'Médico',
+    'Enfermera/o', 'Enfermera/o', 'Nutricionista', 'Psicóloga/o', 'Psicóloga/o', 'Fonoaudióloga/o',
+    'Terapeuta Ocupacional', 'Kinesióloga/o', 'Matrona', 'Trabajador/a Social', 'Educadora de Párvulos', 'Médico',
 ];
 const ESTAMENTOS_CONTROL = new Set(['Médico', 'Enfermera/o', 'Nutricionista']);
 
-// Los tres primeros son los talleres reales del CESFAM (hojas de asistencia).
-type FiltroTaller = 'naneas' | 'tea' | 'todos';
-const TALLERES: { nombre: string; descripcion: string; edad_min: number; edad_max: number; estamento: string; filtro: FiltroTaller; activo: boolean; sesionHoy: boolean }[] = [
-    { nombre: 'Manejo de Desregulaciones', descripcion: 'Estrategias para prevenir y acompañar episodios de desregulación emocional y conductual, con participación de cuidadores.', edad_min: 3, edad_max: 12, estamento: 'Terapeuta Ocupacional', filtro: 'naneas', activo: true, sesionHoy: true },
-    { nombre: 'Sexualidad en TEA', descripcion: 'Educación en sexualidad, autocuidado y límites corporales adaptada a niños, niñas y adolescentes con TEA.', edad_min: 10, edad_max: 18, estamento: 'Psicóloga/o', filtro: 'tea', activo: true, sesionHoy: false },
-    { nombre: 'Trabajando Mis Habilidades Sociales', descripcion: 'Espacio grupal para trabajar interacción, turnos, juego compartido y resolución de conflictos.', edad_min: 5, edad_max: 14, estamento: 'Psicóloga/o', filtro: 'naneas', activo: true, sesionHoy: false },
-    { nombre: 'Estimulación del Lenguaje', descripcion: 'Actividades lúdicas de estimulación del lenguaje expresivo y comprensivo.', edad_min: 2, edad_max: 6, estamento: 'Fonoaudióloga/o', filtro: 'todos', activo: true, sesionHoy: false },
-    { nombre: 'Alimentación Saludable en Familia', descripcion: 'Taller educativo para niños, niñas y sus familias sobre hábitos alimentarios.', edad_min: 3, edad_max: 9, estamento: 'Nutricionista', filtro: 'todos', activo: false, sesionHoy: false },
+// Los 4 talleres que se trabajan en el CESFAM. Cualquier paciente puede
+// asistir, pero el rango de edad y la afinidad se ajustan a cada uno:
+//   - Manejo de Desregulaciones: apunta a la familia; desde los 2 años, edad
+//     en que aparecen las crisis de desregulación.
+//   - Trabajando Mis Habilidades Sociales: requiere algo de lenguaje e
+//     interacción con pares; de preescolar (4) a adolescencia temprana (14).
+//   - Sexualidad en TEA: desde la prepubertad (9) hasta los 18; nunca un
+//     lactante o preescolar.
+//   - Diagnóstico Participativo TEA: instancia donde las familias levantan
+//     necesidades del programa; participa la familia, por eso no hay edad
+//     mínima del niño. Es esporádico: solo 2 sesiones.
+// "afinidad" es el peso relativo para ser inscrito: TEA > otro NANEAS > resto.
+interface TallerSeed {
+    nombre: string; descripcion: string; edad_min: number; edad_max: number; estamento: string;
+    afinidad: { tea: number; naneas: number; otro: number };
+    grupo: [number, number]; sesiones: number[];
+}
+const quincenal = (conHoy: boolean) => [-56, -42, -28, -14, ...(conHoy ? [0] : []), 14, 28];
+const TALLERES: TallerSeed[] = [
+    {
+        nombre: 'Manejo de Desregulaciones',
+        descripcion: 'Estrategias para prevenir y acompañar episodios de desregulación emocional y conductual, con participación de madres, padres y cuidadores.',
+        edad_min: 2, edad_max: 18, estamento: 'Terapeuta Ocupacional',
+        afinidad: { tea: 6, naneas: 3, otro: 1 }, grupo: [12, 16], sesiones: quincenal(true),
+    },
+    {
+        nombre: 'Trabajando Mis Habilidades Sociales',
+        descripcion: 'Espacio grupal para trabajar interacción con pares, turnos, juego compartido y resolución de conflictos.',
+        edad_min: 4, edad_max: 14, estamento: 'Psicóloga/o',
+        afinidad: { tea: 6, naneas: 3, otro: 1 }, grupo: [10, 14], sesiones: quincenal(false),
+    },
+    {
+        nombre: 'Sexualidad en TEA',
+        descripcion: 'Educación en sexualidad, cambios corporales, autocuidado y límites, adaptada a niños, niñas y adolescentes con TEA.',
+        edad_min: 9, edad_max: 18, estamento: 'Matrona',
+        afinidad: { tea: 10, naneas: 2, otro: 0.3 }, grupo: [8, 12], sesiones: quincenal(false),
+    },
+    {
+        nombre: 'Diagnóstico Participativo TEA',
+        descripcion: 'Encuentro con familias para identificar necesidades, barreras y propuestas para el programa de atención de niños, niñas y adolescentes con TEA.',
+        edad_min: 0, edad_max: 18, estamento: 'Trabajador/a Social',
+        afinidad: { tea: 10, naneas: 3, otro: 0.3 }, grupo: [14, 20], sesiones: [-35, 21],
+    },
 ];
 const PROFESIONALES_EXTERNOS = ['Fundación Amanecer (externo)', 'Equipo CESFAM Tucapel (externo)', 'Voluntariado UBB Psicología (externo)'];
 
@@ -199,7 +298,7 @@ const tallaEsperada = (m: number) => interpolar(m, PUNTOS_EDAD, PUNTOS_TALLA);
 const perimetroEsperado = (m: number) => interpolar(m, PUNTOS_EDAD, PUNTOS_PERIMETRO);
 
 // ---------------------------------------------------------------------------
-// Escenarios clínicos (texto de controles)
+// Escenarios clínicos (texto de controles, inventados)
 // ---------------------------------------------------------------------------
 interface Escenario { motivo: string; anamnesis: string; exploracion: string; diagnostico: string; indicaciones: string }
 const ESCENARIOS: Escenario[] = [
@@ -210,11 +309,15 @@ const ESCENARIOS: Escenario[] = [
     { motivo: 'Consulta por fiebre', anamnesis: 'Alza térmica de 24 horas cuantificada en domicilio, irritabilidad leve.', exploracion: 'Febril, reactivo. Orofaringe levemente eritematosa, sin foco evidente.', diagnostico: 'Síndrome febril sin foco aparente', indicaciones: 'Antipiréticos según indicación. Reconsultar si persiste más de 48 horas.' },
     { motivo: 'Control de vacunas', anamnesis: 'Asiste según calendario PNI. Sin reacciones adversas a dosis previas.', exploracion: 'Buen estado general, afebril, sin contraindicaciones.', diagnostico: 'Apto para inmunización según esquema PNI', indicaciones: 'Se administra dosis correspondiente. Observar sitio de punción 48 horas.' },
     { motivo: 'Evaluación de desarrollo psicomotor', anamnesis: 'Evaluación de hitos del desarrollo. Tutor no refiere preocupaciones.', exploracion: 'Cumple hitos esperados en las áreas evaluadas.', diagnostico: 'Desarrollo psicomotor acorde a la edad', indicaciones: 'Continuar estimulación en el hogar. Próxima evaluación según calendario.' },
-    { motivo: 'Consulta salud mental', anamnesis: 'Tutor consulta por cambios conductuales en el último mes, en contexto escolar.', exploracion: 'Colaborador, sin signos de alarma en examen mental breve.', diagnostico: 'En observación, sin diagnóstico definido', indicaciones: 'Reforzar rutinas y contención familiar. Control para reevaluar.' },
     { motivo: 'Sobrepeso en seguimiento', anamnesis: 'Control por sobrepeso detectado previamente. Cambios parciales en hábitos.', exploracion: 'Evolución antropométrica en contexto de seguimiento.', diagnostico: 'Sobrepeso leve', indicaciones: 'Alimentación saludable y actividad física diaria. Control de seguimiento.' },
 ];
+const ESCENARIOS_NANEAS: Escenario[] = [
+    { motivo: 'Control NANEAS', anamnesis: 'Control de seguimiento en programa NANEAS. Cuidador refiere asistencia a terapias y adherencia a indicaciones.', exploracion: 'Buen estado general. Se revisa evolución según diagnóstico de base.', diagnostico: 'Seguimiento NANEAS sin descompensación', indicaciones: 'Mantener terapias en curso. Coordinar con equipo de talleres NANEAS.' },
+    { motivo: 'Seguimiento TEA', anamnesis: 'Familia refiere episodios de desregulación en contexto escolar y dificultades con cambios de rutina.', exploracion: 'Paciente tranquilo durante la atención con apoyo de cuidador. Sin hallazgos agudos.', diagnostico: 'TEA en seguimiento, episodios de desregulación', indicaciones: 'Se sugiere taller Manejo de Desregulaciones. Mantener anticipación de rutinas.' },
+    { motivo: 'Consulta salud mental', anamnesis: 'Tutor consulta por cambios conductuales en el último mes, en contexto escolar.', exploracion: 'Colaborador, sin signos de alarma en examen mental breve.', diagnostico: 'En observación, sin diagnóstico definido', indicaciones: 'Reforzar rutinas y contención familiar. Control para reevaluar.' },
+    { motivo: 'Revisión de terapias', anamnesis: 'Se revisa continuidad de fonoaudiología y terapia ocupacional. Cuidador refiere avances en comunicación.', exploracion: 'Buen estado general. Interacción acorde a su condición de base.', diagnostico: 'Evolución favorable en terapias', indicaciones: 'Mantener plan terapéutico. Actualizar credencial de discapacidad si corresponde.' },
+];
 const ESCENARIO_ADOLESCENTE: Escenario = { motivo: 'Control adolescente', anamnesis: 'Control de salud adolescente. Refiere asistencia escolar regular y actividad física 2 veces por semana.', exploracion: 'Buen estado general. Desarrollo puberal acorde a la edad.', diagnostico: 'Adolescente sano', indicaciones: 'Reforzar hábitos saludables, uso de pantallas y horas de sueño.' };
-const ESCENARIO_NANEAS: Escenario = { motivo: 'Control NANEAS', anamnesis: 'Control de seguimiento en programa NANEAS. Cuidador refiere asistencia a terapias y adherencia a indicaciones.', exploracion: 'Buen estado general. Se revisa evolución según diagnóstico de base.', diagnostico: 'Seguimiento NANEAS sin descompensación', indicaciones: 'Mantener terapias en curso. Coordinar con equipo de talleres NANEAS.' };
 
 // ---------------------------------------------------------------------------
 // Series de controles
@@ -232,13 +335,14 @@ function generarSerieControles(nacimiento: Date, numControles: number, tipoForza
         : edadHoy < 120 ? faker.number.int({ min: 3, max: 6 })
         : faker.number.int({ min: 6, max: 12 });
 
-    // Último control real: entre hoy y 60 días atrás
-    const ultimaFecha = hoyMasDias(-faker.number.int({ min: 0, max: 60 }));
+    // Último control real: entre hoy y 60 días atrás (nunca antes de los 7 días de vida)
+    let ultimaFecha = hoyMasDias(-faker.number.int({ min: 0, max: 60 }));
+    if (ultimaFecha.getTime() < sumarDias(nacimiento, 7).getTime()) ultimaFecha = HOY;
     const controles: ControlGenerado[] = [];
 
     for (let k = numControles - 1; k >= 0; k--) {
         const fecha = restarMeses(ultimaFecha, k * intervaloMeses);
-        if (fecha.getTime() < sumarDias(nacimiento, 7).getTime()) continue; // nada antes de nacer
+        if (k > 0 && fecha.getTime() < sumarDias(nacimiento, 7).getTime()) continue; // nada antes de nacer
         const edad = mesesCumplidos(nacimiento, fecha);
 
         let peso = pesoEsperado(edad) * factor + faker.number.float({ min: -0.2, max: 0.2, fractionDigits: 2 });
@@ -250,7 +354,7 @@ function generarSerieControles(nacimiento: Date, numControles: number, tipoForza
         }
         controles.push({ fecha, edadMeses: edad, peso: +peso.toFixed(1), talla: +talla.toFixed(1), esUltimo: false });
     }
-    if (controles.length) controles[controles.length - 1].esUltimo = true;
+    controles[controles.length - 1].esUltimo = true;
 
     // Fuerza el último tramo para que supere los umbrales de reportes.service.ts
     // (ganancia >= 3x lo esperado y mínimo 0.4 kg/mes; pérdida <= -0.3 kg/mes)
@@ -268,8 +372,8 @@ function generarSerieControles(nacimiento: Date, numControles: number, tipoForza
 // Próximo control del control vigente: reparte la agenda en todas sus pestañas
 function proximoControlDistribuido(): Date {
     const cat = faker.helpers.weightedArrayElement([
-        { weight: 15, value: 'atrasado' }, { weight: 10, value: 'hoy' }, { weight: 20, value: 'semana' },
-        { weight: 30, value: 'mes' }, { weight: 25, value: 'lejano' },
+        { weight: 15, value: 'atrasado' }, { weight: 8, value: 'hoy' }, { weight: 20, value: 'semana' },
+        { weight: 30, value: 'mes' }, { weight: 27, value: 'lejano' },
     ]);
     const off = cat === 'atrasado' ? -faker.number.int({ min: 1, max: 45 })
         : cat === 'hoy' ? 0
@@ -282,30 +386,53 @@ function proximoControlDistribuido(): Date {
 // ---------------------------------------------------------------------------
 // Datos del paciente
 // ---------------------------------------------------------------------------
-function generarDiagnosticos(edadMeses: number): string[] {
-    const cantidad = faker.helpers.weightedArrayElement([{ weight: 60, value: 1 }, { weight: 30, value: 2 }, { weight: 10, value: 3 }]);
-    const set = new Set<string>();
-    while (set.size < cantidad) set.add(faker.helpers.weightedArrayElement(DIAGNOSTICOS));
-    // Solo una variante de TEA por paciente
-    const teas = [...set].filter(esTEA);
-    teas.slice(1).forEach((d) => set.delete(d));
-    // TDAH no se diagnostica antes de los 4 años
-    if (edadMeses < 48 && set.has('TDAH')) {
-        set.delete('TDAH');
-        if (set.size === 0) set.add('Obs TEA');
-    }
-    return [...set];
+function edadDesdeRangos(rangos: { weight: number; value: number[] }[]): number {
+    const [min, max] = faker.helpers.weightedArrayElement(rangos);
+    return faker.number.int({ min, max });
 }
 
-function generarCredencial(esNaneas: boolean): { estado: EstadoCredencialDiscapacidad; detalle: string | null } {
-    if (!esNaneas) return { estado: 'sin_dato', detalle: null };
-    const estado = faker.helpers.weightedArrayElement<EstadoCredencialDiscapacidad>([
-        { weight: 35, value: 'si' }, { weight: 25, value: 'no' }, { weight: 20, value: 'en_tramite' }, { weight: 20, value: 'sin_dato' },
+function generarDiagnosticos(edadMeses: number, sexo: string): string[] {
+    // Igual que en el catastro: ~8% de NANEAS sin diagnóstico registrado
+    if (faker.datatype.boolean({ probability: 0.08 })) return [];
+    const cantidad = faker.helpers.weightedArrayElement([
+        { weight: 65, value: 1 }, { weight: 23, value: 2 }, { weight: 8, value: 3 }, { weight: 4, value: 4 },
     ]);
-    const detalle = estado === 'si' ? faker.helpers.arrayElement(['Vigente, grado moderado', 'Vigente, grado severo', 'Vigente, grado leve', null])
-        : estado === 'en_tramite' ? faker.helpers.arrayElement(['Inicia trámite en COMPIN', 'En proceso de evaluación', null])
+    const posibles = DIAGNOSTICOS.filter((d) =>
+        edadMeses >= (d.min ?? 0) && edadMeses <= (d.max ?? 999) && (!d.sexo || d.sexo === sexo));
+    const elegidos: Diagnostico[] = [];
+    let intentos = 0;
+    while (elegidos.length < cantidad && intentos++ < 50) {
+        const d = faker.helpers.weightedArrayElement(posibles.map((p) => ({ weight: p.weight, value: p })));
+        if (elegidos.includes(d)) continue;
+        if (d.tea && elegidos.some((e) => e.tea)) continue; // un solo diagnóstico del espectro
+        elegidos.push(d);
+    }
+    return elegidos.map((d) => d.value);
+}
+
+function generarCredencial(esNaneas: boolean, diagnosticos: string[]): { estado: EstadoCredencialDiscapacidad; detalle: string | null } {
+    if (!esNaneas) return { estado: 'sin_dato', detalle: null };
+    const dependiente = diagnosticos.some((d) => DIAGNOSTICOS_DEPENDENCIA.has(d));
+    const estado = faker.helpers.weightedArrayElement<EstadoCredencialDiscapacidad>(dependiente
+        ? [{ weight: 70, value: 'si' }, { weight: 15, value: 'en_tramite' }, { weight: 15, value: 'sin_dato' }]
+        : [{ weight: 22, value: 'si' }, { weight: 15, value: 'no' }, { weight: 10, value: 'en_tramite' }, { weight: 53, value: 'sin_dato' }]);
+    const detalle = estado === 'si' ? faker.helpers.arrayElement(['Vigente, grado moderado', 'Vigente, grado severo', 'Vigente, grado leve', 'Vigente, 35%', null])
+        : estado === 'en_tramite' ? faker.helpers.arrayElement(['Inicia trámite en COMPIN', 'En proceso de evaluación', 'Espera nueva credencial', null])
         : null;
     return { estado, detalle };
+}
+
+// Elige `cantidad` elementos sin repetir, con probabilidad proporcional al peso
+function elegirPonderado<T>(items: { item: T; peso: number }[], cantidad: number): T[] {
+    const restantes = items.filter((x) => x.peso > 0);
+    const elegidos: T[] = [];
+    while (elegidos.length < cantidad && restantes.length > 0) {
+        const total = restantes.reduce((s, x) => s + x.peso, 0);
+        let r = Math.random() * total;
+        const idx = restantes.findIndex((x) => (r -= x.peso) <= 0);
+        elegidos.push(restantes.splice(idx === -1 ? restantes.length - 1 : idx, 1)[0].item);
+    }
+    return elegidos;
 }
 
 // ---------------------------------------------------------------------------
@@ -371,7 +498,7 @@ async function main() {
         console.log('SEED_PASSWORD no definido: no se creó ni modificó ningún usuario de login.');
     }
 
-    // --- Tutores verificados (algunos con varios hijos) ----------------------
+    // --- Tutores verificados (varios tienen más de un hijo) ------------------
     const tutores = [];
     for (let i = 0; i < TOTAL_TUTORES; i++) {
         tutores.push(await prisma.tutor.create({
@@ -394,43 +521,32 @@ async function main() {
     }
     console.log(`${tutores.length} tutores verificados creados.`);
 
-    // --- Edades y grupos -----------------------------------------------------
-    // Programa Infantil: 0-9 años. NANEAS: desde 1.5 hasta 17 años.
-    const edadesInfantil = Array.from({ length: TOTAL_PACIENTES_INFANTIL }, () =>
-        faker.helpers.weightedArrayElement([
-            { weight: 30, value: () => faker.number.int({ min: 0, max: 23 }) },
-            { weight: 70, value: () => faker.number.int({ min: 24, max: 119 }) },
-        ])());
-    const edadesNaneas = Array.from({ length: TOTAL_PACIENTES_NANEAS }, () =>
-        faker.helpers.weightedArrayElement([
-            { weight: 50, value: () => faker.number.int({ min: 18, max: 119 }) },
-            { weight: 50, value: () => faker.number.int({ min: 120, max: 215 }) },
-        ])());
-    const edades = [...edadesInfantil, ...edadesNaneas];
-    const total = edades.length;
-    const indices = edades.map((_, i) => i);
-    const esIndiceNaneas = (i: number) => i >= TOTAL_PACIENTES_INFANTIL;
+    // --- Población -----------------------------------------------------------
+    const grupos = [
+        ...Array.from({ length: TOTAL_PACIENTES_INFANTIL }, () => ({ naneas: false, edad: edadDesdeRangos(RANGOS_EDAD_INFANTIL) })),
+        ...Array.from({ length: TOTAL_PACIENTES_NANEAS }, () => ({ naneas: true, edad: edadDesdeRangos(RANGOS_EDAD_NANEAS) })),
+    ];
+    const total = grupos.length;
+    const indices = grupos.map((_, i) => i);
 
-    // Recién inscritos sin controles (no participan de alertas)
-    const idxSinControl = new Set(faker.helpers.arrayElements(indices, PACIENTES_SIN_CONTROL));
-    // Alertas: niños de 2 a 8 años, activos y con controles
-    const candidatosAlerta = indices.filter((i) => edades[i] >= 24 && edades[i] <= 96 && !idxSinControl.has(i));
+    // Alertas de peso: niños de 2 a 8 años (activos y con varios controles)
+    const candidatosAlerta = indices.filter((i) => grupos[i].edad >= 24 && grupos[i].edad <= 96);
     const idxGanancia = new Set(faker.helpers.arrayElements(candidatosAlerta, CANTIDAD_ALERTA_GANANCIA));
     const idxPerdida = new Set(faker.helpers.arrayElements(candidatosAlerta.filter((i) => !idxGanancia.has(i)), CANTIDAD_ALERTA_PERDIDA));
     const idxSename = new Set(faker.helpers.arrayElements(indices, CANTIDAD_SENAME));
-    const idxTrans = new Set(faker.helpers.arrayElements(indices.filter((i) => edades[i] >= EDAD_MINIMA_MESES_TRANS), CANTIDAD_TRANS));
-    // 5 NANEAS "importados" con tutor por confirmar
-    const idxTutorPorConfirmar = new Set(faker.helpers.arrayElements(indices.filter(esIndiceNaneas), 5));
+    const idxTrans = new Set(faker.helpers.arrayElements(indices.filter((i) => grupos[i].edad >= EDAD_MINIMA_MESES_TRANS), CANTIDAD_TRANS));
+    const idxTutorPorConfirmar = new Set(faker.helpers.arrayElements(indices.filter((i) => grupos[i].naneas), TUTORES_POR_CONFIRMAR));
 
     const pacientesCreados: PacienteSeed[] = [];
     let totalControles = 0;
-    let tutoresPorConfirmar = 0;
 
     for (const i of faker.helpers.shuffle(indices)) {
-        const edadMeses = edades[i];
-        const esNaneas = esIndiceNaneas(i);
-        const fechaNacimiento = fechaSoloDia(HOY_ANIO, HOY_MES - edadMeses, faker.number.int({ min: 1, max: 28 }));
-        const sexo = faker.helpers.arrayElement(['Masculino', 'Femenino']);
+        const { naneas: esNaneas, edad: edadMeses } = grupos[i];
+        // Se retrocede desde hoy para que nadie nazca en el futuro; los recién
+        // nacidos (0 meses) tienen al menos 7 días de vida para su primer control
+        const fechaNacimiento = sumarDias(restarMeses(HOY, edadMeses), -faker.number.int({ min: edadMeses === 0 ? 7 : 0, max: 27 }));
+        // En el catastro NANEAS ~63% son hombres; Programa Infantil 50/50
+        const sexo = faker.datatype.boolean({ probability: esNaneas ? 0.63 : 0.5 }) ? 'Masculino' : 'Femenino';
         const generoLegal: 'male' | 'female' = sexo === 'Masculino' ? 'male' : 'female';
 
         let tutor = faker.helpers.arrayElement(tutores);
@@ -448,25 +564,30 @@ async function main() {
                     verificado: false,
                 },
             });
-            tutoresPorConfirmar++;
         }
 
-        const diagnosticos = esNaneas ? generarDiagnosticos(edadMeses) : [];
+        const diagnosticos = esNaneas ? generarDiagnosticos(edadMeses, sexo) : [];
+        const tieneTEA = diagnosticos.some((d) => VALORES_TEA.has(d));
         const esSaludMental = diagnosticos.some((d) => DIAGNOSTICOS_SALUD_MENTAL.has(d))
             ? faker.datatype.boolean({ probability: 0.7 })
-            : faker.datatype.boolean({ probability: edadMeses >= 72 ? 0.08 : 0.02 });
-        // Como en la importación: todo NANEAS queda con el flag, más algunos prematuros pequeños
-        const esNaneasPrematuro = esNaneas || (edadMeses <= EDAD_MAXIMA_MESES_PREMATURO && faker.datatype.boolean({ probability: 0.08 }));
-        const credencial = generarCredencial(esNaneas);
-        const tieneCuidador = esNaneas ? faker.datatype.boolean({ probability: 0.45 }) : faker.datatype.boolean({ probability: 0.05 });
+            : faker.datatype.boolean({ probability: esNaneas ? 0.15 : edadMeses >= 72 ? 0.06 : 0.02 });
+        const credencial = generarCredencial(esNaneas, diagnosticos);
+        const tieneCuidador = faker.datatype.boolean({ probability: esNaneas ? 0.3 : 0.04 });
         const esTrans = idxTrans.has(i);
         const esMigrante = faker.datatype.boolean({ probability: 0.12 });
-        const sinControl = idxSinControl.has(i);
         const conAlerta = idxGanancia.has(i) || idxPerdida.has(i);
-        const activo = conAlerta || sinControl ? true : faker.datatype.boolean({ probability: 0.93 });
-        const fechaInscripcion = sinControl
-            ? hoyMasDias(-faker.number.int({ min: 0, max: 20 }))
-            : sumarDias(fechaNacimiento, faker.number.int({ min: 3, max: Math.min(60, Math.max(4, edadMeses * 30 - 70)) }));
+        const activo = conAlerta ? true : faker.datatype.boolean({ probability: 0.95 });
+
+        // Controles primero, para que la fecha de inscripción quede antes del primero
+        const numControles = conAlerta
+            ? faker.number.int({ min: 3, max: 5 })
+            : faker.helpers.weightedArrayElement([
+                { weight: 10, value: 1 }, { weight: 22, value: 2 }, { weight: 30, value: 3 }, { weight: 22, value: 4 }, { weight: 16, value: 5 },
+            ]);
+        const tipoForzado: TipoForzado = idxGanancia.has(i) ? 'ganancia' : idxPerdida.has(i) ? 'perdida' : 'ninguno';
+        const serie = generarSerieControles(fechaNacimiento, numControles, tipoForzado);
+        let fechaInscripcion = sumarDias(serie[0].fecha, -faker.number.int({ min: 0, max: 20 }));
+        if (fechaInscripcion.getTime() < fechaNacimiento.getTime()) fechaInscripcion = fechaNacimiento;
 
         const paciente = await prisma.paciente.create({
             data: {
@@ -490,7 +611,7 @@ async function main() {
                 creado_en: fechaInscripcion,
                 activo,
                 es_sename: idxSename.has(i),
-                es_naneas_prematuro: esNaneasPrematuro,
+                es_naneas_prematuro: esNaneas,
                 es_poblacion_trans: esTrans,
                 es_migrante: esMigrante,
                 es_salud_mental: esSaludMental,
@@ -507,73 +628,60 @@ async function main() {
             rut: paciente.rut,
             edadAnios: Math.floor(mesesCumplidos(fechaNacimiento, HOY) / 12),
             naneas: esNaneas,
-            tea: diagnosticos.some(esTEA),
+            tea: tieneTEA,
             telefono: tutor.telefono,
             activo,
         });
-        if (pacientesCreados.length % 25 === 0) console.log(`${pacientesCreados.length}/${total} pacientes creados...`);
 
-        if (sinControl) continue;
-
-        // Controles (creado_en = fecha del control, para que la agenda tome
-        // como "vigente" el último control real de cada paciente)
-        const numControles = conAlerta
-            ? faker.number.int({ min: 3, max: 5 })
-            : faker.helpers.weightedArrayElement([
-                { weight: 15, value: 1 }, { weight: 30, value: 2 }, { weight: 30, value: 3 }, { weight: 15, value: 4 }, { weight: 10, value: 5 },
-            ]);
-        const tipoForzado: TipoForzado = idxGanancia.has(i) ? 'ganancia' : idxPerdida.has(i) ? 'perdida' : 'ninguno';
-        const serie = generarSerieControles(fechaNacimiento, numControles, tipoForzado);
-
-        for (const c of serie) {
-            const esc = c.edadMeses >= 120 && faker.datatype.boolean({ probability: 0.4 }) ? ESCENARIO_ADOLESCENTE
-                : esNaneas && faker.datatype.boolean({ probability: 0.4 }) ? ESCENARIO_NANEAS
+        // creado_en = fecha del control, para que la agenda tome como "vigente"
+        // el último control real de cada paciente
+        const controles: Prisma.ControlClinicoCreateManyInput[] = serie.map((c) => {
+            const esc = c.edadMeses >= 120 && faker.datatype.boolean({ probability: 0.35 }) ? ESCENARIO_ADOLESCENTE
+                : esNaneas && faker.datatype.boolean({ probability: 0.5 }) ? faker.helpers.arrayElement(ESCENARIOS_NANEAS)
                 : faker.helpers.arrayElement(ESCENARIOS);
-            await prisma.controlClinico.create({
-                data: {
-                    fecha_control: c.fecha,
-                    creado_en: c.fecha,
-                    motivo_consulta: esc.motivo,
-                    anamnesis: esc.anamnesis,
-                    exploracion_fisica: esc.exploracion,
-                    edad_meses: c.edadMeses,
-                    peso_kg: c.peso,
-                    talla_cm: c.talla,
-                    perimetro_cefalico: c.edadMeses <= 36 ? +perimetroEsperado(c.edadMeses).toFixed(1) : null,
-                    imc: c.edadMeses >= EDAD_MESES_IMC ? +(c.peso / Math.pow(c.talla / 100, 2)).toFixed(2) : null,
-                    problemas_diagnosticados: esc.diagnostico,
-                    indicaciones_acuerdos: esc.indicaciones,
-                    fecha_proximoControl: c.esUltimo ? proximoControlDistribuido() : sumarDias(c.fecha, faker.number.int({ min: 45, max: 150 })),
-                    rut_paciente: paciente.rut,
-                    rut_profesional: faker.helpers.arrayElement(profesionalesControl).rut,
-                },
-            });
-            totalControles++;
-        }
+            return {
+                fecha_control: c.fecha,
+                creado_en: c.fecha,
+                motivo_consulta: esc.motivo,
+                anamnesis: esc.anamnesis,
+                exploracion_fisica: esc.exploracion,
+                edad_meses: c.edadMeses,
+                peso_kg: c.peso,
+                talla_cm: c.talla,
+                perimetro_cefalico: c.edadMeses <= 36 ? +perimetroEsperado(c.edadMeses).toFixed(1) : null,
+                imc: c.edadMeses >= EDAD_MESES_IMC ? +(c.peso / Math.pow(c.talla / 100, 2)).toFixed(2) : null,
+                problemas_diagnosticados: esc.diagnostico,
+                indicaciones_acuerdos: esc.indicaciones,
+                fecha_proximoControl: c.esUltimo ? proximoControlDistribuido() : sumarDias(c.fecha, faker.number.int({ min: 45, max: 150 })),
+                rut_paciente: paciente.rut,
+                rut_profesional: faker.helpers.arrayElement(profesionalesControl).rut,
+            };
+        });
+        await prisma.controlClinico.createMany({ data: controles });
+        totalControles += controles.length;
+
+        if (pacientesCreados.length % 50 === 0) console.log(`${pacientesCreados.length}/${total} pacientes creados...`);
     }
-    console.log(`${tutoresPorConfirmar} tutores "Por confirmar" creados (como en la importación Excel).`);
 
     // --- Talleres, sesiones e inscripciones ---------------------------------
     let totalSesiones = 0;
     let totalInscripciones = 0;
+    const resumenTalleres: string[] = [];
     for (const t of TALLERES) {
         const taller = await prisma.taller.create({
-            data: { nombre: t.nombre, descripcion: t.descripcion, edad_min: t.edad_min, edad_max: t.edad_max, activo: t.activo },
+            data: { nombre: t.nombre, descripcion: t.descripcion, edad_min: t.edad_min, edad_max: t.edad_max, activo: true },
         });
-        const elegibles = pacientesCreados.filter((p) =>
-            p.activo && p.edadAnios >= t.edad_min && p.edadAnios <= t.edad_max &&
-            (t.filtro === 'todos' || (t.filtro === 'naneas' && p.naneas) || (t.filtro === 'tea' && p.tea)));
+        // Grupo base del taller: pacientes activos dentro del rango de edad,
+        // con más probabilidad para TEA y NANEAS (cualquiera puede asistir)
+        const candidatos = pacientesCreados
+            .filter((p) => p.activo && p.edadAnios >= t.edad_min && p.edadAnios <= t.edad_max)
+            .map((p) => ({ item: p, peso: p.tea ? t.afinidad.tea : p.naneas ? t.afinidad.naneas : t.afinidad.otro }));
+        const grupo = elegirPonderado(candidatos, faker.number.int({ min: t.grupo[0], max: t.grupo[1] }));
         const responsables = profesionales.filter((p) => p.estamento === t.estamento);
-        // Grupo base: los mismos niños suelen repetir sesión
-        const grupo = faker.helpers.arrayElements(elegibles, Math.min(elegibles.length, faker.number.int({ min: 6, max: 12 })));
 
-        // Taller inactivo: solo sesiones antiguas. Activos: 4 pasadas (cada 2
-        // semanas), opcionalmente una HOY, y 2 futuras.
-        const offsets = !t.activo
-            ? [-120, -106, -92]
-            : [-56, -42, -28, -14, ...(t.sesionHoy ? [0] : []), 7, 21].map((d) => (d === 0 ? 0 : d + faker.number.int({ min: -2, max: 2 })));
-
-        for (const off of offsets) {
+        for (const base of t.sesiones) {
+            // Pequeña variación de fecha, salvo la sesión de HOY
+            const off = base === 0 ? 0 : base + faker.number.int({ min: -2, max: 2 });
             const esPasada = off < 0;
             const esHoy = off === 0;
             const externo = responsables.length === 0 || faker.datatype.boolean({ probability: 0.15 });
@@ -584,7 +692,7 @@ async function main() {
                     rut_profesional: externo ? null : faker.helpers.arrayElement(responsables).rut,
                     profesional_externo: externo ? faker.helpers.arrayElement(PROFESIONALES_EXTERNOS) : null,
                     observaciones: esPasada && faker.datatype.boolean({ probability: 0.4 })
-                        ? faker.helpers.arrayElement(['Buena participación del grupo.', 'Se trabajó con apoyo de cuidadores.', 'Sesión acortada por actividad del CESFAM.'])
+                        ? faker.helpers.arrayElement(['Buena participación del grupo.', 'Se trabajó con apoyo de cuidadores.', 'Sesión acortada por actividad del CESFAM.', 'Asistieron cuidadores sin el niño o niña.'])
                         : null,
                 },
             });
@@ -605,7 +713,6 @@ async function main() {
                 const asistencia: EstadoAsistencia = !esPasada ? 'pendiente'
                     : convocatoria === 'confirma' ? (faker.datatype.boolean({ probability: 0.85 }) ? 'asiste' : 'no_asiste')
                     : faker.datatype.boolean({ probability: 0.15 }) ? 'asiste' : 'no_asiste';
-                const diasAntesContacto = faker.number.int({ min: 1, max: 5 });
                 await prisma.inscripcionTaller.create({
                     data: {
                         rut_paciente: p.rut,
@@ -614,22 +721,26 @@ async function main() {
                         estado_asistencia: asistencia,
                         telefono_contacto: p.telefono,
                         // El contacto nunca queda en el futuro
-                        fecha_contacto: convocatoria === 'no_contactado' ? null : hoyMasDias(Math.min(off, 0) - diasAntesContacto),
+                        fecha_contacto: convocatoria === 'no_contactado' ? null : hoyMasDias(Math.min(off, 0) - faker.number.int({ min: 1, max: 5 })),
                         observaciones: convocatoria === 'no_puede' ? 'Tutor informa que no puede asistir por horario laboral.' : null,
                     },
                 });
                 totalInscripciones++;
             }
         }
+        const edades = grupo.map((p) => p.edadAnios);
+        resumenTalleres.push(`    ${t.nombre} (${t.edad_min}-${t.edad_max} años): grupo de ${grupo.length}, ` +
+            `${grupo.filter((p) => p.tea).length} con TEA, edades ${Math.min(...edades)}-${Math.max(...edades)} años, ${t.sesiones.length} sesiones`);
     }
 
     // --- Resumen -------------------------------------------------------------
+    const sinControles = await prisma.paciente.count({ where: { controlClinico: { none: {} } } });
     console.log('\n=== Seed completado ===');
-    console.log(`  Pacientes: ${total} (${TOTAL_PACIENTES_INFANTIL} Programa Infantil 0-9 años, ${TOTAL_PACIENTES_NANEAS} NANEAS hasta 17 años)`);
-    console.log(`  Recién inscritos sin control: ${PACIENTES_SIN_CONTROL}`);
-    console.log(`  Controles clínicos: ${totalControles}`);
+    console.log(`  Pacientes: ${total} (${TOTAL_PACIENTES_INFANTIL} Programa Infantil 0-9 años, ${TOTAL_PACIENTES_NANEAS} NANEAS)`);
+    console.log(`  Controles clínicos: ${totalControles} | pacientes sin controles: ${sinControles}`);
     console.log(`  Alertas de peso: ${CANTIDAD_ALERTA_GANANCIA} ganancia / ${CANTIDAD_ALERTA_PERDIDA} pérdida`);
-    console.log(`  Talleres: ${TALLERES.length} (1 inactivo) | Sesiones: ${totalSesiones} | Inscripciones: ${totalInscripciones}`);
+    console.log(`  Talleres: ${TALLERES.length} | Sesiones: ${totalSesiones} | Inscripciones: ${totalInscripciones}`);
+    console.log(resumenTalleres.join('\n'));
 }
 
 main()
