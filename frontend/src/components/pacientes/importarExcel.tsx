@@ -231,9 +231,9 @@ export default function ImportarExcel() {
                                         <Upload className="h-6 w-6" />
                                     </div>
                                     <p className="text-base font-bold text-slate-800">Arrastra tu archivo aquí</p>
-                                    <p className="text-sm font-medium text-slate-500">o haz clic para buscar en tu computador</p>
+                                    <p className="text-sm font-medium text-slate-500">o haz clic para buscar en tus archivos</p>
                                     <p className="text-xs font-semibold text-slate-400">
-                                        Formato .xlsx — hojas "NANEAS" y "TEA" con encabezados originales
+                                        Formato .xlsx  hojas "NANEAS" y "TEA" con encabezados originales
                                     </p>
                                     <input
                                         ref={inputRef}
@@ -276,7 +276,38 @@ export default function ImportarExcel() {
                 </div>
             )}
 
-            {/* Paso 2/3: aplicando */}
+            {paso === "idle" && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="mb-3 text-sm font-bold text-slate-800">Columnas que se leen</h3>
+                        <ul className="space-y-2">
+                            {["RUT", "Nombre completo", "Fecha de nacimiento", "Diagnóstico", "Cuidador"].map((col) => (
+                                <li key={col} className="flex items-center gap-2.5 text-sm text-slate-600">
+                                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-700" />
+                                    {col}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="mb-3 text-sm font-bold text-slate-800">Qué pasa con tus datos</h3>
+                        <ul className="space-y-2.5">
+                            {[
+                                "Si el RUT ya existe, se actualiza ese paciente (diagnóstico, credencial, cuidador).",
+                                "Si el RUT es nuevo, el paciente queda creado con los datos del tutor pendientes que se completan en la consulta mas proxima.",
+                                "Nada se guarda en la base hasta que confirmes en el paso 3, puedes revisar los cambios antes.",
+                            ].map((texto) => (
+                                <li key={texto} className="flex items-start gap-2.5 text-sm text-slate-600">
+                                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-700" />
+                                    {texto}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
+
+
             {paso === "aplicando" && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
                     <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
@@ -286,14 +317,14 @@ export default function ImportarExcel() {
                 </div>
             )}
 
-            {/* Paso 2: preview / Paso 3: listo */}
+
             {(paso === "preview" || paso === "listo") && resumen && (
                 <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
                     {paso === "preview" ? (
                         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
                             <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
                             <p className="text-sm font-bold">
-                                Vista previa — todavía no se ha guardado nada. Revisa los datos y confirma para aplicar los cambios.
+                                Vista previa: todavía no se ha guardado nada. Revisa los datos y confirma para aplicar los cambios.
                             </p>
                         </div>
                     ) : (
