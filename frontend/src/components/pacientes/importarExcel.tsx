@@ -58,8 +58,7 @@ export default function ImportarExcel() {
 
     const pasoNumero = pasoActualNumero(paso);
 
-    // Agrupa errores repetidos ("Falta nombre o fecha..." x25) en un solo bloque
-    // con contador, en vez de mostrar la misma frase muchas veces seguidas.
+    //? agrupa errores repetidos
     const erroresAgrupados = useMemo(() => {
         if (!resumen) return [];
         const grupos = resumen.errores.reduce<Record<string, string[]>>((acc, e) => {
