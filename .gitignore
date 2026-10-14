@@ -25,6 +25,7 @@ backend/src/generated/
 
 # ignora las seed y demas cosas de prisma 
 /src/generated/prisma
+backend/scripts/poblar-*.ts
 
 
 # Logs
