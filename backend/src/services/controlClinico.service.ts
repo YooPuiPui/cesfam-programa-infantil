@@ -1,5 +1,6 @@
 import prisma from "../config/prisma";
 import { Prisma } from "@prisma/client";
+import { obtenerHoyChile } from '../utils/fechaChile';
 
 export const crearControl = async (datosControl: Prisma.ControlClinicoUncheckedCreateInput) => {
 
@@ -74,9 +75,10 @@ export const buscarControlPaginado = async (
 ) => {
     const skip = (page - 1) * limit;
 
-    const ahora = new Date();
-    const hoy = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate()));
-    const manana = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate() + 1));
+    // "Hoy" es la fecha de Chile, no la UTC del servidor (entre las 21:00 y las 24:00 chilenas UTC ya es mañana)
+    const c = obtenerHoyChile();
+    const hoy = new Date(Date.UTC(c.anio, c.mes, c.dia));
+    const manana = new Date(Date.UTC(c.anio, c.mes, c.dia + 1));
 
     const diaSemana = hoy.getUTCDay();
     const diffInicio = diaSemana === 0 ? -6 : 1 - diaSemana;
@@ -140,9 +142,10 @@ export const buscarControlPaginado = async (
 
 
 export const obtenerConteosAgenda = async () => {
-    const ahora = new Date();
-    const hoy = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate()));
-    const manana = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate() + 1));
+    // "Hoy" es la fecha de Chile, no la UTC del servidor (entre las 21:00 y las 24:00 chilenas UTC ya es mañana)
+    const c = obtenerHoyChile();
+    const hoy = new Date(Date.UTC(c.anio, c.mes, c.dia));
+    const manana = new Date(Date.UTC(c.anio, c.mes, c.dia + 1));
 
     const diaSemana = hoy.getUTCDay();
     const diffInicio = diaSemana === 0 ? -6 : 1 - diaSemana;

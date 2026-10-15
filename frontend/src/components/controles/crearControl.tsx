@@ -13,6 +13,13 @@ const fieldClass = (hasError: boolean) =>
         : "border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:bg-white"
     }`;
 
+// Hoy + 6 meses como fecha de calendario local (AAAA-MM-DD). Con toISOString() pasadas las 21:00 de Chile caía en el día siguiente.
+const fechaPorDefectoProximoControl = () => {
+    const fecha = new Date();
+    fecha.setMonth(fecha.getMonth() + 6);
+    return fecha.toLocaleDateString('en-CA');
+};
+
 const fieldClassDisabled =
     "w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-400 outline-none cursor-not-allowed";
 
@@ -113,7 +120,7 @@ export default function NuevoControl() {
                     rut_profesional: rutDoctor,
                     edad_meses: paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : 0,
                     imc: aplicaImc ? parseFloat((data.peso_kg / Math.pow(data.talla_cm / 100, 2)).toFixed(2)) : null,
-                    fecha_proximoControl: data.fecha_proximoControl || new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString()
+                    fecha_proximoControl: data.fecha_proximoControl || fechaPorDefectoProximoControl()
                 }
             };
 
