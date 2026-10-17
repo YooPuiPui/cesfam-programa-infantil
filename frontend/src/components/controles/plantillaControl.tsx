@@ -80,7 +80,6 @@ export default function PlantillaControl() {
                 </button>
             </div>
 
-            {/* DOCUMENTO OFICIAL TIPO IMPRENTA (Blanco y Negro) */}
             <div className="max-w-4xl mx-auto bg-white p-10 shadow-lg min-h-[1056px] text-black text-sm print:shadow-none print:p-0 print:min-h-0">
 
                 {/* ENCABEZADO INSTITUCIONAL */}

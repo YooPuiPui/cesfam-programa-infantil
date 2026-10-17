@@ -75,7 +75,6 @@ export const buscarControlPaginado = async (
 ) => {
     const skip = (page - 1) * limit;
 
-    // "Hoy" es la fecha de Chile, no la UTC del servidor (entre las 21:00 y las 24:00 chilenas UTC ya es mañana)
     const c = obtenerHoyChile();
     const hoy = new Date(Date.UTC(c.anio, c.mes, c.dia));
     const manana = new Date(Date.UTC(c.anio, c.mes, c.dia + 1));
@@ -109,7 +108,7 @@ export const buscarControlPaginado = async (
             break;
     }
 
-    // Búsqueda por RUT del paciente o por nombre/apellido, sin distinguir mayúsculas
+    // busqueda por RUT del paciente o por nombre/apellido 
     if (busqueda && busqueda.trim() !== '') {
         const palabras = busqueda.trim().split(/\s+/);
 
@@ -142,7 +141,7 @@ export const buscarControlPaginado = async (
 
 
 export const obtenerConteosAgenda = async () => {
-    // "Hoy" es la fecha de Chile, no la UTC del servidor (entre las 21:00 y las 24:00 chilenas UTC ya es mañana)
+
     const c = obtenerHoyChile();
     const hoy = new Date(Date.UTC(c.anio, c.mes, c.dia));
     const manana = new Date(Date.UTC(c.anio, c.mes, c.dia + 1));
@@ -170,7 +169,7 @@ export const obtenerConteosAgenda = async () => {
 };
 
 
-// Obtiene, por cada paciente, el id del control creado más recientemente
+// obtiene por cada paciente, el id del control creado más recientemente
 const obtenerIdsControlesVigentes = async (): Promise<number[]> => {
     const resultado = await prisma.$queryRaw<{ id_control: number }[]>`
         SELECT DISTINCT ON (rut_paciente) id_control

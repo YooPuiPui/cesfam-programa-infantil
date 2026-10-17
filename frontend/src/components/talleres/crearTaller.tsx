@@ -41,7 +41,7 @@ export default function CrearTaller() {
         });
     };
 
-    // Replica las mismas reglas que taller.controller.ts (Tema 1 y 3)
+    // Replica las mismas reglas que taller.controller.ts 
     const validar = (): boolean => {
         const nextErrors: Partial<Record<keyof FormState, string>> = {};
 
@@ -109,7 +109,7 @@ export default function CrearTaller() {
             const data = await respuesta.json().catch(() => ({}));
 
             if (!respuesta.ok) {
-                // acá llega, por ejemplo, el 409 de nombre duplicado que el cliente no puede anticipar (Tema 3)
+                // aqui llega  el 409 de nombre duplicado que el cliente no puede anticipar
                 throw new Error(data?.error || "No fue posible crear el taller.");
             }
 

@@ -13,7 +13,7 @@ const fieldClass = (hasError: boolean) =>
         : "border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:bg-white"
     }`;
 
-// Hoy + 6 meses como fecha de calendario local (AAAA-MM-DD). Con toISOString() pasadas las 21:00 de Chile caía en el día siguiente.
+
 const fechaPorDefectoProximoControl = () => {
     const fecha = new Date();
     fecha.setMonth(fecha.getMonth() + 6);
@@ -90,8 +90,7 @@ export default function NuevoControl() {
     const edadMesesActual = paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : null;
     const aplicaPerimetroCefalico = edadMesesActual !== null && edadMesesActual <= 36;
 
-    // El IMC solo aplica desde los 2 años (24 meses). Antes de esa edad, el indicador
-    // nutricional correcto es peso/edad, que ya se registra con el campo Peso.
+
     const aplicaImc = edadMesesActual !== null && edadMesesActual >= 24;
 
     const onSubmit = async (data: ControlFormValues) => {

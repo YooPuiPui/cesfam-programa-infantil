@@ -49,7 +49,7 @@ const iniciales = (nombre: string, apellido: string): string => {
 };
 
 // Compara por dia calendario en America/Santiago, igual que el backend
-// (utils/fechaChile.ts), para no marcar asistencia en sesiones que aun no ocurren.
+// para no marcar asistencia en sesiones que aun no ocurren.
 const esSesionFutura = (fechaSesion: string): boolean => {
     const hoyChile = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date());
     const fechaSesionSoloDia = fechaSesion.slice(0, 10);

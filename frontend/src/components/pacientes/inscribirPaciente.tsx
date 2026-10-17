@@ -58,8 +58,8 @@ const hoyLocal = () => {
     return local.toISOString().slice(0, 10);
 };
 
-// Inserta el guion automáticamente antes del dígito verificador mientras se escribe.
-// Ej: "211183977" -> "21118397-7"
+
+// Ej: 211183977 -> 21118397-7
 function formatearRut(valor: string): string {
     const limpio = valor.replace(/[^0-9kK]/g, "").toUpperCase();
     if (limpio.length <= 1) return limpio;
@@ -206,14 +206,11 @@ export default function InscribirPaciente() {
     function formatearTelefono(valor: string): string {
         const PREFIJO = "+569";
 
-        // Si el valor entrante es más corto que el prefijo (el usuario borró parte de él),
-        // simplemente volvemos al prefijo completo, sin intentar rescatar dígitos sueltos.
+        
         if (valor.length <= PREFIJO.length) {
             return PREFIJO;
         }
 
-        // A partir de acá, el valor es al menos tan largo como el prefijo.
-        // Tomamos solo lo que viene después, filtramos que sean dígitos, y limitamos a 8.
         const resto = valor.slice(PREFIJO.length).replace(/[^0-9]/g, "");
         return PREFIJO + resto.slice(0, 8);
     }
