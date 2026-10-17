@@ -237,9 +237,9 @@ export default function InscribirPaciente() {
             diagnosticos: [
                 ...(form.dx_tea ? ["TEA"] : []),
                 ...(form.dx_epilepsia ? ["Epilepsia"] : []),
-                ...(form.dx_tgd ? ["Trastornos Generalizados del Desarrollo"] : []),
+                ...(form.dx_tgd ? ["TRASTORNOS GENERALIZADOS DEL DESARROLLO"] : []),
                 ...(form.dx_sindrome_down ? ["Síndrome de Down"] : []),
-                ...(form.dx_paralisis_cerebral ? ["Parálisis Cerebral"] : []),
+                ...(form.dx_paralisis_cerebral ? ["PARALISIS CEREBRAL"] : []),
                 ...(form.dx_otro && form.dx_otro_texto.trim() ? [form.dx_otro_texto.trim()] : []),
             ],
             es_salud_mental: form.es_salud_mental,

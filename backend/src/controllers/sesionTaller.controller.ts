@@ -1,5 +1,6 @@
 import { Request, Response, RequestHandler } from "express";
 import * as sesionService from '../services/sesionTaller.service';
+import { buscarTallerPorId } from '../services/taller.service';
 import { fechaCalendarioAMediodiaUTC } from '../utils/fechaChile';
 
 
@@ -61,6 +62,18 @@ export const crearSesion: RequestHandler = async(req, res): Promise<void> => {
             res.status(400).json({
                 error: 'Debe indicar quien dicta la sesion  rut_profesional (si es de este CESFAM) o profesional_externo (si es interno o de otro CESFAM).'
             })
+            return;
+        }
+
+        const taller = await buscarTallerPorId(idTaller);
+
+        if(!taller){
+            res.status(404).json({error: 'El taller no existe'});
+            return;
+        }
+
+        if(!taller.activo){
+            res.status(400).json({error: 'No se pueden crear sesiones en un taller desactivado. Reactívalo primero.'});
             return;
         }
 

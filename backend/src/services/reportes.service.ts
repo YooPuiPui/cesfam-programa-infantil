@@ -13,8 +13,10 @@ function diasEntre(fechaA: Date, fechaB: Date): number {
     return Math.abs(fechaA.getTime() - fechaB.getTime()) / (1000 * 60 * 60 * 24);
 }
 
-const PUNTOS_EDAD_PESO = [0, 3, 6, 12, 24, 36, 48, 60, 72, 84, 96, 108];
-const PUNTOS_PESO_REF = [3.3, 6.0, 7.8, 9.6, 12.2, 14.3, 16.3, 18.0, 20.5, 22.9, 25.6, 28.6];
+// Valores de referencia aproximados (promedio ambos sexos), usados solo para calcular
+// el umbral de alerta. Extendidos hasta los 18 años porque NANEAS atiende hasta esa edad.
+const PUNTOS_EDAD_PESO = [0, 3, 6, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 144, 168, 192, 216];
+const PUNTOS_PESO_REF = [3.3, 6.0, 7.8, 9.6, 12.2, 14.3, 16.3, 18.0, 20.5, 22.9, 25.6, 28.6, 32.0, 40.5, 50.5, 57.5, 61.5];
 
 function pesoEsperadoParaEdad(edadMeses: number): number {
     if (edadMeses <= PUNTOS_EDAD_PESO[0]) return PUNTOS_PESO_REF[0];

@@ -311,6 +311,7 @@ const cambiarEstado = async () => {
         const data = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) throw new Error(data?.error || `No fue posible ${accion} el taller.`);
 
+        if (taller.activo) setMostrarFormSesion(false);
         await obtenerTaller();
     } catch (err) {
         setErrorTaller(err instanceof Error ? err.message : "No se pudo conectar con el servidor.");
@@ -464,17 +465,25 @@ const cambiarEstado = async () => {
 
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-lg font-semibold text-slate-800">Sesiones</h2>
-                        <button
-                            type="button"
-                            onClick={() => (mostrarFormSesion ? setMostrarFormSesion(false) : abrirFormSesion())}
-                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-100"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Nueva sesión
-                        </button>
+                        {taller.activo && (
+                            <button
+                                type="button"
+                                onClick={() => (mostrarFormSesion ? setMostrarFormSesion(false) : abrirFormSesion())}
+                                className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-100"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Nueva sesión
+                            </button>
+                        )}
                     </div>
 
-                    {mostrarFormSesion && (
+                    {!taller.activo && (
+                        <div className="mb-4 text-sm font-semibold text-slate-500">
+                            Este taller está desactivado. Reactívalo para agregar sesiones.
+                        </div>
+                    )}
+
+                    {taller.activo && mostrarFormSesion && (
                         <form onSubmit={crearSesion} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-4 space-y-3.5">
                             {errorFormSesion && (
                                 <div className="rounded-lg bg-red-50 border border-red-200 px-3.5 py-2.5 text-sm font-semibold text-red-700">

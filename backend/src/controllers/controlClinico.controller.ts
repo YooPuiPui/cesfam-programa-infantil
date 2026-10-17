@@ -166,7 +166,7 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
             }
             datosLimpios.fecha_proximoControl = fechaProximoControl;
         }
-        if (datos.rut_paciente !== undefined) datosLimpios.rut_paciente = parseInt(datos.rut_paciente);
+        if (datos.rut_paciente !== undefined) datosLimpios.rut_paciente = String(datos.rut_paciente).trim();
         if (datos.rut_profesional !== undefined) datosLimpios.rut_profesional = datos.rut_profesional;
 
         const resultado = await controlService.editarControl(id, datosLimpios);
