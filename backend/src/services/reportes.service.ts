@@ -1,8 +1,8 @@
 import prisma from "../config/prisma";
 
-const UMBRAL_PERDIDA_KG_MES = -0.3; // cualquier pérdida sostenida es atípica en un niño en crecimiento activo
+const UMBRAL_PERDIDA_KG_MES = -0.3; 
 const VENTANA_MESES_ALERTA = 24;
-const MIN_DIAS_ENTRE_CONTROLES = 5; // ignora tramos demasiado cortos (ruido/errores de tipeo)
+const MIN_DIAS_ENTRE_CONTROLES = 5; 
 
 function mesesEntre(fechaA: Date, fechaB: Date): number {
     const dias = Math.abs(fechaA.getTime() - fechaB.getTime()) / (1000 * 60 * 60 * 24);
@@ -54,11 +54,7 @@ interface AlertaCalculada {
     tasaTallaCmMes: number;
 }
 
-// Evalúa ÚNICAMENTE el último par de controles dentro de la ventana (el más
-// reciente contra el que le precede). Si ese par no dispara alerta, no hay
-// alerta -- aunque el paciente haya tenido un salto en un tramo más antiguo
-// que ya se resolvió. Esto evita mostrar alertas "viejas" cuando el paciente
-// ya volvió a un ritmo de crecimiento normal en sus controles más recientes.
+
 function calcularAlertaUltimoTramo(controlesVentana: ControlLiviano[]): AlertaCalculada | null {
     if (controlesVentana.length < 2) return null;
 

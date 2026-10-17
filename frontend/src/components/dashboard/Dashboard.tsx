@@ -44,11 +44,11 @@ type Caracterizacion = {
 };
 
 const COLORES_RIESGO = {
-    regular: "#475569",   // slate oscuro, en vez del gris pálido
-    sename: "#dc2626",    // rojo más saturado
-    naneas: "#ea580c",    // naranja más intenso
-    trans: "#9333ea",     // púrpura más vivo
-    migrante: "#2563eb",  // azul más fuerte
+    regular: "#475569",   
+    sename: "#dc2626",    
+    naneas: "#ea580c",    
+    trans: "#9333ea",     
+    migrante: "#2563eb",  
 };
 
 const COLOR_CARACTERIZACION = "#1d4ed8";

@@ -31,7 +31,7 @@ interface Profesional {
     apellido: string;
 }
 
-// rut_profesional y profesional_externo son mutuamente excluyentes (Tema 4)
+// rut_profesional y profesional_externo son excluyentes
 const responsableSesion = (sesion: SesionTaller): string => {
     if (sesion.profesional) return `${sesion.profesional.nombre} ${sesion.profesional.apellido}`;
     if (sesion.profesional_externo) return sesion.profesional_externo;
@@ -104,7 +104,7 @@ export default function DetalleTaller() {
 
             if (!respuesta.ok) throw new Error("No se pudo obtener el taller solicitado");
 
-            // un solo fetch: las sesiones ya vienen incluidas (Tema 4)
+            // un solo fetch: las sesiones ya vienen incluidas 
             const data: TallerConSesiones = await respuesta.json();
             setTaller(data);
         } catch (err) {
@@ -116,7 +116,7 @@ export default function DetalleTaller() {
 
     useEffect(() => {
         obtenerTaller();
-    }, [id]); // se re-ejecuta si cambia el id de la URL (Tema 4)
+    }, [id]); 
 
     const abrirFormSesion = async () => {
         setMostrarFormSesion(true);
@@ -124,7 +124,7 @@ export default function DetalleTaller() {
         setErrorCampo({});
         setFormSesion(initialFormSesion);
 
-        if (profesionales.length > 0) return; // ya en cache
+        if (profesionales.length > 0) return; 
 
         try {
             const token = localStorage.getItem("token");
