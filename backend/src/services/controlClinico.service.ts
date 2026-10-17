@@ -1,5 +1,6 @@
 import prisma from "../config/prisma";
 import { Prisma } from "@prisma/client";
+import { obtenerHoyChile } from '../utils/fechaChile';
 
 export const crearControl = async (datosControl: Prisma.ControlClinicoUncheckedCreateInput) => {
 
@@ -74,9 +75,9 @@ export const buscarControlPaginado = async (
 ) => {
     const skip = (page - 1) * limit;
 
-    const ahora = new Date();
-    const hoy = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate()));
-    const manana = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate() + 1));
+    const c = obtenerHoyChile();
+    const hoy = new Date(Date.UTC(c.anio, c.mes, c.dia));
+    const manana = new Date(Date.UTC(c.anio, c.mes, c.dia + 1));
 
     const diaSemana = hoy.getUTCDay();
     const diffInicio = diaSemana === 0 ? -6 : 1 - diaSemana;
@@ -107,7 +108,7 @@ export const buscarControlPaginado = async (
             break;
     }
 
-    // Búsqueda por RUT del paciente o por nombre/apellido, sin distinguir mayúsculas
+    // busqueda por RUT del paciente o por nombre/apellido 
     if (busqueda && busqueda.trim() !== '') {
         const palabras = busqueda.trim().split(/\s+/);
 
@@ -140,9 +141,10 @@ export const buscarControlPaginado = async (
 
 
 export const obtenerConteosAgenda = async () => {
-    const ahora = new Date();
-    const hoy = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate()));
-    const manana = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate() + 1));
+
+    const c = obtenerHoyChile();
+    const hoy = new Date(Date.UTC(c.anio, c.mes, c.dia));
+    const manana = new Date(Date.UTC(c.anio, c.mes, c.dia + 1));
 
     const diaSemana = hoy.getUTCDay();
     const diffInicio = diaSemana === 0 ? -6 : 1 - diaSemana;
@@ -167,7 +169,7 @@ export const obtenerConteosAgenda = async () => {
 };
 
 
-// Obtiene, por cada paciente, el id del control creado más recientemente
+// obtiene por cada paciente, el id del control creado más recientemente
 const obtenerIdsControlesVigentes = async (): Promise<number[]> => {
     const resultado = await prisma.$queryRaw<{ id_control: number }[]>`
         SELECT DISTINCT ON (rut_paciente) id_control

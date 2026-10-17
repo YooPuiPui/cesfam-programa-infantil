@@ -13,6 +13,13 @@ const fieldClass = (hasError: boolean) =>
         : "border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:bg-white"
     }`;
 
+
+const fechaPorDefectoProximoControl = () => {
+    const fecha = new Date();
+    fecha.setMonth(fecha.getMonth() + 6);
+    return fecha.toLocaleDateString('en-CA');
+};
+
 const fieldClassDisabled =
     "w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-400 outline-none cursor-not-allowed";
 
@@ -83,8 +90,7 @@ export default function NuevoControl() {
     const edadMesesActual = paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : null;
     const aplicaPerimetroCefalico = edadMesesActual !== null && edadMesesActual <= 36;
 
-    // El IMC solo aplica desde los 2 años (24 meses). Antes de esa edad, el indicador
-    // nutricional correcto es peso/edad, que ya se registra con el campo Peso.
+
     const aplicaImc = edadMesesActual !== null && edadMesesActual >= 24;
 
     const onSubmit = async (data: ControlFormValues) => {
@@ -113,7 +119,7 @@ export default function NuevoControl() {
                     rut_profesional: rutDoctor,
                     edad_meses: paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : 0,
                     imc: aplicaImc ? parseFloat((data.peso_kg / Math.pow(data.talla_cm / 100, 2)).toFixed(2)) : null,
-                    fecha_proximoControl: data.fecha_proximoControl || new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString()
+                    fecha_proximoControl: data.fecha_proximoControl || fechaPorDefectoProximoControl()
                 }
             };
 

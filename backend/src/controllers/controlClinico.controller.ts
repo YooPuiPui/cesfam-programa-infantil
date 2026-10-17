@@ -1,7 +1,7 @@
 import { Request, Response, RequestHandler } from "express";
 import * as controlService from '../services/controlClinico.service';
 import prisma from "../config/prisma";
-import { hoyChileMediodiaUTC } from '../utils/fechaChile';
+import { hoyChileMediodiaUTC, fechaCalendarioAMediodiaUTC } from '../utils/fechaChile';
 
 
 
@@ -56,6 +56,12 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
+        const fechaProximoControl = fechaCalendarioAMediodiaUTC(control.fecha_proximoControl);
+        if (!fechaProximoControl) {
+            res.status(400).json({ error: 'La fecha del próximo control no es válida. Usa el formato AAAA-MM-DD.' });
+            return;
+        }
+
         // mapeo y conversión de tipos usando el ID que acabamos de encontrar
         const controlLimpio = {
             fecha_control: hoyChileMediodiaUTC(),
@@ -69,7 +75,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             imc: aplicaImc ? parseFloat(control.imc) : null,
             problemas_diagnosticados: control.problemas_diagnosticados || null,
             indicaciones_acuerdos: control.indicaciones_acuerdos || null,
-            fecha_proximoControl: new Date(control.fecha_proximoControl),
+            fecha_proximoControl: fechaProximoControl,
 
             // inyectamos el id que se encontró gracais al rut
             rut_paciente: pacienteExistente.rut,
@@ -152,8 +158,15 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         if (datos.imc !== undefined) datosLimpios.imc = datos.imc ? parseFloat(datos.imc) : null;
         if (datos.problemas_diagnosticados !== undefined) datosLimpios.problemas_diagnosticados = datos.problemas_diagnosticados;
         if (datos.indicaciones_acuerdos !== undefined) datosLimpios.indicaciones_acuerdos = datos.indicaciones_acuerdos;
-        if (datos.fecha_proximoControl !== undefined) datosLimpios.fecha_proximoControl = new Date(datos.fecha_proximoControl);
-        if (datos.rut_paciente !== undefined) datosLimpios.rut_paciente = parseInt(datos.rut_paciente);
+        if (datos.fecha_proximoControl !== undefined) {
+            const fechaProximoControl = fechaCalendarioAMediodiaUTC(datos.fecha_proximoControl);
+            if (!fechaProximoControl) {
+                res.status(400).json({ error: 'La fecha del próximo control no es válida. Usa el formato AAAA-MM-DD.' });
+                return;
+            }
+            datosLimpios.fecha_proximoControl = fechaProximoControl;
+        }
+        if (datos.rut_paciente !== undefined) datosLimpios.rut_paciente = String(datos.rut_paciente).trim();
         if (datos.rut_profesional !== undefined) datosLimpios.rut_profesional = datos.rut_profesional;
 
         const resultado = await controlService.editarControl(id, datosLimpios);

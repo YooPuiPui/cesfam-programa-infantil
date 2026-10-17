@@ -3,7 +3,7 @@
 // base, para que queden alineados con lo que dividirDiagnosticos() produce
 // en futuras importaciones. Ver analisis previo en la conversacion con
 // Claude sobre los ~82 valores distintos de "diagnosticos".
-import prisma from '../src/config/prisma';
+import prisma from '../config/prisma';
 
 const MAPA_DIAGNOSTICOS_CANONICOS: Record<string, string> = {
     TEA: 'TEA',
@@ -83,10 +83,12 @@ async function main() {
     console.log(`Diagnosticos distintos despues del cambio: ${set.size}`);
 }
 
-main()
-    .then(() => prisma.$disconnect())
-    .catch(async (e) => {
-        console.error(e);
-        await prisma.$disconnect();
-        process.exit(1);
-    });
+if (require.main === module) {
+    main()
+        .then(() => prisma.$disconnect())
+        .catch(async (e) => {
+            console.error(e);
+            await prisma.$disconnect();
+            process.exit(1);
+        });
+}
