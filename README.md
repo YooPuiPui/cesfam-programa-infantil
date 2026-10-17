@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🩺 CESFAM Programa Infantil
+# CESFAM Programa Infantil
 
 **Sistema de gestión clínica para el Programa Infantil del CESFAM Santa Sabina**
 
@@ -22,64 +22,64 @@ Pacientes · Controles clínicos · Agenda · Talleres NANEAS · Reportes · Imp
 
 <br>
 
-[Sobre el proyecto](#-sobre-el-proyecto) ·
-[Funcionalidades](#-funcionalidades) ·
-[Arquitectura](#-arquitectura) ·
-[Tecnologías](#-tecnologías) ·
-[Instalación](#-instalación-y-ejecución-local) ·
-[Usuarios](#-gestión-de-usuarios) ·
-[Datos de prueba](#-datos-de-prueba) ·
-[Despliegue](#-despliegue-en-servidor) ·
-[Licencia](#-licencia)
+[Sobre el proyecto](#sobre-el-proyecto) ·
+[Funcionalidades](#funcionalidades) ·
+[Arquitectura](#arquitectura) ·
+[Tecnologías](#tecnologías) ·
+[Instalación](#instalación-y-ejecución-local) ·
+[Usuarios](#gestión-de-usuarios) ·
+[Despliegue](#despliegue-en-servidor) ·
+[Licencia](#licencia)
 
 </div>
 
 ---
 
-## 📌 Sobre el proyecto
+## Sobre el proyecto
 
 `cesfam-programa-infantil` es el sistema de gestión clínica desarrollado como **proyecto de título** para el Programa Infantil del CESFAM Santa Sabina. Digitaliza el seguimiento de los niños, niñas y adolescentes inscritos en el programa y reemplaza los registros manuales por una plataforma centralizada para el equipo de salud.
 
 | Población atendida | Rango de edad |
 |---|---|
-| 👶 Programa Infantil | 0 a 10 años |
-| 🧩 NANEAS (TEA y otros diagnósticos) | hasta los 18 años |
+| Programa Infantil | 0 a 10 años |
+| NANEAS (TEA y otros diagnósticos) | hasta los 18 años |
 
 ---
 
-## ✨ Funcionalidades
+## Funcionalidades
 
 | Módulo | Qué permite |
 |---|---|
-| 🔑 **Inicio de sesión** | Acceso con RUT y contraseña (JWT + contraseñas cifradas con `bcrypt`). No hay registro público: las cuentas se crean desde el servidor. |
-| 📊 **Dashboard** | Pacientes por grupo de riesgo, resumen de la agenda y caracterización de la población: edad, estado, diagnósticos, credencial de discapacidad y cuidador. |
-| 🧒 **Pacientes** | Listado con búsqueda, ficha clínica, inscripción y edición. Incluye diagnósticos, credencial de discapacidad, programa de salud mental, flags de riesgo social y datos del cuidador. |
-| 👨‍👩‍👧 **Tutores** | Datos del tutor de cada paciente. Los tutores creados desde la importación Excel quedan como *"por confirmar"* hasta verificarlos con la familia. |
-| 🩺 **Controles clínicos** | Registro de peso, talla y evolución clínica con validaciones por edad: IMC solo desde los 2 años y perímetro cefálico hasta los 3 años. |
-| 📅 **Agenda de controles** | Próximos controles filtrados por *hoy*, *atrasados*, *esta semana* o un rango de fechas, según el calendario de Chile, con búsqueda por RUT o nombre. |
-| 🎨 **Talleres NANEAS** | Talleres con rango de edad (0 a 18 años), sesiones, inscripción de niños, estado de convocatoria y asistencia. La asistencia solo se marca desde la fecha de la sesión y un taller desactivado no admite sesiones nuevas. |
-| 📈 **Reportes** | Gráficos de evolución de peso y talla por paciente y alertas de aumento acelerado o pérdida significativa de peso. |
-| 📥 **Importar Excel** | Carga de las hojas NANEAS y TEA del catastro, con normalización de RUT, diagnósticos, sector y credencial, y vista previa (*dry-run*) antes de guardar. |
-| 👩‍⚕️ **Profesionales** | Registro del equipo de salud (RUT, nombre y estamento) que realiza los controles y dirige las sesiones de talleres. |
+| **Inicio de sesión** | Acceso con RUT y contraseña (JWT y contraseñas cifradas con `bcrypt`). No hay registro público: las cuentas se crean desde el servidor. |
+| **Dashboard** | Pacientes por grupo de riesgo, resumen de la agenda y caracterización de la población: edad, estado, diagnósticos, credencial de discapacidad y cuidador. |
+| **Pacientes** | Listado con búsqueda, ficha clínica, inscripción y edición. Incluye diagnósticos, credencial de discapacidad, programa de salud mental, flags de riesgo social y datos del cuidador. |
+| **Tutores** | Datos del tutor de cada paciente. Los tutores creados desde la importación Excel quedan como *"por confirmar"* hasta verificarlos con la familia. |
+| **Controles clínicos** | Registro de peso, talla y evolución clínica con validaciones por edad: IMC solo desde los 2 años y perímetro cefálico hasta los 3 años. |
+| **Agenda de controles** | Próximos controles filtrados por *hoy*, *atrasados*, *esta semana* o un rango de fechas, según el calendario de Chile, con búsqueda por RUT o nombre. |
+| **Talleres NANEAS** | Talleres con rango de edad (0 a 18 años), sesiones, inscripción de niños, estado de convocatoria y asistencia. La asistencia solo se marca desde la fecha de la sesión y un taller desactivado no admite sesiones nuevas. |
+| **Reportes** | Gráficos de evolución de peso y talla por paciente y alertas de aumento acelerado o pérdida significativa de peso. |
+| **Importar Excel** | Carga de las hojas NANEAS y TEA del catastro, con normalización de RUT, diagnósticos, sector y credencial, y vista previa (*dry-run*) antes de guardar. |
+| **Profesionales** | Registro del equipo de salud (RUT, nombre y estamento) que realiza los controles y dirige las sesiones de talleres. |
 
 ---
 
-## 🧱 Arquitectura
+## Arquitectura
 
-El sistema tiene tres partes: un **Frontend** en React, una **API REST** en Express y una base de datos **PostgreSQL**. En el servidor, el Frontend y la API se ejecutan como procesos administrados por **PM2**.
+El sistema sigue una arquitectura cliente-servidor de tres capas. En el servidor, el Frontend y la API se ejecutan como procesos administrados por **PM2**.
 
-```mermaid
-flowchart LR
-    U["👩‍⚕️ Equipo de salud<br/>(navegador)"] --> F["Frontend<br/>React + Vite"]
-    F -- "HTTP + JWT" --> B["API REST<br/>Node.js + Express"]
-    B -- "Prisma ORM" --> D[("PostgreSQL")]
-```
+| Capa | Tecnología | Función |
+|---|---|---|
+| **Presentación** | React + Vite | Interfaz web que usa el equipo de salud desde el navegador. Se comunica con la API mediante HTTP y un token JWT. |
+| **Lógica de negocio** | Node.js + Express | API REST que valida los datos, aplica las reglas clínicas y de negocio, y controla el acceso. |
+| **Datos** | PostgreSQL + Prisma ORM | Almacena la información del programa. Prisma define el esquema, las migraciones y las consultas. |
+
+Dentro de la API, cada solicitud pasa por **rutas → middleware de autenticación → controladores → servicios → Prisma**. Las rutas definen los endpoints, los controladores validan la entrada y responden, y los servicios contienen la mayor parte del acceso a la base de datos.
 
 > [!NOTE]
 > El repositorio incluye un `Dockerfile` por servicio y un `docker-compose.yml` para levantar el sistema completo en contenedores. Esa configuración es opcional y no se usa en el despliegue actual.
 
 <details>
-<summary><b>📁 Estructura del Backend</b></summary>
+<summary><b>Estructura del Backend</b></summary>
 
 ```bash
 ├── backend
@@ -141,7 +141,7 @@ flowchart LR
 </details>
 
 <details>
-<summary><b>📁 Estructura del Frontend</b></summary>
+<summary><b>Estructura del Frontend</b></summary>
 
 ```bash
 ├── frontend
@@ -180,22 +180,22 @@ flowchart LR
 
 ---
 
-## 🧰 Tecnologías
+## Tecnologías
 
 El proyecto usa el stack **PERN** (PostgreSQL, Express, React, Node.js) con **TypeScript** en el Backend y el Frontend.
 
-| | Tecnología | Uso en el proyecto |
-|:---:|---|---|
-| 🐘 | [PostgreSQL](https://www.postgresql.org/) | Base de datos de pacientes, tutores, profesionales, usuarios, controles, talleres, sesiones e inscripciones. |
-| 🔷 | [Prisma ORM](https://www.prisma.io/) | Esquema de la base de datos, migraciones, consultas y carga de datos de prueba. |
-| 🚂 | [Express.js](https://expressjs.com/) | API REST: rutas, autenticación y validaciones de negocio. |
-| ⚛️ | [React](https://react.dev/) + [Vite](https://vite.dev/) | Interfaz del equipo de salud y compilación del Frontend. |
-| 🟩 | [Node.js](https://nodejs.org/) | Ejecución de la API y de las herramientas de compilación. |
-| ⚙️ | [PM2](https://pm2.keymetrics.io/) | Mantiene la API y el Frontend en ejecución en el servidor y los reinicia si se detienen por un error. |
-| 🐳 | [Docker](https://www.docker.com/) | Configuración opcional para levantar el sistema en contenedores. |
+| Tecnología | Uso en el proyecto |
+|---|---|
+| [PostgreSQL](https://www.postgresql.org/) | Base de datos de pacientes, tutores, profesionales, usuarios, controles, talleres, sesiones e inscripciones. |
+| [Prisma ORM](https://www.prisma.io/) | Esquema de la base de datos, migraciones y consultas. |
+| [Express.js](https://expressjs.com/) | API REST: rutas, autenticación y validaciones de negocio. |
+| [React](https://react.dev/) + [Vite](https://vite.dev/) | Interfaz del equipo de salud y compilación del Frontend. |
+| [Node.js](https://nodejs.org/) | Ejecución de la API y de las herramientas de compilación. |
+| [PM2](https://pm2.keymetrics.io/) | Mantiene la API y el Frontend en ejecución en el servidor y los reinicia si se detienen por un error. |
+| [Docker](https://www.docker.com/) | Configuración opcional para levantar el sistema en contenedores. |
 
 <details>
-<summary><b>📚 Otras librerías</b></summary>
+<summary><b>Otras librerías</b></summary>
 
 | Librería | Uso |
 |---|---|
@@ -207,13 +207,12 @@ El proyecto usa el stack **PERN** (PostgreSQL, Express, React, Node.js) con **Ty
 | [Recharts](https://recharts.org/) | Gráficos de evolución y del dashboard. |
 | [Tailwind CSS](https://tailwindcss.com/) | Estilos de la interfaz. |
 | [Lucide React](https://lucide.dev/) | Iconos. |
-| [Faker](https://fakerjs.dev/) | Generación de datos ficticios para el seed de pruebas. |
 
 </details>
 
 ---
 
-## 🚀 Instalación y ejecución local
+## Instalación y ejecución local
 
 **Requisitos:** Node.js (el proyecto se ejecuta con la versión 24) y PostgreSQL 14 o superior.
 
@@ -223,9 +222,9 @@ git clone https://github.com/YooPuiPui/cesfam-programa-infantil.git
 cd cesfam-programa-infantil
 ```
 
-**2. Crear una base de datos vacía** en PostgreSQL (por ejemplo, `cesfam`).
+**2. Crear una base de datos vacía** en PostgreSQL.
 
-**3. Levantar el Backend** (antes, crear `backend/.env`; ver la tabla de abajo)
+**3. Levantar el Backend** (antes, crear el archivo `backend/.env` con la conexión a la base de datos y la clave para firmar las sesiones)
 ```bash
 cd backend
 npm install
@@ -240,36 +239,16 @@ npm install
 npm run dev
 ```
 
-**5. Crear un usuario** para iniciar sesión (ver [Gestión de usuarios](#-gestión-de-usuarios)) y, si se quiere, cargar [datos de prueba](#-datos-de-prueba).
+**5. Crear un usuario** para iniciar sesión (ver [Gestión de usuarios](#gestión-de-usuarios)).
 
 | Servicio | Dirección local |
 |---|---|
-| 🖥️ Frontend | `http://localhost:5173` |
-| 🔌 API | `http://localhost:3000/api` |
-
-### Variables de entorno
-
-**Backend** (`backend/.env`)
-
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `DATABASE_URL` | Conexión a PostgreSQL | `postgresql://usuario:clave@localhost:5432/cesfam?schema=public` |
-| `JWT_SECRET` | Clave para firmar las sesiones. Debe ser larga y aleatoria | generar con `openssl rand -hex 32` |
-| `FRONTEND_ORIGIN` | Dirección desde la que se abre el Frontend (CORS) | `http://localhost:5173` |
-| `PORT` | Puerto de la API | `3000` |
-
-**Frontend** (`frontend/.env.production`, solo al compilar para un servidor)
-
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `VITE_API_URL` | Dirección pública de la API | `http://<servidor>:<puerto>/api` |
-
-> [!TIP]
-> Si `VITE_API_URL` no está definida, el Frontend usa `http://localhost:3000/api`. Los archivos `.env` contienen claves y no se suben al repositorio.
+| Frontend | `http://localhost:5173` |
+| API | `http://localhost:3000/api` |
 
 ---
 
-## 🔐 Gestión de usuarios
+## Gestión de usuarios
 
 El sistema **no tiene registro público** de cuentas. Las cuentas las crea quien administra el servidor con un script interactivo:
 
@@ -284,31 +263,7 @@ npx ts-node scripts/crear-usuario.ts
 
 ---
 
-## 🧪 Datos de prueba
-
-El archivo `backend/prisma/seed.ts` genera una población **ficticia** para probar todos los módulos:
-
-| Contenido | Detalle |
-|---|---|
-| 👶 Programa Infantil | 200 pacientes de 0 a 10 años |
-| 🧩 NANEAS | 120 pacientes hasta los 18 años, con diagnósticos iguales a los del catastro |
-| 🩺 Controles | Todos los pacientes tienen controles, con curvas de crecimiento por sexo y alertas de peso |
-| 🎨 Talleres | Talleres del programa con sesiones pasadas, de hoy y futuras, inscripciones y asistencia |
-
-Los nombres, RUT y direcciones no corresponden a personas reales.
-
-```bash
-cd backend
-npx prisma db seed             # solo si la base no tiene pacientes
-npx prisma db seed -- --reset  # borra y regenera los datos de prueba
-```
-
-> [!WARNING]
-> `--reset` borra pacientes, tutores, controles, profesionales y talleres. **Nunca se debe usar en una base con datos reales.** La tabla de usuarios no se borra.
-
----
-
-## 🌐 Despliegue en servidor
+## Despliegue en servidor
 
 La API y el Frontend se compilan y se ejecutan con PM2:
 
@@ -320,7 +275,7 @@ npx prisma migrate deploy
 npm run build
 pm2 start dist/index.js --name cesfam-backend
 
-# Frontend (con VITE_API_URL definido en .env.production)
+# Frontend
 cd ../frontend
 npm install
 npm run build
@@ -336,7 +291,7 @@ pm2 save
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto se distribuye bajo la licencia **MIT**. Ver el archivo [LICENSE](LICENSE) para más detalles.
 
