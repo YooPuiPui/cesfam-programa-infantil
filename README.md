@@ -65,15 +65,14 @@ Pacientes · Controles clínicos · Agenda · Talleres NANEAS · Reportes · Imp
 
 ## Arquitectura
 
-El sistema sigue una arquitectura cliente-servidor de tres capas. En el servidor, el Frontend y la API se ejecutan como procesos administrados por **PM2**.
+El sistema sigue una arquitectura cliente-servidor de tres capas. La aplicación web se comunica con la API REST mediante HTTP, enviando un token JWT en cada solicitud. Dentro de la API, cada solicitud pasa por las rutas, la verificación del token (salvo el inicio de sesión), los controladores (donde se validan los datos) y los servicios, que acceden a PostgreSQL a través de Prisma. En el servidor, la API y el Frontend compilado se ejecutan como procesos administrados por **PM2**.
 
-| Capa | Tecnología | Función |
-|---|---|---|
-| **Presentación** | React + Vite | Interfaz web que usa el equipo de salud desde el navegador. Se comunica con la API mediante HTTP y un token JWT. |
-| **Lógica de negocio** | Node.js + Express | API REST que valida los datos, aplica las reglas clínicas y de negocio, y controla el acceso. |
-| **Datos** | PostgreSQL + Prisma ORM | Almacena la información del programa. Prisma define el esquema, las migraciones y las consultas. |
-
-Dentro de la API, cada solicitud pasa por **rutas → middleware de autenticación → controladores → servicios → Prisma**. Las rutas definen los endpoints, los controladores validan la entrada y responden, y los servicios contienen la mayor parte del acceso a la base de datos.
+```mermaid
+flowchart LR
+    U["Equipo de salud<br/>(navegador)"] --> F["Frontend<br/>React + Vite"]
+    F -- "HTTP + JWT" --> B["API REST<br/>Node.js + Express"]
+    B -- "Prisma ORM" --> D[("PostgreSQL")]
+```
 
 > [!NOTE]
 > El repositorio incluye un `Dockerfile` por servicio y un `docker-compose.yml` para levantar el sistema completo en contenedores. Esa configuración es opcional y no se usa en el despliegue actual.
