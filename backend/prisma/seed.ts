@@ -3,7 +3,11 @@
 // =============================================================================
 // Genera una población FICTICIA de 320 niños, niñas y adolescentes para probar
 // todos los módulos del sistema. Ningún nombre, RUT, dirección ni teléfono es
-// real: se generan con faker.
+// real: los nombres y apellidos son combinaciones al azar de nombres frecuentes
+// en Chile, las direcciones usan calles y poblaciones de Concepción con números
+// inventados, y los RUT tienen dígito verificador válido pero son aleatorios.
+// Los hermanos comparten apellidos con su familia, y peso, talla y perímetro
+// cefálico siguen curvas de crecimiento aproximadas por sexo.
 //
 // Lo único tomado del CATASTRO NANEAS (hojas NANEAS y TEA) son los VALORES de
 // diagnóstico y su frecuencia relativa, ya normalizados igual que lo hace la
@@ -11,8 +15,8 @@
 // edad y sexo de esa población. Los controles clínicos son inventados.
 //
 // Población:
-//   - 200 Programa Infantil, 0 a 9 años, sin diagnóstico NANEAS
-//   - 120 NANEAS (TEA y otros diagnósticos), 6 meses a 17 años
+//   - 200 Programa Infantil, 0 a 10 años, sin diagnóstico NANEAS
+//   - 120 NANEAS (TEA y otros diagnósticos), 6 meses a 18 años
 //   Todos los pacientes tienen al menos un control clínico.
 //
 // Qué muestra cada módulo:
@@ -53,8 +57,8 @@ const RESET = process.argv.includes('--reset');
 // ---------------------------------------------------------------------------
 // Configuración
 // ---------------------------------------------------------------------------
-const TOTAL_PACIENTES_INFANTIL = 200; // 0-9 años sin diagnóstico NANEAS
-const TOTAL_PACIENTES_NANEAS = 120; // con diagnóstico, hasta 17 años
+const TOTAL_PACIENTES_INFANTIL = 200; // 0 a 10 años, sin diagnóstico NANEAS
+const TOTAL_PACIENTES_NANEAS = 120; // con diagnóstico, hasta los 18 años
 const TOTAL_TUTORES = 210; // menos tutores que pacientes -> hermanos
 const TUTORES_POR_CONFIRMAR = 8; // pacientes NANEAS "importados" sin apoderado
 const CANTIDAD_ALERTA_GANANCIA = 6;
@@ -75,6 +79,74 @@ const SECTORES = [
     { value: null, weight: 5 },
 ];
 const COMUNA_UNICA = 'Concepción';
+
+// ---------------------------------------------------------------------------
+// Nombres, apellidos y direcciones chilenas (ficticios)
+// ---------------------------------------------------------------------------
+// Combinaciones al azar de nombres y apellidos frecuentes en Chile. No
+// corresponden a personas reales.
+const NOMBRES_NINO_RECIENTES = ['Agustín', 'Mateo', 'Benjamín', 'Vicente', 'Tomás', 'Gaspar', 'Lucas', 'Joaquín', 'Martín', 'Maximiliano', 'Santiago', 'Emiliano', 'León', 'Facundo', 'Lautaro', 'Thiago', 'Julián', 'Amaro', 'Simón', 'Renato', 'Damián', 'Cristóbal', 'Bastián', 'Alonso', 'Ignacio', 'Félix', 'Gael'];
+const NOMBRES_NINO_MAYORES = ['Benjamín', 'Vicente', 'Martín', 'Matías', 'Joaquín', 'Agustín', 'Cristóbal', 'Maximiliano', 'Sebastián', 'Tomás', 'Diego', 'Felipe', 'Bastián', 'Nicolás', 'Ignacio', 'Lucas', 'Fernando', 'Javier', 'Franco', 'Alexis'];
+const NOMBRES_NINA_RECIENTES = ['Sofía', 'Isidora', 'Emilia', 'Florencia', 'Agustina', 'Josefa', 'Trinidad', 'Martina', 'Maite', 'Amanda', 'Julieta', 'Isabella', 'Colomba', 'Aurora', 'Mía', 'Emma', 'Rafaela', 'Elisa', 'Josefina', 'Renata', 'Laura', 'Antonia', 'Leonor', 'Matilda'];
+const NOMBRES_NINA_MAYORES = ['Catalina', 'Antonella', 'Fernanda', 'Valentina', 'Javiera', 'Constanza', 'Antonia', 'Francisca', 'Ignacia', 'Monserrat', 'Belén', 'Camila', 'Isidora', 'Sofía', 'Martina', 'Florencia', 'Amanda', 'Josefa'];
+const NOMBRES_COMPUESTOS_NINO = ['Juan Pablo', 'José Tomás', 'Juan Ignacio', 'Juan José', 'José Ignacio', 'Juan Martín'];
+const NOMBRES_COMPUESTOS_NINA = ['María José', 'María Ignacia', 'María Jesús', 'Ana Sofía', 'María Paz', 'María Fernanda'];
+const NOMBRES_MUJER_ADULTA = ['Carolina', 'Daniela', 'Camila', 'Francisca', 'Paula', 'Valeria', 'Macarena', 'Andrea', 'Claudia', 'Paola', 'Marcela', 'Karen', 'Katherine', 'Natalia', 'Constanza', 'Javiera', 'Fernanda', 'Pamela', 'Jessica', 'Gabriela', 'Yasna', 'Romina', 'Bárbara', 'Viviana', 'Alejandra', 'Verónica', 'Nicole', 'Valentina', 'Catalina'];
+const NOMBRES_HOMBRE_ADULTO = ['Juan', 'Rodrigo', 'Cristián', 'Felipe', 'Francisco', 'Sebastián', 'Pablo', 'Gonzalo', 'Mauricio', 'Luis', 'Jorge', 'Carlos', 'Diego', 'Matías', 'Nicolás', 'Claudio', 'Patricio', 'Marcelo', 'Álvaro', 'Héctor', 'Víctor', 'Esteban', 'Daniel', 'Javier'];
+const NOMBRES_MUJER_MAYOR = ['Rosa', 'Ana', 'Gladys', 'Eliana', 'Ximena', 'Margarita', 'Jacqueline', 'Silvia', 'Nancy', 'Irma', 'Teresa', 'María Angélica', 'Luz', 'Sonia', 'Mirta', 'Patricia'];
+// Apellidos frecuentes en Chile, con más peso los más comunes; se suman
+// algunos habituales en el Biobío y apellidos mapuche
+const APELLIDOS = [
+    ...['González', 'Muñoz', 'Rojas', 'Díaz', 'Pérez', 'Soto', 'Contreras', 'Silva', 'Martínez', 'Sepúlveda'].map((value) => ({ value, weight: 6 })),
+    ...['Morales', 'Rodríguez', 'López', 'Fuentes', 'Hernández', 'Torres', 'Araya', 'Flores', 'Espinoza', 'Valenzuela', 'Castillo', 'Tapia', 'Reyes', 'Gutiérrez', 'Castro', 'Pizarro', 'Álvarez', 'Vásquez', 'Sánchez', 'Fernández', 'Ramírez', 'Carrasco', 'Gómez', 'Cortés', 'Herrera', 'Núñez', 'Jara', 'Vergara'].map((value) => ({ value, weight: 3 })),
+    ...['Rivera', 'Figueroa', 'Riquelme', 'García', 'Miranda', 'Bravo', 'Vera', 'Molina', 'Vega', 'Campos', 'Sandoval', 'Olivares', 'Orellana', 'Zúñiga', 'Gallardo', 'Ortiz', 'Salazar', 'Alarcón', 'Henríquez', 'Saavedra', 'Navarro', 'Aguilera', 'Parra', 'Romero', 'Aravena', 'Cáceres', 'Sáez', 'Leiva', 'Bustos', 'Medina', 'Burgos', 'Cifuentes', 'Mendoza', 'Lagos', 'Poblete', 'Toledo', 'Paredes', 'Pino', 'Valdés', 'Ulloa', 'Sanhueza', 'Quezada', 'Ortega', 'Inostroza', 'Arriagada', 'Mora', 'Vidal', 'Monsalve', 'Neira', 'Venegas'].map((value) => ({ value, weight: 2 })),
+    ...['Ñancupil', 'Millapán', 'Catrileo', 'Huenchullán', 'Painemal', 'Llanquileo', 'Curín', 'Quilaqueo'].map((value) => ({ value, weight: 1 })),
+];
+// Calles y poblaciones de Concepción (números de casa inventados)
+const CALLES_CONCEPCION = ['O\'Higgins', 'Barros Arana', 'Freire', 'Maipú', 'Colo Colo', 'Caupolicán', 'Rengo', 'Lincoyán', 'Tucapel', 'Orompello', 'Ongolmo', 'Paicaví', 'Chacabuco', 'San Martín', 'Cochrane', 'Prat', 'Serrano', 'Lautaro', 'Galvarino', 'Janequeo', 'Las Heras', 'Bulnes', 'Manuel Rodríguez', 'Víctor Lamas', 'Collao', 'Pedro de Valdivia', 'Los Carrera', 'Angol', 'Castellón', 'Salas'];
+const POBLACIONES_CONCEPCION = ['Santa Sabina', 'Valle Nonguén', 'Lorenzo Arenas', 'Agüita de la Perdiz', 'Pedro de Valdivia Bajo', 'Palomares', 'Barrio Norte', 'Villa Los Lirios', 'Villa Universitaria', 'Pobl. Pedro del Río'];
+const DOMINIOS_CORREO = [{ value: 'gmail.com', weight: 70 }, { value: 'hotmail.com', weight: 18 }, { value: 'outlook.com', weight: 8 }, { value: 'yahoo.es', weight: 4 }];
+
+const apellidoAlAzar = (distintoDe?: string): string => {
+    for (;;) {
+        const a = faker.helpers.weightedArrayElement(APELLIDOS);
+        if (a !== distintoDe) return a;
+    }
+};
+const dosApellidos = () => { const a = apellidoAlAzar(); return `${a} ${apellidoAlAzar(a)}`; };
+
+function nombreNinoNina(sexo: string, anioNacimiento: number): string {
+    const masculino = sexo === 'Masculino';
+    if (faker.datatype.boolean({ probability: 0.12 })) {
+        return faker.helpers.arrayElement(masculino ? NOMBRES_COMPUESTOS_NINO : NOMBRES_COMPUESTOS_NINA);
+    }
+    const reciente = anioNacimiento >= HOY_ANIO - 9;
+    const lista = masculino
+        ? (reciente ? NOMBRES_NINO_RECIENTES : NOMBRES_NINO_MAYORES)
+        : (reciente ? NOMBRES_NINA_RECIENTES : NOMBRES_NINA_MAYORES);
+    return faker.helpers.arrayElement(lista);
+}
+
+function nombreAdulto(mujer: boolean, mayor = false): string {
+    if (mujer) return faker.helpers.arrayElement(mayor ? NOMBRES_MUJER_MAYOR : NOMBRES_MUJER_ADULTA);
+    return faker.helpers.arrayElement(NOMBRES_HOMBRE_ADULTO);
+}
+
+function direccionConcepcion(): string {
+    const numero = faker.number.int({ min: 50, max: 2900 });
+    return faker.helpers.weightedArrayElement([
+        { weight: 45, value: () => `${faker.helpers.arrayElement(CALLES_CONCEPCION)} ${numero}` },
+        { weight: 15, value: () => `${faker.helpers.arrayElement(CALLES_CONCEPCION)} ${numero}, Depto ${faker.number.int({ min: 1, max: 12 })}0${faker.number.int({ min: 1, max: 8 })}` },
+        { weight: 40, value: () => `Pasaje ${faker.number.int({ min: 1, max: 40 })} Casa ${faker.number.int({ min: 1, max: 350 })}, ${faker.helpers.arrayElement(POBLACIONES_CONCEPCION)}` },
+    ])();
+}
+
+// "María José" + "Muñoz Soto" -> mariajose.munoz87@gmail.com
+function correoDesde(nombre: string, apellidos: string): string {
+    const limpiar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z]/g, '').toLowerCase();
+    const usuario = `${limpiar(nombre)}${faker.helpers.arrayElement(['.', '_', ''])}${limpiar(apellidos.split(' ')[0])}${faker.datatype.boolean({ probability: 0.6 }) ? faker.number.int({ min: 1, max: 99 }) : ''}`;
+    return `${usuario}@${faker.helpers.weightedArrayElement(DOMINIOS_CORREO)}`;
+}
 
 // ---------------------------------------------------------------------------
 // Diagnósticos del CATASTRO NANEAS (hojas NANEAS + TEA)
@@ -143,12 +215,12 @@ const RANGOS_EDAD_NANEAS = [
     { weight: 24, value: [24, 59] },
     { weight: 66, value: [60, 119] },
     { weight: 49, value: [120, 167] },
-    { weight: 39, value: [168, 215] },
+    { weight: 39, value: [168, 227] }, // hasta 18 años y 11 meses
 ];
 const RANGOS_EDAD_INFANTIL = [
     { weight: 30, value: [0, 23] },
     { weight: 30, value: [24, 59] },
-    { weight: 40, value: [60, 119] },
+    { weight: 40, value: [60, 131] }, // hasta 10 años y 11 meses
 ];
 
 // ---------------------------------------------------------------------------
@@ -278,12 +350,25 @@ const anioNacimientoAdulto = () => HOY_ANIO - faker.number.int({ min: 22, max: 6
 const telefonoMovil = () => `+569${faker.number.int({ min: 10000000, max: 99999999 })}`;
 
 // ---------------------------------------------------------------------------
-// Curvas de crecimiento aproximadas 0-18 años (promedio ambos sexos)
+// Curvas de crecimiento 0-18 años por sexo
 // ---------------------------------------------------------------------------
+// Medianas aproximadas de peso, talla y perímetro cefálico (referencia
+// OMS 0-5 años y OMS 2007 / CDC para escolares y adolescentes). Son solo
+// para generar datos de prueba creíbles, no para evaluar pacientes.
 const PUNTOS_EDAD = [0, 3, 6, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 144, 168, 192, 216];
-const PUNTOS_PESO = [3.3, 6.0, 7.8, 9.6, 12.2, 14.3, 16.3, 18.0, 20.5, 22.9, 25.6, 28.6, 32.0, 40.5, 50.5, 57.5, 61.5];
-const PUNTOS_TALLA = [50, 61, 67, 75, 87, 96, 103, 110, 116, 122, 128, 133, 138, 150, 162, 168, 171];
-const PUNTOS_PERIMETRO = [34, 40, 43, 46, 48, 49, 50, 50, 51, 51, 52, 52, 52, 53, 54, 55, 55];
+const CURVAS = {
+    Masculino: {
+        peso: [3.3, 6.4, 7.9, 9.6, 12.2, 14.3, 16.3, 18.3, 20.5, 22.9, 25.4, 28.1, 31.2, 40.0, 51.0, 60.5, 65.5],
+        talla: [49.9, 61.4, 67.6, 75.7, 87.1, 96.1, 103.3, 110.0, 116.0, 121.7, 127.3, 132.6, 137.8, 149.1, 163.2, 173.0, 176.1],
+        perimetro: [34.5, 40.5, 43.3, 46.1, 48.3, 49.5, 50.2, 50.7, 51.1, 51.4, 51.7, 52.0, 52.3, 53.0, 54.0, 55.0, 55.6],
+    },
+    Femenino: {
+        peso: [3.2, 5.8, 7.3, 8.9, 11.5, 13.9, 16.1, 18.2, 20.2, 22.4, 25.0, 28.2, 31.9, 41.5, 50.0, 54.5, 56.6],
+        talla: [49.1, 59.8, 65.7, 74.0, 85.7, 95.1, 102.7, 109.4, 115.1, 120.8, 126.6, 132.5, 138.6, 151.2, 159.8, 162.5, 163.1],
+        perimetro: [33.9, 39.5, 42.2, 45.0, 47.2, 48.5, 49.3, 49.9, 50.3, 50.7, 51.0, 51.3, 51.6, 52.4, 53.3, 54.0, 54.3],
+    },
+};
+type Sexo = keyof typeof CURVAS;
 
 function interpolar(x: number, xs: number[], ys: number[]): number {
     if (x <= xs[0]) return ys[0];
@@ -293,9 +378,21 @@ function interpolar(x: number, xs: number[], ys: number[]): number {
     }
     return ys[ys.length - 1];
 }
-const pesoEsperado = (m: number) => interpolar(m, PUNTOS_EDAD, PUNTOS_PESO);
-const tallaEsperada = (m: number) => interpolar(m, PUNTOS_EDAD, PUNTOS_TALLA);
-const perimetroEsperado = (m: number) => interpolar(m, PUNTOS_EDAD, PUNTOS_PERIMETRO);
+const pesoEsperado = (m: number, sexo: Sexo) => interpolar(m, PUNTOS_EDAD, CURVAS[sexo].peso);
+const tallaEsperada = (m: number, sexo: Sexo) => interpolar(m, PUNTOS_EDAD, CURVAS[sexo].talla);
+const perimetroEsperado = (m: number, sexo: Sexo) => interpolar(m, PUNTOS_EDAD, CURVAS[sexo].perimetro);
+
+// Estado nutricional de cada niño (se mantiene en todos sus controles).
+// Distribución parecida a la realidad chilena: más sobrepeso que bajo peso.
+function factorPesoPersonal(): number {
+    const [min, max] = faker.helpers.weightedArrayElement([
+        { weight: 8, value: [0.86, 0.93] },  // bajo peso / riesgo
+        { weight: 55, value: [0.94, 1.06] }, // normal
+        { weight: 25, value: [1.07, 1.17] }, // sobrepeso
+        { weight: 12, value: [1.18, 1.30] }, // obesidad
+    ]);
+    return faker.number.float({ min, max, fractionDigits: 2 });
+}
 
 // ---------------------------------------------------------------------------
 // Escenarios clínicos (texto de controles, inventados)
@@ -325,8 +422,9 @@ const ESCENARIO_ADOLESCENTE: Escenario = { motivo: 'Control adolescente', anamne
 type TipoForzado = 'ninguno' | 'ganancia' | 'perdida';
 interface ControlGenerado { fecha: Date; edadMeses: number; peso: number; talla: number; esUltimo: boolean }
 
-function generarSerieControles(nacimiento: Date, numControles: number, tipoForzado: TipoForzado): ControlGenerado[] {
-    const factor = faker.number.float({ min: 0.88, max: 1.12, fractionDigits: 2 });
+function generarSerieControles(nacimiento: Date, sexo: Sexo, numControles: number, tipoForzado: TipoForzado): ControlGenerado[] {
+    const factorPeso = factorPesoPersonal();
+    const factorTalla = faker.number.float({ min: 0.95, max: 1.05, fractionDigits: 3 });
     const edadHoy = mesesCumplidos(nacimiento, HOY);
     // Lactantes se controlan más seguido que escolares/adolescentes.
     // Las alertas usan tramos cortos para que el cambio de peso sea claro.
@@ -345,8 +443,10 @@ function generarSerieControles(nacimiento: Date, numControles: number, tipoForza
         if (k > 0 && fecha.getTime() < sumarDias(nacimiento, 7).getTime()) continue; // nada antes de nacer
         const edad = mesesCumplidos(nacimiento, fecha);
 
-        let peso = pesoEsperado(edad) * factor + faker.number.float({ min: -0.2, max: 0.2, fractionDigits: 2 });
-        let talla = tallaEsperada(edad) * Math.sqrt(factor) + faker.number.float({ min: -0.3, max: 0.3, fractionDigits: 2 });
+        // El peso acompaña a la talla (un niño más alto pesa más) y se le suma
+        // su estado nutricional personal
+        let talla = tallaEsperada(edad, sexo) * factorTalla + faker.number.float({ min: -0.3, max: 0.3, fractionDigits: 2 });
+        let peso = pesoEsperado(edad, sexo) * Math.pow(factorTalla, 2) * factorPeso + faker.number.float({ min: -0.2, max: 0.2, fractionDigits: 2 });
         const previo = controles[controles.length - 1];
         if (previo) {
             talla = Math.max(talla, previo.talla);
@@ -364,7 +464,7 @@ function generarSerieControles(nacimiento: Date, numControles: number, tipoForza
         const meses = Math.max((ult.fecha.getTime() - pen.fecha.getTime()) / (1000 * 60 * 60 * 24 * 30.44), 1);
         ult.peso = tipoForzado === 'ganancia'
             ? +(pen.peso + meses * faker.number.float({ min: 1.2, max: 1.6, fractionDigits: 2 })).toFixed(1)
-            : +Math.max(pen.peso - meses * faker.number.float({ min: 0.6, max: 0.9, fractionDigits: 2 }), 3).toFixed(1);
+            : +Math.max(pen.peso - meses * faker.number.float({ min: 0.4, max: 0.6, fractionDigits: 2 }), 3).toFixed(1);
     }
     return controles;
 }
@@ -469,12 +569,13 @@ async function main() {
     });
     const profesionales = [PROFESIONAL_PRINCIPAL];
     for (const estamento of ESTAMENTOS_EXTRA) {
-        const p = { rut: generarRUT(anioNacimientoAdulto()), nombre: faker.person.firstName(), apellido: faker.person.lastName(), estamento };
+        const mujer = faker.datatype.boolean({ probability: 0.75 }); // en APS predominan profesionales mujeres
+        const p = { rut: generarRUT(anioNacimientoAdulto()), nombre: nombreAdulto(mujer), apellido: dosApellidos(), estamento };
         await prisma.profesional.create({ data: { ...p, activo: true } });
         profesionales.push(p);
     }
     await prisma.profesional.create({ // uno inactivo, para probar filtros
-        data: { rut: generarRUT(anioNacimientoAdulto()), nombre: faker.person.firstName(), apellido: faker.person.lastName(), estamento: 'Enfermera/o', activo: false },
+        data: { rut: generarRUT(anioNacimientoAdulto()), nombre: nombreAdulto(true), apellido: dosApellidos(), estamento: 'Enfermera/o', activo: false },
     });
     const profesionalesControl = profesionales.filter((p) => ESTAMENTOS_CONTROL.has(p.estamento));
     console.log(`${profesionales.length + 1} profesionales creados.`);
@@ -499,25 +600,40 @@ async function main() {
     }
 
     // --- Tutores verificados (varios tienen más de un hijo) ------------------
+    // Cada tutor representa una familia: sus hijos llevan los apellidos
+    // paterno y materno de la familia, y el apellido del tutor calza con su
+    // parentesco (la madre aporta el segundo apellido, el padre el primero).
     const tutores = [];
+    const familias = new Map<number, { paterno: string; materno: string }>();
     for (let i = 0; i < TOTAL_TUTORES; i++) {
-        tutores.push(await prisma.tutor.create({
+        const paterno = apellidoAlAzar();
+        const familia = { paterno, materno: apellidoAlAzar(paterno) };
+        const parentesco = faker.helpers.weightedArrayElement([
+            { weight: 60, value: 'Madre' }, { weight: 20, value: 'Padre' }, { weight: 12, value: 'Abuela' }, { weight: 8, value: 'Tío/a' },
+        ]);
+        const esMujer = parentesco === 'Madre' || parentesco === 'Abuela' || (parentesco === 'Tío/a' && faker.datatype.boolean());
+        const nombre = nombreAdulto(esMujer, parentesco === 'Abuela');
+        const apellido = parentesco === 'Madre' ? `${familia.materno} ${apellidoAlAzar(familia.materno)}`
+            : parentesco === 'Padre' || parentesco === 'Tío/a' ? `${familia.paterno} ${apellidoAlAzar(familia.paterno)}`
+            : dosApellidos();
+        const anioNacimiento = parentesco === 'Abuela' ? HOY_ANIO - faker.number.int({ min: 48, max: 72 }) : anioNacimientoAdulto();
+        const tutor = await prisma.tutor.create({
             data: {
-                rut: generarRUT(anioNacimientoAdulto()),
-                nombre: faker.person.firstName(),
-                apellido: faker.person.lastName(),
+                rut: generarRUT(anioNacimiento),
+                nombre,
+                apellido,
                 telefono: telefonoMovil(),
                 telefono_secundario: faker.datatype.boolean({ probability: 0.3 }) ? telefonoMovil() : null,
-                parentesco: faker.helpers.weightedArrayElement([
-                    { weight: 60, value: 'Madre' }, { weight: 20, value: 'Padre' }, { weight: 12, value: 'Abuela' }, { weight: 8, value: 'Tío/a' },
-                ]),
-                correo: faker.datatype.boolean({ probability: 0.65 }) ? faker.internet.email().toLowerCase() : null,
-                direccion: faker.location.streetAddress(),
+                parentesco,
+                correo: faker.datatype.boolean({ probability: parentesco === 'Abuela' ? 0.25 : 0.65 }) ? correoDesde(nombre, apellido) : null,
+                direccion: direccionConcepcion(),
                 sector: faker.helpers.weightedArrayElement(SECTORES),
                 comuna: COMUNA_UNICA,
                 verificado: true,
             },
-        }));
+        });
+        tutores.push(tutor);
+        familias.set(tutor.id_tutor, familia);
     }
     console.log(`${tutores.length} tutores verificados creados.`);
 
@@ -546,8 +662,7 @@ async function main() {
         // nacidos (0 meses) tienen al menos 7 días de vida para su primer control
         const fechaNacimiento = sumarDias(restarMeses(HOY, edadMeses), -faker.number.int({ min: edadMeses === 0 ? 7 : 0, max: 27 }));
         // En el catastro NANEAS ~63% son hombres; Programa Infantil 50/50
-        const sexo = faker.datatype.boolean({ probability: esNaneas ? 0.63 : 0.5 }) ? 'Masculino' : 'Femenino';
-        const generoLegal: 'male' | 'female' = sexo === 'Masculino' ? 'male' : 'female';
+        const sexo: Sexo = faker.datatype.boolean({ probability: esNaneas ? 0.63 : 0.5 }) ? 'Masculino' : 'Femenino';
 
         let tutor = faker.helpers.arrayElement(tutores);
         if (idxTutorPorConfirmar.has(i)) {
@@ -558,13 +673,17 @@ async function main() {
                     apellido: 'Por confirmar',
                     parentesco: 'Por confirmar',
                     telefono: telefonoMovil(),
-                    direccion: faker.helpers.arrayElement([faker.location.streetAddress(), 'Sin dato']),
+                    direccion: faker.helpers.arrayElement([direccionConcepcion(), 'Sin dato']),
                     sector: faker.helpers.weightedArrayElement(SECTORES),
                     comuna: COMUNA_UNICA,
                     verificado: false,
                 },
             });
         }
+
+        // Los hijos de un mismo tutor comparten apellidos; los importados sin
+        // apoderado reciben apellidos propios
+        const familia = familias.get(tutor.id_tutor) ?? (() => { const paterno = apellidoAlAzar(); return { paterno, materno: apellidoAlAzar(paterno) }; })();
 
         const diagnosticos = esNaneas ? generarDiagnosticos(edadMeses, sexo) : [];
         const tieneTEA = diagnosticos.some((d) => VALORES_TEA.has(d));
@@ -573,6 +692,15 @@ async function main() {
             : faker.datatype.boolean({ probability: esNaneas ? 0.15 : edadMeses >= 72 ? 0.06 : 0.02 });
         const credencial = generarCredencial(esNaneas, diagnosticos);
         const tieneCuidador = faker.datatype.boolean({ probability: esNaneas ? 0.3 : 0.04 });
+        // Cuidador distinto del tutor: el nombre calza con el parentesco
+        const cuidador = !tieneCuidador ? null : (() => {
+            const parentesco = faker.helpers.arrayElement(['Abuela', 'Abuelo', 'Tía', 'Hermana mayor', 'Vecina']);
+            const nombre = parentesco === 'Abuelo' ? nombreAdulto(false)
+                : parentesco === 'Hermana mayor' ? nombreNinoNina('Femenino', HOY_ANIO - 20)
+                : nombreAdulto(true, parentesco !== 'Tía');
+            const apellidos = parentesco === 'Hermana mayor' ? `${familia.paterno} ${familia.materno}` : dosApellidos();
+            return { nombre: `${nombre} ${apellidos}`, parentesco };
+        })();
         const esTrans = idxTrans.has(i);
         const esMigrante = faker.datatype.boolean({ probability: 0.12 });
         const conAlerta = idxGanancia.has(i) || idxPerdida.has(i);
@@ -585,21 +713,21 @@ async function main() {
                 { weight: 10, value: 1 }, { weight: 22, value: 2 }, { weight: 30, value: 3 }, { weight: 22, value: 4 }, { weight: 16, value: 5 },
             ]);
         const tipoForzado: TipoForzado = idxGanancia.has(i) ? 'ganancia' : idxPerdida.has(i) ? 'perdida' : 'ninguno';
-        const serie = generarSerieControles(fechaNacimiento, numControles, tipoForzado);
+        const serie = generarSerieControles(fechaNacimiento, sexo, numControles, tipoForzado);
         let fechaInscripcion = sumarDias(serie[0].fecha, -faker.number.int({ min: 0, max: 20 }));
         if (fechaInscripcion.getTime() < fechaNacimiento.getTime()) fechaInscripcion = fechaNacimiento;
 
         const paciente = await prisma.paciente.create({
             data: {
                 rut: generarRUT(fechaNacimiento.getUTCFullYear()),
-                nombre: faker.person.firstName(generoLegal),
-                apellido: `${faker.person.lastName()} ${faker.person.lastName()}`,
-                nombre_social: esTrans ? faker.person.firstName(generoLegal === 'male' ? 'female' : 'male') : null,
+                nombre: nombreNinoNina(sexo, fechaNacimiento.getUTCFullYear()),
+                apellido: `${familia.paterno} ${familia.materno}`,
+                nombre_social: esTrans ? nombreNinoNina(sexo === 'Masculino' ? 'Femenino' : 'Masculino', fechaNacimiento.getUTCFullYear()) : null,
                 identidad_genero: esTrans ? (sexo === 'Masculino' ? 'Femenino' : 'Masculino') : null,
                 fecha_nacimiento: fechaNacimiento,
                 sexo_biologico: sexo,
                 nacionalidad: esMigrante ? faker.helpers.arrayElement(['Venezolana', 'Haitiana', 'Colombiana', 'Peruana']) : 'Chilena',
-                direccion: tutor.direccion === 'Sin dato' ? faker.location.streetAddress() : tutor.direccion,
+                direccion: tutor.direccion === 'Sin dato' ? direccionConcepcion() : tutor.direccion,
                 sector: tutor.sector,
                 comuna: COMUNA_UNICA,
                 nhc: `${faker.number.int({ min: 10000, max: 99999 })}`,
@@ -618,9 +746,9 @@ async function main() {
                 diagnosticos,
                 credencial_discapacidad: credencial.estado,
                 credencial_discapacidad_detalle: credencial.detalle,
-                cuidador_nombre: tieneCuidador ? `${faker.person.firstName()} ${faker.person.lastName()}` : null,
-                cuidador_telefono: tieneCuidador ? telefonoMovil() : null,
-                cuidador_parentesco: tieneCuidador ? faker.helpers.arrayElement(['Abuela', 'Abuelo', 'Tía', 'Hermana mayor', 'Vecina']) : null,
+                cuidador_nombre: cuidador?.nombre ?? null,
+                cuidador_telefono: cuidador ? telefonoMovil() : null,
+                cuidador_parentesco: cuidador?.parentesco ?? null,
                 id_tutor_principal: tutor.id_tutor,
             },
         });
@@ -648,7 +776,7 @@ async function main() {
                 edad_meses: c.edadMeses,
                 peso_kg: c.peso,
                 talla_cm: c.talla,
-                perimetro_cefalico: c.edadMeses <= 36 ? +perimetroEsperado(c.edadMeses).toFixed(1) : null,
+                perimetro_cefalico: c.edadMeses <= 36 ? +(perimetroEsperado(c.edadMeses, sexo) * faker.number.float({ min: 0.97, max: 1.03, fractionDigits: 3 })).toFixed(1) : null,
                 imc: c.edadMeses >= EDAD_MESES_IMC ? +(c.peso / Math.pow(c.talla / 100, 2)).toFixed(2) : null,
                 problemas_diagnosticados: esc.diagnostico,
                 indicaciones_acuerdos: esc.indicaciones,
@@ -736,7 +864,7 @@ async function main() {
     // --- Resumen -------------------------------------------------------------
     const sinControles = await prisma.paciente.count({ where: { controlClinico: { none: {} } } });
     console.log('\n=== Seed completado ===');
-    console.log(`  Pacientes: ${total} (${TOTAL_PACIENTES_INFANTIL} Programa Infantil 0-9 años, ${TOTAL_PACIENTES_NANEAS} NANEAS)`);
+    console.log(`  Pacientes: ${total} (${TOTAL_PACIENTES_INFANTIL} Programa Infantil 0-10 años, ${TOTAL_PACIENTES_NANEAS} NANEAS hasta 18 años)`);
     console.log(`  Controles clínicos: ${totalControles} | pacientes sin controles: ${sinControles}`);
     console.log(`  Alertas de peso: ${CANTIDAD_ALERTA_GANANCIA} ganancia / ${CANTIDAD_ALERTA_PERDIDA} pérdida`);
     console.log(`  Talleres: ${TALLERES.length} | Sesiones: ${totalSesiones} | Inscripciones: ${totalInscripciones}`);
