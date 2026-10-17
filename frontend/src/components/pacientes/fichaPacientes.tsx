@@ -43,10 +43,7 @@ export default function FichaPaciente() {
         return riesgos;
     };
 
-    // Datos viejos de la importación de Excel pueden traer el sector como
-    // valor crudo ("1", "2", "FS") en vez del texto completo que usa el
-    // formulario manual ("Sector 1 - Azul", etc). Se traduce acá como red de
-    // seguridad, aunque la importación ya debería guardar el texto completo.
+
     const NOMBRE_SECTOR_CRUDO: Record<string, string> = {
         '1': 'Sector 1 - Azul',
         '2': 'Sector 2 - Rojo',

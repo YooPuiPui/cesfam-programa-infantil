@@ -173,6 +173,17 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
 
         if (datos.descripcion !== undefined) datosLimpios.descripcion = datos.descripcion;
 
+        if (datos.activo !== undefined) {
+            //! si llegara "false" como texto, Prisma lo rechazaria con un 500 opaco;
+            //! se valida aca y se responde 400 con un mensaje claro
+            if (typeof datos.activo !== 'boolean') {
+                res.status(400).json({error: 'El estado del taller debe ser verdadero o falso'});
+                return;
+            }
+
+            datosLimpios.activo = datos.activo;
+        }
+
         if (datos.edad_min !== undefined) {
             const edadMin = parseInt(datos.edad_min);
 

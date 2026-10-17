@@ -25,7 +25,7 @@ export interface ResumenImportacion {
 }
 
 // normalizadores 
-// cada uno documenta la regla que aplica, para que se pueda auditar despues
+// cada uno documenta la regla que aplica
 
 function normalizarRut(valor: unknown): string | null {
     if (!valor) return null;
@@ -40,7 +40,7 @@ function normalizarRut(valor: unknown): string | null {
 }
 
 //? el excel a veces trae mas de un numero en la misma celda, el primero
-//? numero va a telefono, el segundo (si existe) a telefono_secundario; 
+//? numero va a telefono, el segundo (si existe) a telefono_secundario 
 
 function normalizarTelefono(valor: unknown): { principal: string; secundario: string | null } {
     if (!valor) return { principal: 'Sin dato', secundario: null };
@@ -64,7 +64,7 @@ function normalizarSexo(valor: unknown): string | null {
     return null;
 }
 
-//? para comparar texto sin importar mayusculas/minusculas ni tildes (ej: "angel" debe encontrar "Ángel")
+//? para comparar texto sin importar mayusculas/minusculas ni tildes
 
 export function normalizarTexto(texto: string): string {
     return texto
@@ -98,8 +98,7 @@ const MAPA_DIAGNOSTICOS_CANONICOS: Record<string, string> = {
     TOD: 'TOD',
 };
 
-// Valores que aparecen en el campo diagnosticos pero son notas de estado o
-// administrativas, no diagnosticos clinicos -> se descartan al normalizar.
+
 const NOTAS_NO_DIAGNOSTICO = new Set([
     'NOCONFIRMADOCONNEUROLOGOOPSIQUIATRIA',
     'TRASLADOATEMUCO',
@@ -115,12 +114,7 @@ function normalizarDiagnostico(s: string): string | null {
     return MAPA_DIAGNOSTICOS_CANONICOS[clave] ?? s;
 }
 
-// "TEA, TDAH, TOD" -> ["TEA","TDAH","TOD"]; "TEA-ASMA" -> ["TEA","ASMA"]
-// Un guion entre dos numeros (ej. "TEA G1-2") es notacion de grado/rango
-// clinico, no un separador de diagnosticos -> se protege antes de partir.
-// Limitacion conocida: otras frases con guion que no son separadores (poco
-// frecuentes en el excel real) quedan cortadas igual. Revisar
-// detalle_creados/actualizados despues de importar.
+
 function dividirDiagnosticos(raw: unknown): string[] {
     if (!raw) return [];
 
