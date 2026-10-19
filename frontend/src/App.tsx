@@ -17,6 +17,7 @@ import Talleres from "./components/talleres/Talleres";
 import CrearTaller from "./components/talleres/crearTaller";
 import DetalleTaller from "./components/talleres/detalleTaller";
 import DetalleSesion from "./components/talleres/detalleSesion";
+import Profesionales from "./components/profesionales/Profesionales";
 
 
 
@@ -196,6 +197,17 @@ export default function App() {
             <RutaProtegida>
               <DashboardLayout>
                 <DetalleSesion />
+              </DashboardLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/profesionales"
+          element={
+            <RutaProtegida>
+              <DashboardLayout>
+                <Profesionales />
               </DashboardLayout>
             </RutaProtegida>
           }
