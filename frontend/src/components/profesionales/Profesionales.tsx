@@ -14,7 +14,7 @@ interface Profesional {
     creado_en: string;
 }
 
-const ESTAMENTOS_SUGERIDOS = [
+const ESTAMENTOS = [
     "Médico",
     "Enfermera/o",
     "Nutricionista",
@@ -26,6 +26,8 @@ const ESTAMENTOS_SUGERIDOS = [
     "Trabajador/a Social",
     "Educadora de Párvulos",
 ];
+
+const ESTAMENTO_OTRO = "__otro__";
 
 const REGEX_RUT = /^\d{7,8}-[0-9K]$/;
 
@@ -60,6 +62,7 @@ const initialForm = {
     nombre: "",
     apellido: "",
     estamento: "",
+    estamentoOtro: "",
 };
 
 type FormProfesional = typeof initialForm;
@@ -138,7 +141,14 @@ export default function Profesionales() {
 
     const abrirEdicion = (p: Profesional) => {
         setEditando(p);
-        setForm({ rut: p.rut, nombre: p.nombre, apellido: p.apellido, estamento: p.estamento });
+        const esConocido = ESTAMENTOS.includes(p.estamento);
+        setForm({
+            rut: p.rut,
+            nombre: p.nombre,
+            apellido: p.apellido,
+            estamento: esConocido ? p.estamento : ESTAMENTO_OTRO,
+            estamentoOtro: esConocido ? "" : p.estamento,
+        });
         setErrorCampo({});
         setErrorForm("");
         setMostrarForm(true);
@@ -159,6 +169,13 @@ export default function Profesionales() {
         });
     };
 
+    const cambiarEstamento = (valor: string) => {
+        actualizarCampo("estamento", valor);
+        if (valor !== ESTAMENTO_OTRO) actualizarCampo("estamentoOtro", "");
+    };
+
+    const estamentoElegido = form.estamento === ESTAMENTO_OTRO ? form.estamentoOtro.trim() : form.estamento;
+
     const validar = (): boolean => {
         const errores: Partial<Record<keyof FormProfesional, string>> = {};
 
@@ -169,7 +186,8 @@ export default function Profesionales() {
 
         if (!form.nombre.trim()) errores.nombre = "El nombre es obligatorio.";
         if (!form.apellido.trim()) errores.apellido = "El apellido es obligatorio.";
-        if (!form.estamento.trim()) errores.estamento = "El estamento es obligatorio.";
+        if (!form.estamento) errores.estamento = "Selecciona un estamento.";
+        else if (!estamentoElegido) errores.estamentoOtro = "Indica el estamento.";
 
         setErrorCampo(errores);
         return Object.keys(errores).length === 0;
@@ -187,7 +205,7 @@ export default function Profesionales() {
             const datos = {
                 nombre: form.nombre.trim(),
                 apellido: form.apellido.trim(),
-                estamento: form.estamento.trim(),
+                estamento: estamentoElegido,
             };
 
             const respuesta = await fetch(
@@ -338,20 +356,30 @@ export default function Profesionales() {
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1">Estamento</label>
-                                <input
-                                    type="text"
-                                    list="estamentos-profesionales"
+                                <select
                                     value={form.estamento}
-                                    onChange={(e) => actualizarCampo("estamento", e.target.value)}
-                                    placeholder="Ej: Enfermera/o"
+                                    onChange={(e) => cambiarEstamento(e.target.value)}
                                     className={fieldClass(!!errorCampo.estamento)}
-                                />
-                                <datalist id="estamentos-profesionales">
-                                    {ESTAMENTOS_SUGERIDOS.map((estamento) => (
-                                        <option key={estamento} value={estamento} />
+                                >
+                                    <option value="" disabled>Selecciona un estamento...</option>
+                                    {ESTAMENTOS.map((estamento) => (
+                                        <option key={estamento} value={estamento}>{estamento}</option>
                                     ))}
-                                </datalist>
+                                    <option value={ESTAMENTO_OTRO}>Otro (especificar)</option>
+                                </select>
                                 {errorCampo.estamento && <p className="mt-1 text-xs font-semibold text-red-600">{errorCampo.estamento}</p>}
+                                {form.estamento === ESTAMENTO_OTRO && (
+                                    <div className="mt-2">
+                                        <input
+                                            type="text"
+                                            value={form.estamentoOtro}
+                                            onChange={(e) => actualizarCampo("estamentoOtro", e.target.value)}
+                                            placeholder="Escribe el estamento"
+                                            className={fieldClass(!!errorCampo.estamentoOtro)}
+                                        />
+                                        {errorCampo.estamentoOtro && <p className="mt-1 text-xs font-semibold text-red-600">{errorCampo.estamentoOtro}</p>}
+                                    </div>
+                                )}
                             </div>
 
                             <div>
