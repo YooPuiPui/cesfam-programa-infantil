@@ -29,6 +29,7 @@ interface Profesional {
     rut: string;
     nombre: string;
     apellido: string;
+    activo: boolean;
 }
 
 // rut_profesional y profesional_externo son excluyentes
@@ -382,7 +383,10 @@ const cambiarEstado = async () => {
                             <button
                                 type="button"
                                 onClick={() => setConfirmandoEstado(true)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-bold text-slate-900 shadow-sm transition-colors hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                                className={`inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm font-bold shadow-sm transition-colors ${taller.activo
+                                    ? "border-red-300 text-red-700 hover:border-red-600 hover:bg-red-50"
+                                    : "border-green-300 text-green-700 hover:border-green-600 hover:bg-green-50"
+                                    }`}
                             >
                                 <Power className="h-4 w-4" />
                                 {taller.activo ? "Desactivar" : "Reactivar"}
@@ -531,7 +535,7 @@ const cambiarEstado = async () => {
                                             className={fieldClass(!!errorCampo.rutProfesional)}
                                         >
                                             <option value="">Selecciona un profesional...</option>
-                                            {profesionales.map((p) => (
+                                            {profesionales.filter((p) => p.activo).map((p) => (
                                                 <option key={p.rut} value={p.rut}>{p.nombre} {p.apellido}</option>
                                             ))}
                                         </select>
