@@ -35,10 +35,21 @@ export const crearInscripcion: RequestHandler = async (req, res): Promise<void> 
             return;
         }
 
-        const sesion = await sesionService.buscarSesionPorId(idSesion);
+        const sesion = await sesionService.buscarSesionConTaller(idSesion);
 
         if (!sesion) {
             res.status(404).json({ error: 'La sesión indicada no existe.' });
+            return;
+        }
+
+        //! no se inscribe en sesiones cerradas ni en talleres desactivados (mismos mensajes que muestra el front)
+        if (sesion.terminada) {
+            res.status(400).json({ error: 'La sesión ya terminó' });
+            return;
+        }
+
+        if (!sesion.taller.activo) {
+            res.status(400).json({ error: 'El taller está desactivado. Reactívalo para inscribir niños' });
             return;
         }
 

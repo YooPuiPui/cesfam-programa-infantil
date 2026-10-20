@@ -319,6 +319,13 @@ export default function DetalleSesion() {
 
     const rutsInscritos = new Set(inscripciones.map((i) => i.rut_paciente));
     const resultadosSinInscritos = resultados.filter((p) => !rutsInscritos.has(p.rut));
+
+    // mismos mensajes y mismo orden que valida el backend al inscribir
+    const motivoSinInscripcion = sesion?.terminada
+        ? "La sesión ya terminó"
+        : sesion && !sesion.taller.activo
+            ? "El taller está desactivado. Reactívalo para inscribir niños"
+            : null;
     const countAsiste = inscripciones.filter((i) => i.estado_asistencia === "asiste").length;
     const countNoAsiste = inscripciones.filter((i) => i.estado_asistencia === "no_asiste").length;
 
@@ -384,6 +391,14 @@ export default function DetalleSesion() {
 
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h2 className="text-[15px] font-bold text-slate-800">Agregar niño a la sesión</h2>
+                        {motivoSinInscripcion && (
+                            <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+                                <TriangleAlert className="h-4 w-4 shrink-0" />
+                                {motivoSinInscripcion}
+                            </div>
+                        )}
+                        {!motivoSinInscripcion && (
+                        <>
                         <p className="mt-1 mb-3.5 text-xs font-medium text-slate-600">
                             Busca por nombre o RUT y selecciona un paciente para inscribirlo
                         </p>
@@ -427,6 +442,8 @@ export default function DetalleSesion() {
                                 </div>
                             )}
                         </div>
+                        </>
+                        )}
                     </div>
 
                     {errorAccion && (
