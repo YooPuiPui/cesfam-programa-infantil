@@ -39,6 +39,15 @@ export const buscarSesionPorId = async (idSesion: number) => {
 }
 
 
+//* trae una sesion con su taller, sin inscripciones, para validar reglas antes de inscribir
+export const buscarSesionConTaller = async (idSesion: number) => {
+    return await prisma.sesionTaller.findUnique({
+        where: { id_sesion: idSesion },
+        include: { taller: true }
+    });
+}
+
+
 //* edita fecha, cupo u obsevaciones de una sesion ya creada
 export const editarSesion = async (idSesion: number, dataSesion: Prisma.SesionTallerUncheckedUpdateInput) => {
     return await prisma.sesionTaller.update({
