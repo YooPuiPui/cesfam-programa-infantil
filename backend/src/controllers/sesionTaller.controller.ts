@@ -1,7 +1,7 @@
 import { Request, Response, RequestHandler } from "express";
 import * as sesionService from '../services/sesionTaller.service';
 import { buscarTallerPorId } from '../services/taller.service';
-import { fechaCalendarioAMediodiaUTC } from '../utils/fechaChile';
+import { fechaCalendarioAMediodiaUTC, hoyChileMediodiaUTC } from '../utils/fechaChile';
 
 
 
@@ -257,6 +257,47 @@ export const editarSesion: RequestHandler = async (req, res): Promise <void> => 
         res.status(500).json({error: 'Error interno al actualizar la base de datos ', detalle: error.message});
     }
 }
+
+
+
+//* post sesiones/:id/terminar cierra la sesion: desde ahi la asistencia ya no se puede modificar
+export const terminarSesion: RequestHandler = async (req, res): Promise<void> => {
+    try {
+        const id = parseInt(req.params.id as string);
+
+        if (isNaN(id)) {
+            res.status(400).json({ error: 'El id de la sesión debe ser un número válido' });
+            return;
+        }
+
+        const sesion = await sesionService.buscarSesionPorId(id);
+
+        if (!sesion) {
+            res.status(404).json({ error: 'La sesión que intentas terminar no existe' });
+            return;
+        }
+
+        if (sesion.terminada) {
+            res.status(200).json({ mensaje: 'La sesión ya estaba terminada', datos: sesion });
+            return;
+        }
+
+        const fechaSesion = fechaCalendarioAMediodiaUTC(sesion.fecha.toISOString());
+
+        if (fechaSesion && fechaSesion.getTime() > hoyChileMediodiaUTC().getTime()) {
+            res.status(400).json({ error: 'No se puede terminar una sesión antes de su fecha' });
+            return;
+        }
+
+        const resultado = await sesionService.editarSesion(id, { terminada: true });
+
+        res.status(200).json({ mensaje: 'Sesión terminada con éxito', datos: resultado });
+
+    } catch (error: any) {
+        console.error('Error al terminar la sesión:', error.message);
+        res.status(500).json({ error: 'Error interno al actualizar la base de datos', detalle: error.message });
+    }
+};
 
 
 
