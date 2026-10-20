@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarCheck, Loader2, Search, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CircleCheck, Loader2, Search, TriangleAlert, X } from "lucide-react";
 import { API_BASE_URL } from "../../service/api";
 import { calcularEdad, formatearRUT } from "../../utils/formatters";
 
 type EstadoAsistencia = "pendiente" | "asiste" | "no_asiste";
+type EstadoConvocatoria =
+    | "no_contactado"
+    | "contactado"
+    | "confirma"
+    | "no_confirma"
+    | "no_contesta"
+    | "no_puede"
+    | "reconfirmar";
 
 interface PacienteInscrito {
     rut: string;
@@ -17,6 +25,7 @@ interface Inscripcion {
     id_inscripcion: number;
     rut_paciente: string;
     estado_asistencia: EstadoAsistencia;
+    estado_convocatoria: EstadoConvocatoria;
     paciente: PacienteInscrito;
 }
 
@@ -24,10 +33,11 @@ interface SesionDetalle {
     id_sesion: number;
     fecha: string;
     cupo_maximo: number | null;
+    terminada: boolean;
     rut_profesional: string | null;
     profesional_externo: string | null;
     profesional: { nombre: string; apellido: string } | null;
-    taller: { id_taller: number; nombre: string };
+    taller: { id_taller: number; nombre: string; activo: boolean };
     inscripciones: Inscripcion[];
 }
 
@@ -48,13 +58,27 @@ const iniciales = (nombre: string, apellido: string): string => {
     return `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
 };
 
+// Dia calendario de hoy en America/Santiago (AAAA-MM-DD), igual que el backend
+const obtenerHoyChile = (): string => {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date());
+};
+
 // Compara por dia calendario en America/Santiago, igual que el backend
 // para no marcar asistencia en sesiones que aun no ocurren.
 const esSesionFutura = (fechaSesion: string): boolean => {
-    const hoyChile = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date());
     const fechaSesionSoloDia = fechaSesion.slice(0, 10);
-    return fechaSesionSoloDia > hoyChile;
+    return fechaSesionSoloDia > obtenerHoyChile();
 };
+
+const opcionesConvocatoria: { valor: EstadoConvocatoria; etiqueta: string }[] = [
+    { valor: "no_contactado", etiqueta: "No contactado" },
+    { valor: "contactado", etiqueta: "Contactado" },
+    { valor: "confirma", etiqueta: "Confirma" },
+    { valor: "no_confirma", etiqueta: "No confirma" },
+    { valor: "no_contesta", etiqueta: "No contesta" },
+    { valor: "no_puede", etiqueta: "No puede" },
+    { valor: "reconfirmar", etiqueta: "Reconfirmar" },
+];
 
 const opcionesAsistencia: { valor: EstadoAsistencia; etiqueta: string; bg: string; fg: string }[] = [
     { valor: "pendiente", etiqueta: "Pendiente", bg: "bg-amber-100", fg: "text-amber-800" },
@@ -78,6 +102,8 @@ export default function DetalleSesion() {
     const [agregando, setAgregando] = useState(false);
     const [aQuitar, setAQuitar] = useState<Inscripcion | null>(null);
     const [quitando, setQuitando] = useState(false);
+    const [confirmandoTermino, setConfirmandoTermino] = useState(false);
+    const [terminando, setTerminando] = useState(false);
 
     useEffect(() => {
         const obtenerSesion = async () => {
@@ -157,6 +183,7 @@ export default function DetalleSesion() {
                 id_inscripcion: data.datos.id_inscripcion,
                 rut_paciente: paciente.rut,
                 estado_asistencia: "pendiente",
+                estado_convocatoria: "no_contactado",
                 paciente: {
                     rut: paciente.rut,
                     nombre: paciente.nombre,
@@ -198,6 +225,73 @@ export default function DetalleSesion() {
         } catch {
             setInscripciones(anteriores);
             setErrorAccion("No se pudo actualizar la asistencia, intenta de nuevo.");
+        }
+    };
+
+    // A diferencia de la asistencia, la convocatoria se puede editar en cualquier momento
+    const cambiarConvocatoria = async (idInscripcion: number, nuevoEstado: EstadoConvocatoria) => {
+        const anterior = inscripciones.find((i) => i.id_inscripcion === idInscripcion);
+        if (!anterior) return;
+
+        const hoy = obtenerHoyChile();
+
+        // optimista: la UI cambia al toque, se revierte solo esta fila si el backend falla
+        setInscripciones((prev) =>
+            prev.map((i) =>
+                i.id_inscripcion === idInscripcion
+                    ? { ...i, estado_convocatoria: nuevoEstado }
+                    : i
+            )
+        );
+        setErrorAccion("");
+
+        try {
+            const token = localStorage.getItem("token");
+            const respuesta = await fetch(`${API_BASE_URL}/inscripciones/${idInscripcion}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ estado_convocatoria: nuevoEstado, fecha_contacto: hoy }),
+            });
+
+            if (!respuesta.ok) throw new Error();
+        } catch {
+            setInscripciones((prev) =>
+                prev.map((i) =>
+                    i.id_inscripcion === idInscripcion
+                        ? { ...i, estado_convocatoria: anterior.estado_convocatoria }
+                        : i
+                )
+            );
+            setErrorAccion("No se pudo actualizar la convocatoria, intenta de nuevo.");
+        }
+    };
+
+    const terminarSesion = async () => {
+        if (!sesion) return;
+
+        setTerminando(true);
+        setErrorAccion("");
+        try {
+            const token = localStorage.getItem("token");
+            const respuesta = await fetch(`${API_BASE_URL}/sesiones/${sesion.id_sesion}/terminar`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!respuesta.ok) {
+                const data = await respuesta.json().catch(() => null);
+                throw new Error(data?.error || "No se pudo terminar la sesión, intenta de nuevo.");
+            }
+
+            setSesion({ ...sesion, terminada: true });
+        } catch (err) {
+            setErrorAccion(err instanceof Error ? err.message : "Error desconocido");
+        } finally {
+            setConfirmandoTermino(false);
+            setTerminando(false);
         }
     };
 
@@ -258,7 +352,7 @@ export default function DetalleSesion() {
                                 <CalendarCheck className="h-6 w-6" />
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-slate-500">{sesion.taller.nombre}</p>
+                                <p className="text-xs font-semibold text-slate-700">{sesion.taller.nombre}</p>
                                 <h1 className="mt-0.5 text-xl font-extrabold text-slate-900">
                                     Sesión del{" "}
                                     {new Date(sesion.fecha).toLocaleDateString("es-CL", {
@@ -273,7 +367,7 @@ export default function DetalleSesion() {
 
                         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="rounded-xl bg-slate-50 px-4 py-3.5">
-                                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Responsable</p>
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Responsable</p>
                                 <p className="mt-1 text-sm font-bold text-slate-800">{responsableSesion(sesion)}</p>
                             </div>
                             <div className="rounded-xl bg-blue-50 px-4 py-3.5">
@@ -283,34 +377,34 @@ export default function DetalleSesion() {
                                 </p>
                             </div>
                         </div>
-                        <p className="mt-3 text-xs font-medium text-slate-400">
+                        <p className="mt-3 text-xs font-medium text-slate-600">
                             Este taller no tiene cupo máximo: cualquier paciente puede inscribirse.
                         </p>
                     </div>
 
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h2 className="text-[15px] font-bold text-slate-800">Agregar niño a la sesión</h2>
-                        <p className="mt-1 mb-3.5 text-xs font-medium text-slate-400">
+                        <p className="mt-1 mb-3.5 text-xs font-medium text-slate-600">
                             Busca por nombre o RUT y selecciona un paciente para inscribirlo
                         </p>
                         <div className="relative max-w-[420px]">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
                             <input
                                 type="text"
                                 value={busqueda}
                                 onChange={(e) => setBusqueda(e.target.value)}
                                 placeholder="Ej: Martina o 19.884.221-3"
-                                className="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-3 text-sm font-medium text-slate-800 outline-none focus:border-blue-500"
+                                className="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-3 text-sm font-medium text-slate-800 placeholder:text-slate-500 outline-none focus:border-blue-500"
                             />
 
                             {busqueda.trim().length >= 2 && (
                                 <div className="absolute z-10 mt-1.5 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
                                     {buscando && (
-                                        <p className="px-3.5 py-2.5 text-center text-sm font-medium text-slate-400">Buscando...</p>
+                                        <p className="px-3.5 py-2.5 text-center text-sm font-medium text-slate-600">Buscando...</p>
                                     )}
 
                                     {!buscando && resultadosSinInscritos.length === 0 && (
-                                        <p className="px-3.5 py-2.5 text-center text-sm font-medium text-slate-400">Sin resultados</p>
+                                        <p className="px-3.5 py-2.5 text-center text-sm font-medium text-slate-600">Sin resultados</p>
                                     )}
 
                                     {!buscando && resultadosSinInscritos.map((p) => (
@@ -323,7 +417,7 @@ export default function DetalleSesion() {
                                         >
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-bold text-slate-800">{p.nombre} {p.apellido}</p>
-                                                <p className="text-xs font-medium text-slate-500">
+                                                <p className="text-xs font-medium text-slate-700">
                                                     {formatearRUT(p.rut)} · {calcularEdad(p.fecha_nacimiento)}
                                                 </p>
                                             </div>
@@ -340,17 +434,37 @@ export default function DetalleSesion() {
                     )}
 
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                        <div className="border-b border-slate-100 px-6 py-4">
-                            <h2 className="text-[15px] font-bold text-slate-800">Niños inscritos</h2>
-                            <p className="mt-1 text-sm font-semibold text-slate-500">
-                                {inscripciones.length} inscritos ·{" "}
-                                <span className="text-green-800">{countAsiste} asistieron</span> ·{" "}
-                                <span className="text-red-700">{countNoAsiste} no asistieron</span>
-                            </p>
+                        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-6 py-4">
+                            <div>
+                                <h2 className="text-[15px] font-bold text-slate-800">Niños inscritos</h2>
+                                <p className="mt-1 text-sm font-semibold text-slate-700">
+                                    {inscripciones.length} inscritos ·{" "}
+                                    <span className="text-green-800">{countAsiste} asistieron</span> ·{" "}
+                                    <span className="text-red-700">{countNoAsiste} no asistieron</span>
+                                </p>
+                            </div>
+
+                            {sesion.terminada ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-800">
+                                    <CircleCheck className="h-4 w-4" />
+                                    Sesión terminada
+                                </span>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled={esSesionFutura(sesion.fecha)}
+                                    title={esSesionFutura(sesion.fecha) ? "No se puede terminar una sesión antes de su fecha" : undefined}
+                                    onClick={() => setConfirmandoTermino(true)}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm transition-colors hover:border-green-600 hover:bg-green-50 hover:text-green-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-300 disabled:hover:bg-white disabled:hover:text-slate-800"
+                                >
+                                    <CircleCheck className="h-4 w-4" />
+                                    Terminar sesión
+                                </button>
+                            )}
                         </div>
 
                         {inscripciones.length === 0 && (
-                            <p className="px-6 py-10 text-center text-sm font-bold text-slate-400">
+                            <p className="px-6 py-10 text-center text-sm font-bold text-slate-600">
                                 Todavía no hay niños inscritos en esta sesión.
                             </p>
                         )}
@@ -369,26 +483,51 @@ export default function DetalleSesion() {
                                             <p className="truncate text-sm font-bold text-slate-800">
                                                 {i.paciente.nombre} {i.paciente.apellido}
                                             </p>
-                                            <p className="text-xs font-medium text-slate-500">
+                                            <p className="text-xs font-medium text-slate-700">
                                                 {formatearRUT(i.paciente.rut)} · {calcularEdad(i.paciente.fecha_nacimiento)}
                                             </p>
                                         </div>
 
+                                        <div className="shrink-0">
+                                            <select
+                                                value={i.estado_convocatoria}
+                                                onChange={(e) => cambiarConvocatoria(i.id_inscripcion, e.target.value as EstadoConvocatoria)}
+                                                aria-label="Convocatoria"
+                                                disabled={!sesion.taller.activo}
+                                                title={!sesion.taller.activo ? "No se puede modificar la convocatoria de un taller desactivado" : undefined}
+                                                className="w-36 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                                            >
+                                                {opcionesConvocatoria.map((opcion) => (
+                                                    <option key={opcion.valor} value={opcion.valor}>
+                                                        {opcion.etiqueta}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
                                         <div className="flex shrink-0 gap-1 rounded-full bg-slate-100 p-1">
                                             {opcionesAsistencia.map((opcion) => {
-                                                const deshabilitado = opcion.valor !== "pendiente" && esSesionFutura(sesion.fecha);
+                                                const sesionFutura = opcion.valor !== "pendiente" && esSesionFutura(sesion.fecha);
+                                                const sesionTerminada = sesion.terminada;
+                                                const deshabilitado = sesionFutura || sesionTerminada;
 
                                                 return (
                                                     <button
                                                         key={opcion.valor}
                                                         type="button"
                                                         disabled={deshabilitado}
-                                                        title={deshabilitado ? "No se puede marcar asistencia antes de la fecha de la sesión" : undefined}
+                                                        title={
+                                                            sesionTerminada
+                                                                ? "La asistencia ya no se puede modificar: la sesión terminó"
+                                                                : sesionFutura
+                                                                    ? "No se puede marcar asistencia antes de la fecha de la sesión"
+                                                                    : undefined
+                                                        }
                                                         onClick={() => cambiarAsistencia(i.id_inscripcion, opcion.valor)}
                                                         className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${i.estado_asistencia === opcion.valor
                                                             ? `${opcion.bg} ${opcion.fg}`
-                                                            : "text-slate-400 hover:text-slate-600"
-                                                            } ${deshabilitado ? "cursor-not-allowed opacity-40 hover:text-slate-400" : ""}`}
+                                                            : "text-slate-600 hover:text-slate-900"
+                                                            } ${deshabilitado ? "cursor-not-allowed opacity-40 hover:text-slate-600" : ""}`}
                                                     >
                                                         {opcion.etiqueta}
                                                     </button>
@@ -398,9 +537,16 @@ export default function DetalleSesion() {
 
                                         <button
                                             type="button"
+                                            disabled={sesion.terminada || !sesion.taller.activo}
                                             onClick={() => setAQuitar(i)}
-                                            title="Quitar de la sesión"
-                                            className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                            title={
+                                                sesion.terminada
+                                                    ? "No se puede quitar a un niño de una sesión terminada"
+                                                    : !sesion.taller.activo
+                                                        ? "No se puede quitar a un niño de un taller desactivado"
+                                                        : "Quitar de la sesión"
+                                            }
+                                            className="shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-600"
                                         >
                                             <X className="h-4 w-4" />
                                         </button>
@@ -410,6 +556,44 @@ export default function DetalleSesion() {
                         )}
                     </div>
                 </>
+            )}
+
+            {confirmandoTermino && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+                    <div className="w-full max-w-95 rounded-2xl bg-white p-7 shadow-xl">
+                        <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                                <TriangleAlert className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">¿Terminar la sesión?</h2>
+                                <p className="mt-1.5 text-sm font-medium text-slate-600">
+                                    Al terminarla ya no se podrá modificar la asistencia. La convocatoria se puede seguir
+                                    editando. Esta acción no se puede deshacer.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
+                            <button
+                                type="button"
+                                onClick={terminarSesion}
+                                disabled={terminando}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-green-800 disabled:opacity-50"
+                            >
+                                {terminando && <Loader2 className="h-4 w-4 animate-spin" />}
+                                Sí, terminar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setConfirmandoTermino(false)}
+                                disabled={terminando}
+                                className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 px-5 py-3 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {aQuitar && (
