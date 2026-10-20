@@ -817,6 +817,7 @@ async function main() {
                 data: {
                     id_taller: taller.id_taller,
                     fecha: hoyMasDias(off),
+                    terminada: esPasada,
                     rut_profesional: externo ? null : faker.helpers.arrayElement(responsables).rut,
                     profesional_externo: externo ? faker.helpers.arrayElement(PROFESIONALES_EXTERNOS) : null,
                     observaciones: esPasada && faker.datatype.boolean({ probability: 0.4 })

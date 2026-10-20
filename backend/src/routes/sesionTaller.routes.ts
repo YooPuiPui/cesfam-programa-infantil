@@ -4,6 +4,7 @@ import {
         obtenerSesionesPorTaller,
         obtenerSesionPorId,
         editarSesion,
+        terminarSesion,
         eliminarSesion
 } from "../controllers/sesionTaller.controller";
 import { verificarToken } from '../middlewares/authMiddleware';
@@ -18,6 +19,7 @@ routerAnidado.get('/', verificarToken, obtenerSesionesPorTaller);
 const routerPlano = Router();
 routerPlano.get('/:id', verificarToken, obtenerSesionPorId);
 routerPlano.put('/:id', verificarToken, editarSesion);
+routerPlano.post('/:id/terminar', verificarToken, terminarSesion);
 routerPlano.delete('/:id', verificarToken, eliminarSesion);
 
 export { routerAnidado, routerPlano };

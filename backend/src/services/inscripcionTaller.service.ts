@@ -43,7 +43,7 @@ export const buscarInscripcionesPorPaciente = async (rutPaciente: string) => {
 export const buscarInscripcionPorId = async (idInscripcion: number) => {
     return await prisma.inscripcionTaller.findUnique({
         where: { id_inscripcion: idInscripcion },
-        include: { sesion: true }
+        include: { sesion: { include: { taller: true } } }
     });
 }
 
