@@ -182,6 +182,7 @@ model SesionTaller {
   profesional         Profesional? @relation(fields: [rut_profesional], references: [rut])
   profesional_externo String?      @db.VarChar(150) // para interno o de otro cesfam
 
+  terminada     Boolean  @default(false) // al terminarla se cierra la asistencia
   observaciones String?  @db.Text
   creado_en     DateTime @default(now())
 

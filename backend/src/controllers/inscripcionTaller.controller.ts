@@ -1,4 +1,5 @@
 import { Request, Response, RequestHandler } from "express";
+import { EstadoConvocatoria } from '@prisma/client';
 import * as pacienteService from '../services/paciente.service';
 import * as inscripcionService from '../services/inscripcionTaller.service';
 import * as sesionService from '../services/sesionTaller.service';
@@ -34,10 +35,21 @@ export const crearInscripcion: RequestHandler = async (req, res): Promise<void> 
             return;
         }
 
-        const sesion = await sesionService.buscarSesionPorId(idSesion);
+        const sesion = await sesionService.buscarSesionConTaller(idSesion);
 
         if (!sesion) {
             res.status(404).json({ error: 'La sesión indicada no existe.' });
+            return;
+        }
+
+        //! no se inscribe en sesiones cerradas ni en talleres desactivados (mismos mensajes que muestra el front)
+        if (sesion.terminada) {
+            res.status(400).json({ error: 'La sesión ya terminó' });
+            return;
+        }
+
+        if (!sesion.taller.activo) {
+            res.status(400).json({ error: 'El taller está desactivado. Reactívalo para inscribir niños' });
             return;
         }
 
@@ -133,31 +145,74 @@ export const editarInscripcion: RequestHandler = async (req, res): Promise<void>
         const datosLimpios: any = {};
 
 
-        if (datos.estado_convocatoria !== undefined) datosLimpios.estado_convocatoria = datos.estado_convocatoria;
+        if (datos.estado_convocatoria !== undefined) {
+            //! un valor fuera del enum haría fallar a Prisma y terminaría en 500, lo cortamos antes con 400
+            if (!Object.values(EstadoConvocatoria).includes(datos.estado_convocatoria)) {
+                res.status(400).json({
+                    error: `El estado de convocatoria no es válido. Valores permitidos: ${Object.values(EstadoConvocatoria).join(', ')}`,
+                });
+                return;
+            }
+
+            const inscripcion = await inscripcionService.buscarInscripcionPorId(id);
+
+            if (!inscripcion) {
+                res.status(404).json({ error: 'La inscripción que intentas editar no existe' });
+                return;
+            }
+
+            //! con el taller desactivado la convocatoria queda congelada
+            if (!inscripcion.sesion.taller.activo) {
+                res.status(400).json({ error: 'No se puede modificar la convocatoria de un taller desactivado. Reactívalo primero.' });
+                return;
+            }
+
+            datosLimpios.estado_convocatoria = datos.estado_convocatoria;
+        }
 
         if (datos.estado_asistencia !== undefined) {
-            if (datos.estado_asistencia === 'asiste' || datos.estado_asistencia === 'no_asiste') {
-                const inscripcion = await inscripcionService.buscarInscripcionPorId(id);
+            const inscripcion = await inscripcionService.buscarInscripcionPorId(id);
 
-                if (!inscripcion) {
-                    res.status(404).json({ error: 'La inscripción que intentas editar no existe' });
-                    return;
-                }
+            if (!inscripcion) {
+                res.status(404).json({ error: 'La inscripción que intentas editar no existe' });
+                return;
+            }
 
-                const hoy = hoyChileMediodiaUTC();
-                const fechaSesion = fechaCalendarioAMediodiaUTC(inscripcion.sesion.fecha.toISOString());
+            //! una vez que se termina la sesión (botón "Terminar sesión") la asistencia queda cerrada
+            if (inscripcion.sesion.terminada) {
+                res.status(400).json({ error: 'La asistencia ya no se puede modificar: la sesión terminó' });
+                return;
+            }
 
-                if (fechaSesion && fechaSesion.getTime() > hoy.getTime()) {
-                    res.status(400).json({ error: 'No se puede marcar asistencia antes de la fecha de la sesión' });
-                    return;
-                }
+            const hoy = hoyChileMediodiaUTC();
+            const fechaSesion = fechaCalendarioAMediodiaUTC(inscripcion.sesion.fecha.toISOString());
+
+            if (
+                (datos.estado_asistencia === 'asiste' || datos.estado_asistencia === 'no_asiste') &&
+                fechaSesion && fechaSesion.getTime() > hoy.getTime()
+            ) {
+                res.status(400).json({ error: 'No se puede marcar asistencia antes de la fecha de la sesión' });
+                return;
             }
 
             datosLimpios.estado_asistencia = datos.estado_asistencia;
         }
         if (datos.telefono_contacto !== undefined) datosLimpios.telefono_contacto = datos.telefono_contacto;
         if (datos.observaciones !== undefined) datosLimpios.observaciones = datos.observaciones;
-        if (datos.fecha_contacto !== undefined) datosLimpios.fecha_contacto = datos.fecha_contacto ? new Date(datos.fecha_contacto) : null;
+        if (datos.fecha_contacto !== undefined) {
+            if (datos.fecha_contacto) {
+                const fechaContacto = fechaCalendarioAMediodiaUTC(datos.fecha_contacto);
+
+                if (!fechaContacto) {
+                    res.status(400).json({ error: 'La fecha de contacto no es válida. Usa el formato AAAA-MM-DD' });
+                    return;
+                }
+
+                datosLimpios.fecha_contacto = fechaContacto;
+            } else {
+                datosLimpios.fecha_contacto = null;
+            }
+        }
 
         const resultado = await inscripcionService.editarInscripcion(id, datosLimpios);
 
@@ -188,6 +243,24 @@ export const eliminarInscripcion: RequestHandler = async (req, res): Promise<voi
 
         if (isNaN(id)) {
             res.status(400).json({ error: 'El id de la inscripción debe ser un número válido' });
+            return;
+        }
+
+        const inscripcion = await inscripcionService.buscarInscripcionPorId(id);
+
+        if (!inscripcion) {
+            res.status(404).json({ error: 'La inscripción que intentas eliminar no existe' });
+            return;
+        }
+
+        //! con la sesión terminada el registro de asistentes queda cerrado: no se puede quitar a nadie
+        if (inscripcion.sesion.terminada) {
+            res.status(400).json({ error: 'No se puede quitar a un niño de una sesión que ya terminó' });
+            return;
+        }
+
+        if (!inscripcion.sesion.taller.activo) {
+            res.status(400).json({ error: 'No se puede quitar a un niño de un taller desactivado. Reactívalo primero.' });
             return;
         }
 
