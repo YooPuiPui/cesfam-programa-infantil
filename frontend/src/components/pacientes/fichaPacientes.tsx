@@ -10,6 +10,14 @@ type RiesgoSocial = {
     color: string;
 };
 
+// mismas etiquetas que el formulario de edición
+const ETIQUETA_CREDENCIAL: Record<string, string> = {
+    sin_dato: 'Sin dato',
+    si: 'Sí',
+    no: 'No',
+    en_tramite: 'En trámite',
+};
+
 export default function FichaPaciente() {
     const { rut } = useParams();
     const navigate = useNavigate();
@@ -114,6 +122,12 @@ export default function FichaPaciente() {
     if (error) return <div className="p-10 text-center text-red-600 font-bold bg-red-50 m-6 rounded-lg border border-red-200">{error}</div>;
 
     const riesgos = obtenerRiesgosSociales(paciente);
+    // pacientes antiguos o importados pueden traer estos campos nulos o vacíos
+    const diagnosticos = Array.isArray(paciente?.diagnosticos)
+        ? paciente.diagnosticos.filter((d): d is string => typeof d === 'string' && d.trim() !== '')
+        : [];
+    const credencial = paciente?.credencial_discapacidad ?? 'sin_dato';
+    const credencialDetalle = paciente?.credencial_discapacidad_detalle?.trim();
 
     return (
         <div className="max-w-7xl mx-auto space-y-6">
@@ -210,6 +224,34 @@ export default function FichaPaciente() {
                                     </dd>
                                 </div>
                             )}
+
+                            <div>
+                                <dt className="text-sm font-medium text-slate-900">Programa de salud mental</dt>
+                                <dd className="text-sm font-bold text-slate-800 mt-1">{paciente?.es_salud_mental ? 'Sí' : 'No'}</dd>
+                            </div>
+
+                            <div>
+                                <dt className="text-sm font-medium text-slate-900">Credencial de discapacidad</dt>
+                                <dd className="text-sm font-bold text-slate-800 mt-1">{ETIQUETA_CREDENCIAL[credencial] ?? 'Sin dato'}</dd>
+                                {credencialDetalle && (
+                                    <dd className="text-sm font-medium text-slate-700 mt-1">{credencialDetalle}</dd>
+                                )}
+                            </div>
+
+                            <div>
+                                <dt className="text-sm font-medium text-slate-900 mb-2">Diagnósticos</dt>
+                                <dd className="flex flex-wrap gap-2">
+                                    {diagnosticos.length > 0 ? (
+                                        diagnosticos.map((d, i) => (
+                                            <span key={i} className="px-3 py-1.5 text-xs font-bold rounded-lg shadow-sm bg-slate-100 text-slate-700 border border-slate-200">
+                                                {d}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">Sin diagnósticos registrados</span>
+                                    )}
+                                </dd>
+                            </div>
                         </dl>
                     </div>
 
