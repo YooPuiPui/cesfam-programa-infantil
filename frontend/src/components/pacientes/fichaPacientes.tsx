@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, Calendar, History, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { FileText, Calendar, History, ArrowLeft, AlertTriangle, TriangleAlert, Loader2 } from 'lucide-react';
 import type { ControlClinico, Paciente } from '../../types';
 import { API_BASE_URL } from '../../service/api';
 
@@ -26,6 +26,9 @@ export default function FichaPaciente() {
     const [controles, setControles] = useState<ControlClinico[]>([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [confirmandoEstado, setConfirmandoEstado] = useState(false);
+    const [cambiandoEstado, setCambiandoEstado] = useState(false);
+    const [errorEstado, setErrorEstado] = useState('');
 
     // calculo de edad detallada
     const obtenerEdadDetallada = (fechaNac?: string) => {
@@ -118,10 +121,49 @@ export default function FichaPaciente() {
         cargarDatosFicha();
     }, [rut]);
 
+    // activa o desactiva al paciente; solo se envía "activo", el resto no se toca
+    const cambiarEstado = async () => {
+        if (!paciente) return;
+
+        const reactivar = paciente.activo === false;
+
+        setErrorEstado('');
+        setCambiandoEstado(true);
+        try {
+            const token = localStorage.getItem("token");
+
+            const respuesta = await fetch(`${API_BASE_URL}/pacientes/${paciente.id_paciente}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ activo: reactivar }),
+            });
+
+            const data = await respuesta.json().catch(() => ({}));
+            if (!respuesta.ok) throw new Error(data?.error || `No fue posible ${reactivar ? 'reactivar' : 'desactivar'} al paciente.`);
+
+            setPaciente({ ...paciente, activo: reactivar });
+        } catch (err) {
+            setErrorEstado(err instanceof Error ? err.message : 'No se pudo conectar con el servidor.');
+        } finally {
+            setCambiandoEstado(false);
+            setConfirmandoEstado(false);
+        }
+    };
+
     if (cargando) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="text-blue-700 font-bold text-lg animate-pulse">Cargando expediente clínico...</div></div>;
     if (error) return <div className="p-10 text-center text-red-600 font-bold bg-red-50 m-6 rounded-lg border border-red-200">{error}</div>;
 
     const riesgos = obtenerRiesgosSociales(paciente);
+    // el campo es true por defecto: solo un false explícito cuenta como inactivo
+    const inactivo = paciente?.activo === false;
+    const etiquetaInactivo = inactivo && (
+        <span className="ml-3 inline-block rounded-full border border-slate-300 bg-slate-100 px-3 py-1 align-middle text-xs font-bold uppercase tracking-wide text-slate-600">
+            Inactivo
+        </span>
+    );
     // pacientes antiguos o importados pueden traer estos campos nulos o vacíos
     const diagnosticos = Array.isArray(paciente?.diagnosticos)
         ? paciente.diagnosticos.filter((d): d is string => typeof d === 'string' && d.trim() !== '')
@@ -145,7 +187,7 @@ export default function FichaPaciente() {
                     </button>
                     {paciente?.es_poblacion_trans && paciente?.nombre_social ? (
                         <>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente.nombre} {paciente.apellido}</h1>
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente.nombre} {paciente.apellido}{etiquetaInactivo}</h1>
                             <p className="mt-1 flex items-center gap-2 text-lg font-bold text-purple-700">
                                 <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-purple-700">
                                     Nombre social
@@ -154,23 +196,43 @@ export default function FichaPaciente() {
                             </p>
                         </>
                     ) : (
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente?.nombre} {paciente?.apellido}</h1>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente?.nombre} {paciente?.apellido}{etiquetaInactivo}</h1>
                     )}
                     <p className="text-sm font-medium text-slate-900 mt-1">RUT: <span className="text-slate-900 font-bold">{paciente?.rut}</span></p>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                    <button
-                        onClick={() => navigate(`/editar-paciente/${rut}`)}
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
-                    >
-                        Editar paciente
-                    </button>
-                    <button
-                        onClick={() => navigate(`/nuevo-control?rut=${rut}`)}
-                        className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl transition shadow-md hover:shadow-lg w-full md:w-auto active:scale-95"
-                    >
-                        + Iniciar Nuevo Control
-                    </button>
+                <div className="flex flex-col gap-3 md:items-end">
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                        <button
+                            onClick={() => navigate(`/editar-paciente/${rut}`)}
+                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+                        >
+                            Editar paciente
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setConfirmandoEstado(true)}
+                            disabled={!paciente}
+                            className={`inline-flex items-center justify-center rounded-xl border bg-white px-5 py-3 text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-50 ${inactivo ? "border-green-300 text-green-700 hover:border-green-600 hover:bg-green-50" : "border-red-300 text-red-700 hover:border-red-600 hover:bg-red-50"}`}
+                        >
+                            {inactivo ? "Reactivar paciente" : "Desactivar paciente"}
+                        </button>
+                        <button
+                            onClick={() => navigate(`/nuevo-control?rut=${rut}`)}
+                            disabled={inactivo}
+                            className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl transition shadow-md hover:shadow-lg w-full md:w-auto active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none disabled:hover:bg-slate-400 disabled:active:scale-100"
+                        >
+                            + Iniciar Nuevo Control
+                        </button>
+                    </div>
+                    {inactivo && (
+                        <p className="flex items-center gap-2 text-sm font-bold text-amber-800">
+                            <TriangleAlert className="h-4 w-4 shrink-0" />
+                            Este paciente está inactivo. Reactívalo para registrar controles.
+                        </p>
+                    )}
+                    {errorEstado && (
+                        <p className="text-sm font-semibold text-red-600">{errorEstado}</p>
+                    )}
                 </div>
             </div>
 
@@ -380,6 +442,47 @@ export default function FichaPaciente() {
                     )}
                 </div>
             </div>
+
+            {confirmandoEstado && paciente && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+                    <div className="w-full max-w-95 rounded-2xl bg-white p-7 shadow-xl">
+                        <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                                <TriangleAlert className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">
+                                    {inactivo ? "¿Reactivar paciente?" : "¿Desactivar paciente?"}
+                                </h2>
+                                <p className="mt-1.5 text-sm font-medium text-slate-600">
+                                    {inactivo
+                                        ? <><span className="font-bold text-slate-900">{paciente.nombre} {paciente.apellido}</span> volverá a aparecer en la agenda y podrá registrar controles e inscribirse en sesiones de taller.</>
+                                        : <><span className="font-bold text-slate-900">{paciente.nombre} {paciente.apellido}</span> dejará de aparecer en la agenda. No se podrán registrar ni editar controles, ni inscribirlo en sesiones de taller. Su historial y sus inscripciones actuales se conservan, y podrás reactivarlo cuando quieras.</>}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
+                            <button
+                                type="button"
+                                onClick={cambiarEstado}
+                                disabled={cambiandoEstado}
+                                className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors disabled:opacity-50 ${inactivo ? "bg-blue-700 hover:bg-blue-800" : "bg-red-600 hover:bg-red-700"}`}
+                            >
+                                {cambiandoEstado && <Loader2 className="h-4 w-4 animate-spin" />}
+                                {inactivo ? "Sí, reactivar" : "Sí, desactivar"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setConfirmandoEstado(false)}
+                                disabled={cambiandoEstado}
+                                className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 px-5 py-3 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

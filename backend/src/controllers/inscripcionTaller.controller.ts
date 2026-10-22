@@ -53,6 +53,12 @@ export const crearInscripcion: RequestHandler = async (req, res): Promise<void> 
             return;
         }
 
+        //! un paciente desactivado no se puede inscribir (sus inscripciones anteriores no se tocan)
+        if (!paciente.activo) {
+            res.status(400).json({ error: 'El paciente está desactivado. Reactívalo para inscribirlo.' });
+            return;
+        }
+
         const inscripcionLimpia = {
             id_sesion: idSesion,
             rut_paciente: rut_paciente.trim(),

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, TriangleAlert } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { controlSchema, ControlFormValues } from '../../validation/controlClinicoSchema';
@@ -93,7 +93,12 @@ export default function NuevoControl() {
 
     const aplicaImc = edadMesesActual !== null && edadMesesActual >= 24;
 
+    // el campo es true por defecto: solo un false explícito cuenta como inactivo
+    const pacienteInactivo = paciente?.activo === false;
+
     const onSubmit = async (data: ControlFormValues) => {
+        if (pacienteInactivo) return;
+
         setGuardando(true);
         try {
             const token = localStorage.getItem("token");
@@ -171,7 +176,7 @@ export default function NuevoControl() {
                     <button
                         type="button"
                         onClick={handleSubmit(onSubmit)}
-                        disabled={guardando}
+                        disabled={guardando || pacienteInactivo}
                         className="inline-flex items-center justify-center rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                     >
                         {guardando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -179,6 +184,13 @@ export default function NuevoControl() {
                     </button>
                 </div>
             </div>
+
+            {pacienteInactivo && (
+                <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+                    <TriangleAlert className="h-4 w-4 shrink-0" />
+                    Este paciente está inactivo. Reactívalo para registrar controles.
+                </div>
+            )}
 
             {/* DOCUMENTO CLÍNICO ÚNICO */}
             <div className="rounded-2xl border border-slate-200 bg-white shadow-md">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, FolderOpen, Loader2, ChevronLeft, ChevronRight, Filter, ArrowLeft } from "lucide-react";
+import { Search, Plus, FolderOpen, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from '../../service/api';
 
@@ -13,9 +13,10 @@ interface Paciente {
     es_naneas_prematuro: boolean;
     es_poblacion_trans: boolean;
     es_migrante: boolean;
+    activo?: boolean;
 }
 
-type FiltroRiesgo = "todos" | "sename" | "naneas" | "trans" | "migrante" | "regular";
+type FiltroRiesgo = "todos" | "sename" | "naneas" | "trans" | "migrante" | "regular" | "inactivo";
 
 const OPCIONES_RIESGO: { value: FiltroRiesgo; label: string }[] = [
     { value: "todos", label: "Todos" },
@@ -24,7 +25,21 @@ const OPCIONES_RIESGO: { value: FiltroRiesgo; label: string }[] = [
     { value: "naneas", label: "Prematuro/NANEAS" },
     { value: "trans", label: "Población Trans" },
     { value: "migrante", label: "Migrante" },
+    { value: "inactivo", label: "Inactivos" },
 ];
+
+// números de página a mostrar: primera, última y las vecinas de la actual (null = "…")
+const obtenerPaginasVisibles = (actual: number, total: number): (number | null)[] => {
+    const paginas = new Set([1, total, actual - 1, actual, actual + 1].filter((n) => n >= 1 && n <= total));
+    const ordenadas = [...paginas].sort((a, b) => a - b);
+
+    const resultado: (number | null)[] = [];
+    ordenadas.forEach((n, i) => {
+        if (i > 0 && n - ordenadas[i - 1] > 1) resultado.push(null);
+        resultado.push(n);
+    });
+    return resultado;
+};
 
 const calcularEdadPediatrica = (fechaIso: string) => {
     if (!fechaIso) return "N/A";
@@ -200,9 +215,14 @@ export default function PatientList() {
                             </thead>
                             <tbody>
                                 {pacientes.map((paciente) => (
-                                    <tr key={paciente.id_paciente} className="border-b border-slate-200 hover:bg-blue-50 transition-colors">
+                                    <tr key={paciente.id_paciente} className={`border-b border-slate-200 hover:bg-blue-50 transition-colors ${paciente.activo === false ? "bg-slate-50" : ""}`}>
                                         <td className="px-5 py-3 font-bold text-slate-900">{paciente.rut}</td>
-                                        <td className="px-5 py-3 font-medium text-slate-900 capitalize">{paciente.nombre.toLowerCase()} {paciente.apellido.toLowerCase()}</td>
+                                        <td className="px-5 py-3 font-medium text-slate-900 capitalize">
+                                            {paciente.nombre.toLowerCase()} {paciente.apellido.toLowerCase()}
+                                            {paciente.activo === false && (
+                                                <span className="ml-2 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-bold normal-case text-slate-600">Inactivo</span>
+                                            )}
+                                        </td>
                                         <td className="px-5 py-3 text-blue-800 font-semibold">{calcularEdadPediatrica(paciente.fecha_nacimiento)}</td>
                                         <td className="px-5 py-3">{renderRiesgoSocial(paciente)}</td>
                                         <td className="px-5 py-3 flex items-center justify-end">
@@ -225,22 +245,56 @@ export default function PatientList() {
                         </div>
                     )}
 
-                    <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
+                    <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
                         <span className="text-sm font-medium text-slate-600">Página {page} de {totalPages}</span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                disabled={page === 1}
+                                onClick={() => setPage(1)}
+                                title="Primera página"
+                                aria-label="Primera página"
+                                className="flex items-center px-3 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-white"
+                            >
+                                <ChevronsLeft className="h-4 w-4" />
+                            </button>
                             <button
                                 disabled={page === 1}
                                 onClick={() => setPage(page - 1)}
-                                className="flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50"
+                                className="flex items-center px-3 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-white"
                             >
                                 <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
                             </button>
+
+                            {obtenerPaginasVisibles(page, totalPages).map((n, i) =>
+                                n === null ? (
+                                    <span key={`gap-${i}`} className="px-1 text-sm font-semibold text-slate-500">…</span>
+                                ) : (
+                                    <button
+                                        key={n}
+                                        onClick={() => setPage(n)}
+                                        aria-current={n === page ? "page" : undefined}
+                                        className={`min-w-9 px-3 py-2 text-sm font-semibold rounded-lg border ${n === page ? "bg-blue-700 border-blue-700 text-white" : "bg-white border-slate-300 text-slate-700 hover:bg-slate-100"}`}
+                                    >
+                                        {n}
+                                    </button>
+                                )
+                            )}
+
                             <button
                                 disabled={page >= totalPages}
                                 onClick={() => setPage(page + 1)}
-                                className="flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50"
+                                className="flex items-center px-3 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-white"
                             >
                                 Siguiente <ChevronRight className="h-4 w-4 ml-1" />
+                            </button>
+                            <button
+                                disabled={page >= totalPages}
+                                onClick={() => setPage(totalPages)}
+                                title="Última página"
+                                aria-label="Última página"
+                                className="flex items-center px-3 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-white"
+                            >
+                                <ChevronsRight className="h-4 w-4" />
                             </button>
                         </div>
                     </div>
