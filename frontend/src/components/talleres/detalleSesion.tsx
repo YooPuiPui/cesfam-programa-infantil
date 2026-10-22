@@ -46,6 +46,7 @@ interface PacienteBusqueda {
     nombre: string;
     apellido: string;
     fecha_nacimiento: string;
+    activo?: boolean;
 }
 
 const responsableSesion = (sesion: SesionDetalle): string => {
@@ -422,23 +423,32 @@ export default function DetalleSesion() {
                                         <p className="px-3.5 py-2.5 text-center text-sm font-medium text-slate-600">Sin resultados</p>
                                     )}
 
-                                    {!buscando && resultadosSinInscritos.map((p) => (
-                                        <button
-                                            key={p.rut}
-                                            type="button"
-                                            disabled={agregando}
-                                            onClick={() => agregarPaciente(p)}
-                                            className="flex w-full items-center justify-between gap-2.5 border-b border-slate-100 px-3.5 py-2.5 text-left last:border-0 hover:bg-blue-50 disabled:opacity-50"
-                                        >
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-bold text-slate-800">{p.nombre} {p.apellido}</p>
-                                                <p className="text-xs font-medium text-slate-700">
-                                                    {formatearRUT(p.rut)} · {calcularEdad(p.fecha_nacimiento)}
-                                                </p>
-                                            </div>
-                                            <span className="shrink-0 text-xs font-bold text-blue-700">Agregar</span>
-                                        </button>
-                                    ))}
+                                    {!buscando && resultadosSinInscritos.map((p) => {
+                                        // el campo es true por defecto: solo un false explícito cuenta como inactivo
+                                        const inactivo = p.activo === false;
+
+                                        return (
+                                            <button
+                                                key={p.rut}
+                                                type="button"
+                                                disabled={agregando || inactivo}
+                                                onClick={() => agregarPaciente(p)}
+                                                className={`flex w-full items-center justify-between gap-2.5 border-b border-slate-100 px-3.5 py-2.5 text-left last:border-0 disabled:opacity-50 ${inactivo ? "cursor-not-allowed bg-slate-50" : "hover:bg-blue-50"}`}
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-bold text-slate-800">{p.nombre} {p.apellido}</p>
+                                                    <p className="text-xs font-medium text-slate-700">
+                                                        {formatearRUT(p.rut)} · {calcularEdad(p.fecha_nacimiento)}
+                                                    </p>
+                                                </div>
+                                                {inactivo ? (
+                                                    <span className="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600">Inactivo</span>
+                                                ) : (
+                                                    <span className="shrink-0 text-xs font-bold text-blue-700">Agregar</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

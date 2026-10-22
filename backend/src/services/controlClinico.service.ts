@@ -169,12 +169,15 @@ export const obtenerConteosAgenda = async () => {
 };
 
 
-// obtiene por cada paciente, el id del control creado más recientemente
+// obtiene por cada paciente activo, el id del control creado más recientemente
+// (los pacientes desactivados no entran a la agenda ni a sus conteos)
 const obtenerIdsControlesVigentes = async (): Promise<number[]> => {
     const resultado = await prisma.$queryRaw<{ id_control: number }[]>`
-        SELECT DISTINCT ON (rut_paciente) id_control
-        FROM "ControlClinico"
-        ORDER BY rut_paciente, creado_en DESC
+        SELECT DISTINCT ON (c.rut_paciente) c.id_control
+        FROM "ControlClinico" c
+        JOIN "Paciente" p ON p.rut = c.rut_paciente
+        WHERE p.activo = true
+        ORDER BY c.rut_paciente, c.creado_en DESC
     `;
     return resultado.map((r) => r.id_control);
 };

@@ -100,7 +100,7 @@ export const obtenerConteosPacientes = async () => {
 export const buscarPacientePorRut = async (rut: string) => {
     return await prisma.paciente.findUnique({
         where: { rut },
-        select: { rut: true, fecha_nacimiento: true }
+        select: { rut: true, fecha_nacimiento: true, activo: true }
     });
 };
 
