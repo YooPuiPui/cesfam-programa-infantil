@@ -56,6 +56,12 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
+        //! un paciente desactivado no admite controles nuevos
+        if (!pacienteExistente.activo) {
+            res.status(400).json({ error: 'El paciente está desactivado. Reactívalo para registrar controles.' });
+            return;
+        }
+
         const fechaProximoControl = fechaCalendarioAMediodiaUTC(control.fecha_proximoControl);
         if (!fechaProximoControl) {
             res.status(400).json({ error: 'La fecha del próximo control no es válida. Usa el formato AAAA-MM-DD.' });
@@ -145,6 +151,19 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
             return;
         }
 
+        //! un control de un paciente desactivado no se puede editar
+        const controlActual = await controlService.buscarControlPorId(id);
+
+        if (!controlActual) {
+            res.status(404).json({ error: 'El control que intentas editar no existe en la base de datos' });
+            return;
+        }
+
+        if (!controlActual.paciente.activo) {
+            res.status(400).json({ error: 'El paciente está desactivado. Reactívalo para editar controles.' });
+            return;
+        }
+
         const datos = req.body;
         const datosLimpios: any = {};
 
@@ -166,7 +185,19 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
             }
             datosLimpios.fecha_proximoControl = fechaProximoControl;
         }
-        if (datos.rut_paciente !== undefined) datosLimpios.rut_paciente = String(datos.rut_paciente).trim();
+        if (datos.rut_paciente !== undefined) {
+            datosLimpios.rut_paciente = String(datos.rut_paciente).trim();
+
+            // tampoco se puede mover el control a un paciente desactivado
+            if (datosLimpios.rut_paciente !== controlActual.rut_paciente) {
+                const pacienteDestino = await prisma.paciente.findUnique({ where: { rut: datosLimpios.rut_paciente } });
+
+                if (pacienteDestino && !pacienteDestino.activo) {
+                    res.status(400).json({ error: 'El paciente está desactivado. Reactívalo para editar controles.' });
+                    return;
+                }
+            }
+        }
         if (datos.rut_profesional !== undefined) datosLimpios.rut_profesional = datos.rut_profesional;
 
         const resultado = await controlService.editarControl(id, datosLimpios);

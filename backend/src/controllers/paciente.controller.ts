@@ -199,7 +199,13 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                     es_migrante: false,
                 };
                 break;
+            case 'inactivo':
+                where.activo = false;
+                break;
         }
+
+        // los pacientes desactivados van al final de la lista; dentro de cada grupo, los más recientes primero
+        const orden = [{ activo: 'desc' as const }, { creado_en: 'desc' as const }];
 
         // Postgres "insensitive" ignora mayusculas pero no tildes, asi que el texto se filtra en memoria
         if (busqueda && busqueda.trim() !== '') {
@@ -207,7 +213,7 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
 
             const candidatos = await prisma.paciente.findMany({
                 where,
-                orderBy: { creado_en: 'desc' },
+                orderBy: orden,
                 include: {
                     controlClinico: {
                         orderBy: { fecha_control: 'desc' },
@@ -238,7 +244,7 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                 where,
                 skip: skip,
                 take: limit,
-                orderBy: { creado_en: 'desc' },
+                orderBy: orden,
                 include: {
                     controlClinico: {
                         orderBy: { fecha_control: 'desc' },
