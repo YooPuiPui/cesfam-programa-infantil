@@ -28,7 +28,7 @@ const OPCIONES_RIESGO: { value: FiltroRiesgo; label: string }[] = [
     { value: "inactivo", label: "Inactivos" },
 ];
 
-// números de página a mostrar: primera, última y las vecinas de la actual (null = "…")
+//* numeros de pagina a mostrar: primera, ultima y las vecinas de la actual (null = "…")
 const obtenerPaginasVisibles = (actual: number, total: number): (number | null)[] => {
     const paginas = new Set([1, total, actual - 1, actual, actual + 1].filter((n) => n >= 1 && n <= total));
     const ordenadas = [...paginas].sort((a, b) => a - b);
@@ -88,7 +88,7 @@ export default function PatientList() {
 
     const [riesgo, setRiesgo] = useState<FiltroRiesgo>("todos");
 
-    // Debounce: espera 400ms de silencio antes de aplicar la búsqueda real
+    //? debounce: espera 400ms antes de buscar
     useEffect(() => {
         const timeout = setTimeout(() => {
             setBusquedaDebounced(busqueda.trim());
@@ -96,7 +96,7 @@ export default function PatientList() {
         return () => clearTimeout(timeout);
     }, [busqueda]);
 
-    // Cualquier cambio de filtro (riesgo o búsqueda) vuelve a página 1
+    //* si cambia el filtro o la busqueda vuelve a la pagina 1
     useEffect(() => {
         setPage(1);
     }, [riesgo, busquedaDebounced]);

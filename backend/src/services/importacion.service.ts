@@ -24,8 +24,7 @@ export interface ResumenImportacion {
     errores: { rut: string; motivo: string }[];
 }
 
-// normalizadores 
-// cada uno documenta la regla que aplica
+//* normalizadores, limpian los datos que vienen del excel
 
 function normalizarRut(valor: unknown): string | null {
     if (!valor) return null;
@@ -154,7 +153,7 @@ function normalizarCredencial(raw: unknown): 'sin_dato' | 'si' | 'no' | 'en_tram
     return 'sin_dato';
 }
 
-// EUDALIA CARCAMO (MADRE) -> nombre: "EUDALIA CARCAMO", parentesco: "MADRE" 
+//? ej: EUDALIA CARCAMO (MADRE) -> nombre "EUDALIA CARCAMO", parentesco "MADRE"
 function separarCuidador(raw: unknown): { nombre: string | null; parentesco: string | null } {
     if (!raw) return { nombre: null, parentesco: null };
     const texto = String(raw).trim();
@@ -201,7 +200,7 @@ function leerHoja(workbook: XLSX.WorkBook, nombreHoja: 'NANEAS' | 'TEA'): FilaIm
         if (!fila) continue;
 
         const rut = normalizarRut(iRut >= 0 ? fila[iRut] : null);
-        if (!rut) continue; // fila fantasma (formula HOY arrastrada) o sin RUT real
+        if (!rut) continue; //? fila fantasma (formula HOY arrastrada) o sin rut
 
 
         let fechaNacimiento: Date | null = null;
@@ -233,8 +232,8 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
     const filasNaneas = leerHoja(workbook, 'NANEAS');
     const filasTea = leerHoja(workbook, 'TEA');
 
-    // Si el mismo RUT aparece en ambas hojas, se usa la fila de TEA (trae mas
-    // detalle clinico), pero se conserva el diagnostico de NANEAS si TEA no trae uno.
+    //? si el rut esta en las dos hojas gana la de TEA (trae mas detalle clinico)
+    //? pero se deja el diagnostico de NANEAS si TEA no trae uno
     const filasPorRut = new Map<string, FilaImportada>();
     for (const f of filasNaneas) filasPorRut.set(f.rut, f);
     for (const f of filasTea) {

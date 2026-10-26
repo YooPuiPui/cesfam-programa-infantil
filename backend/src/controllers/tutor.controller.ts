@@ -5,13 +5,13 @@ export const crearTutor: RequestHandler = async (req, res): Promise<void> => {
     try {
         const datos = req.body;
 
-        // validar que esten todos los datos
+        //! valida que esten los datos obligatorios
         if (!datos.nombre || !datos.apellido || !datos.telefono || !datos.parentesco || !datos.direccion || !datos.comuna) {
             res.status(400).json({ error: 'Faltan datos obligatorios (nombre, apellido, teléfono, parentesco, dirección, comuna)' });
             return;
         }
 
-        // mapeo de los datos 
+        //* limpia los datos
         const tutorLimpio = {
             rut: datos.rut || null,
             nombre: datos.nombre,
@@ -113,7 +113,7 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
         const datos = req.body;
         const datosLimpios: any = {};
 
-        // mapeo de los datos
+        //* pasa solo los campos que vienen
         if (datos.rut) datosLimpios.rut = datos.rut;
         if (datos.nombre) datosLimpios.nombre = datos.nombre;
         if (datos.apellido) datosLimpios.apellido = datos.apellido;
@@ -125,9 +125,8 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
         if (datos.sector !== undefined) datosLimpios.sector = datos.sector;
         if (datos.comuna) datosLimpios.comuna = datos.comuna;
 
-        // Guardar datos reales del tutor es lo que lo marca como verificado.
-        // Se fuerza aquí, no se acepta desde el body, para que nadie pueda
-        // marcarlo verificado sin pasar por esta edición.
+        //! editar al tutor lo marca como verificado
+        //? se fuerza aca y no viene del body, para que nadie lo verifique sin pasar por la edicion
         datosLimpios.verificado = true;
 
         const resultado = await tutorService.editarTutor(id, datosLimpios);

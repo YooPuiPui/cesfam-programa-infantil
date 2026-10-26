@@ -7,7 +7,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
     try {
         const { paciente, tutor } = req.body;
 
-        // validación 
+        //* validacion
         if (!paciente || !tutor) {
             res.status(400).json({ error: 'Faltan datos del paciente o del tutor en la petición' });
             return;
@@ -70,7 +70,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
         console.error(' ERROR ATRAPADO EN EL CONTROLADOR ');
         console.error('Motivo del fallo:', error);
 
-        // Validar si es un error de RUT duplicado
+        //! rut duplicado
         if (error.message && error.message.includes('Ya existe un paciente con el RUT')) {
             res.status(400).json({
                 error: 'RUT duplicado',
@@ -115,9 +115,7 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         if (datos.fecha_inscripcion) datosLimpios.fecha_inscripcion = datos.fecha_inscripcion;
         if (datos.activo !== undefined) datosLimpios.activo = datos.activo;
 
-        // Flags de riesgo social — usan "!== undefined" y no un chequeo "truthy",
-        // porque si no, desmarcar una casilla (mandar "false") se interpretaría
-        // como "no vino el dato" y la edición no surtiría efecto.
+        //! flags de riesgo social: van con "!== undefined" porque si se desmarca una casilla (false) un if normal no lo guardaria
         if (datos.es_sename !== undefined) datosLimpios.es_sename = datos.es_sename;
         if (datos.es_naneas_prematuro !== undefined) datosLimpios.es_naneas_prematuro = datos.es_naneas_prematuro;
         if (datos.es_migrante !== undefined) datosLimpios.es_migrante = datos.es_migrante;
@@ -202,10 +200,10 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                 break;
         }
 
-        // los pacientes desactivados van al final de la lista; dentro de cada grupo, los más recientes primero
+        //? los desactivados van al final, dentro de cada grupo los mas recientes primero
         const orden = [{ activo: 'desc' as const }, { creado_en: 'desc' as const }];
 
-        // Postgres "insensitive" ignora mayusculas pero no tildes, asi que el texto se filtra en memoria
+        //? "insensitive" de postgres ignora mayusculas pero no tildes, por eso se filtra en memoria
         if (busqueda && busqueda.trim() !== '') {
             const palabrasBuscadas = normalizarTexto(busqueda).split(/\s+/);
 
@@ -263,7 +261,7 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
             }
         });
     } catch (error: any) {
-        console.error('🚨 Error al obtener pacientes:', error.message);
+        console.error('Error al obtener pacientes:', error.message);
         res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };
@@ -302,7 +300,7 @@ export const borrarPaciente: RequestHandler = async (req, res): Promise<void> =>
             return;
         }
 
-        //llama el service
+        //* llama al service
         await pacienteService.eliminarPaciente(id);
 
         res.status(200).json({ mensaje: `EL paciente con id ${id} fue eliminado` });
@@ -324,16 +322,16 @@ export const borrarPaciente: RequestHandler = async (req, res): Promise<void> =>
 
 export const obtenerPacientePorRut: RequestHandler = async (req, res): Promise<void> => {
     try {
-        // 1. Forzamos a que el RUT sea leído como un único String
+        //? el rut viene de la url, se fuerza a string
         const rut = req.params.rut as string;
 
-        // 2. Si por alguna razón viene vacío, cortamos de inmediato
+        //! si viene vacio se corta
         if (!rut) {
             res.status(400).json({ error: 'Debes proporcionar un RUT' });
             return;
         }
 
-        // 3. Prisma ya no se quejará
+        //* busca al paciente con su tutor
         const paciente = await pacienteService.buscarPacientePorRutConTutor(rut);
 
         if (!paciente) {

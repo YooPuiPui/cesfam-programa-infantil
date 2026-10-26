@@ -21,7 +21,7 @@ import 'dotenv/config';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
+//* middlewares
 const origenesPermitidos = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -37,7 +37,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Ruta de prueba tipada
+//? ruta de prueba
 app.get('/', (req: Request, res: Response) => {
   res.send('¡Servidor backend en TypeScript listo y operando!');
 });
@@ -58,19 +58,17 @@ app.use('/api/importacion', importacionRoutes);
 
 
 
-// Iniciar el servidor
+//* inicia el servidor
 const server = app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`➜  Backend: http://localhost:${PORT}/`);
 });
 
-// Manejo explícito de errores de arranque del servidor.
-// Sin esto, un fallo de bind (ej. puerto ocupado) queda en silencio
-// y el proceso muere sin dar pistas de por qué.
+//! muestra el error de arranque (ej: puerto ocupado), si no el proceso muere sin decir nada
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`❌ El puerto ${PORT} ya está en uso. Cerrando proceso.`);
+    console.error(`El puerto ${PORT} ya está en uso. Cerrando proceso.`);
   } else {
-    console.error('❌ Error al iniciar el servidor:', err);
+    console.error('Error al iniciar el servidor:', err);
   }
   process.exit(1);
 });

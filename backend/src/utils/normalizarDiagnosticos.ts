@@ -1,8 +1,5 @@
-// Script de una sola vez: aplica MAPA_DIAGNOSTICOS_CANONICOS de
-// src/services/importacion.service.ts a los pacientes ya existentes en la
-// base, para que queden alineados con lo que dividirDiagnosticos() produce
-// en futuras importaciones. Ver analisis previo en la conversacion con
-// Claude sobre los ~82 valores distintos de "diagnosticos".
+//* script de una sola vez: aplica el mapa de diagnosticos de importacion.service.ts a los pacientes que ya estaban en la base
+//? asi quedan igual que lo que deja dividirDiagnosticos() en las importaciones nuevas
 import prisma from '../config/prisma';
 
 const MAPA_DIAGNOSTICOS_CANONICOS: Record<string, string> = {

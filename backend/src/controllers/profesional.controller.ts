@@ -20,7 +20,7 @@ export const crearProfesional: RequestHandler = async (req, res): Promise<void> 
             return;
         }
 
-        //! La columna rut es VarChar(12): si se pasa, Prisma revienta con un 500.
+        //! la columna rut es VarChar(12), si se pasa prisma tira un 500
         if (rut.length > 12) {
             res.status(400).json({ error: 'El RUT no puede superar los 12 caracteres' });
             return;
@@ -61,7 +61,7 @@ export const obtenerTodosLosProfesionales: RequestHandler = async (req, res): Pr
         const profesionales = await profesionalService.obtenerProfesionales();
         res.status(200).json(profesionales);
     } catch (error: any) {
-        console.error('🚨 ERROR AL OBTENER PROFESIONALES 🚨', error.message);
+        console.error('ERROR AL OBTENER PROFESIONALES', error.message);
         res.status(500).json({ error: 'Error interno al consultar la base de datos' });
     }
 };
@@ -91,7 +91,7 @@ export const obtenerProfesional: RequestHandler = async (req, res): Promise<void
     }
 };
 
-//! Editar profesional
+//* editar profesional
 export const editarProfesional: RequestHandler = async (req, res): Promise<void> => {
     try {
         const id = parseInt(req.params.id as string);
@@ -104,7 +104,7 @@ export const editarProfesional: RequestHandler = async (req, res): Promise<void>
         const datos = req.body;
         const datosLimpios: any = {};
 
-        // Mapeo dinámico exacto a tu schema
+        //* pasa solo los campos que vienen
         if (datos.rut) datosLimpios.rut = datos.rut;
         if (datos.nombre) datosLimpios.nombre = datos.nombre;
         if (datos.apellido) datosLimpios.apellido = datos.apellido;

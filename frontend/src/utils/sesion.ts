@@ -4,18 +4,18 @@ const CLAVES_SESION = ['token', 'rut_profesional', 'usuario'];
 
 export const CLAVE_SESION_EXPIRADA = 'sesionExpirada';
 
-// borra del navegador el token y los datos de sesión guardados al iniciar sesión
+//* borra del navegador el token y los datos de sesion
 export function limpiarSesion() {
     CLAVES_SESION.forEach((clave) => localStorage.removeItem(clave));
 }
 
-// limpia la sesión y deja marcado el aviso que se muestra en /login
+//* limpia la sesion y deja marcado el aviso para /login
 export function marcarSesionExpirada() {
     limpiarSesion();
     sessionStorage.setItem(CLAVE_SESION_EXPIRADA, '1');
 }
 
-// true si el token no es un JWT legible o su `exp` (en segundos) ya pasó
+//? true si el token no es un JWT valido o su `exp` (en segundos) ya paso
 export function tokenVencido(token: string): boolean {
     try {
         const payload = token.split('.')[1];
@@ -38,8 +38,8 @@ function urlDe(entrada: RequestInfo | URL): string {
     return entrada.url;
 }
 
-// envuelve window.fetch: si la API responde 401/403 con un token guardado
-// (el backend solo usa 403 para token inválido o vencido), cierra la sesión y manda a /login
+//* envuelve window.fetch: si la api responde 401/403 con token guardado, cierra la sesion y manda a /login
+//? el backend solo usa 403 para token invalido o vencido
 export function configurarSesionExpirada() {
     const fetchOriginal = window.fetch.bind(window);
 

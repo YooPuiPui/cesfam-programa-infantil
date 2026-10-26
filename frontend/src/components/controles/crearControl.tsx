@@ -93,7 +93,7 @@ export default function NuevoControl() {
 
     const aplicaImc = edadMesesActual !== null && edadMesesActual >= 24;
 
-    // el campo es true por defecto: solo un false explícito cuenta como inactivo
+    //? activo es true por defecto, solo un false cuenta como inactivo
     const pacienteInactivo = paciente?.activo === false;
 
     const onSubmit = async (data: ControlFormValues) => {

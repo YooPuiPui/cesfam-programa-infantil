@@ -97,13 +97,13 @@ export default function AgendaControles() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalRegistros, setTotalRegistros] = useState(0);
 
-    // Debounce: espera 400ms de silencio antes de aplicar la búsqueda real
+    //? debounce: espera 400ms antes de buscar
     useEffect(() => {
         const timeout = setTimeout(() => setBusquedaDebounced(busqueda.trim()), 400);
         return () => clearTimeout(timeout);
     }, [busqueda]);
 
-    // Carga los conteos globales una sola vez (independiente de la paginación/filtro)
+    //* carga los conteos una sola vez
     useEffect(() => {
         const cargarConteos = async () => {
             setCargandoConteos(true);
@@ -130,14 +130,14 @@ export default function AgendaControles() {
         cargarConteos();
     }, []);
 
-    // Vuelve a página 1 cada vez que cambia el filtro, el orden o la búsqueda
+    //* vuelve a la pagina 1 si cambia el filtro, el orden o la busqueda
     useEffect(() => {
         setPage(1);
     }, [filtro, orden, busquedaDebounced]);
 
-    // Carga los controles paginados según filtro + orden + búsqueda + página actual
+    //* carga los controles segun filtro, orden, busqueda y pagina
     useEffect(() => {
-        // Si es rango personalizado pero aún no se completan ambas fechas, no consultamos todavía
+        //! si es rango y faltan fechas todavia no se consulta
         if (filtro === "rango" && (!fechaDesde || !fechaHasta)) {
             setControles([]);
             setTotalPages(1);
@@ -198,7 +198,7 @@ export default function AgendaControles() {
         cargarAgenda();
     }, [filtro, page, fechaDesde, fechaHasta, orden, busquedaDebounced]);
 
-    // Solo se calcula esAtrasado/diasAtraso sobre la página actual (el backend ya filtró por fecha)
+    //? esAtrasado y diasAtraso se calculan solo con la pagina actual (el backend ya filtro por fecha)
     const controlesConCategoria = useMemo(() => {
         const hoy = hoyMedianoche();
         const fechaHoyCalendario = convertirClaveFechaACodeDias(obtenerClaveFechaCalendario(hoy));

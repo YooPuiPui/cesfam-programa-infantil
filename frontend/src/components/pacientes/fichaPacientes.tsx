@@ -10,7 +10,7 @@ type RiesgoSocial = {
     color: string;
 };
 
-// mismas etiquetas que el formulario de edición
+//? mismas etiquetas que el formulario de edicion
 const ETIQUETA_CREDENCIAL: Record<string, string> = {
     sin_dato: 'Sin dato',
     si: 'Sí',
@@ -30,7 +30,7 @@ export default function FichaPaciente() {
     const [cambiandoEstado, setCambiandoEstado] = useState(false);
     const [errorEstado, setErrorEstado] = useState('');
 
-    // calculo de edad detallada
+    //* calculo de edad detallada
     const obtenerEdadDetallada = (fechaNac?: string) => {
         if (!fechaNac) return "N/A";
         const birthDate = new Date(fechaNac);
@@ -44,7 +44,7 @@ export default function FichaPaciente() {
         return `${years} años y ${months} meses`;
     };
 
-    // procesar múltiples riesgos
+    //* arma la lista de riesgos sociales
     const obtenerRiesgosSociales = (p: Paciente | null): RiesgoSocial[] => {
         const riesgos: RiesgoSocial[] = [];
         if (p?.es_sename) riesgos.push({ label: "Sename", color: "bg-red-100 text-red-800 border border-red-200" });
@@ -67,7 +67,7 @@ export default function FichaPaciente() {
         return NOMBRE_SECTOR_CRUDO[s.toLowerCase()] || s;
     };
 
-    // color del sector segun el nombre real
+    //* color del sector segun el nombre real
     const obtenerColorSector = (sector?: string) => {
         if (!sector) return "bg-slate-100 text-slate-700 border border-slate-200";
         const s = (obtenerNombreSector(sector) || sector).toLowerCase();
@@ -89,13 +89,13 @@ export default function FichaPaciente() {
                 const token = localStorage.getItem("token");
                 const headers = { 'Authorization': `Bearer ${token}` };
 
-                // buscar paciente
+                //* busca al paciente
                 const resPaciente = await fetch(`${API_BASE_URL}/pacientes/rut/${rut}`, { headers });
                 if (!resPaciente.ok) throw new Error('Error al cargar datos del paciente');
                 const dataPaciente: Paciente = await resPaciente.json();
                 setPaciente(dataPaciente);
 
-                // buscar controles
+                //* busca sus controles
                 const resControles = await fetch(`${API_BASE_URL}/control/${rut}`, { headers });
                 if (resControles.ok) {
                     const dataControles: ControlClinico[] = await resControles.json();
@@ -121,7 +121,7 @@ export default function FichaPaciente() {
         cargarDatosFicha();
     }, [rut]);
 
-    // activa o desactiva al paciente; solo se envía "activo", el resto no se toca
+    //* activa o desactiva al paciente, solo se manda "activo"
     const cambiarEstado = async () => {
         if (!paciente) return;
 
@@ -157,14 +157,14 @@ export default function FichaPaciente() {
     if (error) return <div className="p-10 text-center text-red-600 font-bold bg-red-50 m-6 rounded-lg border border-red-200">{error}</div>;
 
     const riesgos = obtenerRiesgosSociales(paciente);
-    // el campo es true por defecto: solo un false explícito cuenta como inactivo
+    //? activo es true por defecto, solo un false cuenta como inactivo
     const inactivo = paciente?.activo === false;
     const etiquetaInactivo = inactivo && (
         <span className="ml-3 inline-block rounded-full border border-slate-300 bg-slate-100 px-3 py-1 align-middle text-xs font-bold uppercase tracking-wide text-slate-600">
             Inactivo
         </span>
     );
-    // pacientes antiguos o importados pueden traer estos campos nulos o vacíos
+    //? pacientes antiguos o importados pueden traer estos campos vacios
     const diagnosticos = Array.isArray(paciente?.diagnosticos)
         ? paciente.diagnosticos.filter((d): d is string => typeof d === 'string' && d.trim() !== '')
         : [];

@@ -42,18 +42,9 @@ export function obtenerHoyChile() {
 }
 
 
-/**
- * Convierte una fecha de calendario recibida desde el cliente ("2026-09-15",
- * o un ISO completo del que solo interesa el día) a un Date al mediodía UTC,
- * que es como el proyecto guarda todas las fechas de negocio.
- *
- * El mediodía evita el desfase de un día: cualquier zona horaria entre UTC-11
- * y UTC+12 sigue cayendo en la misma fecha de calendario.
- *
- * Devuelve null si el texto no es una fecha válida (formato incorrecto o un día
- * que no existe, como 2026-02-31), para que el controlador responda 400 en vez
- * de dejar que un Invalid Date llegue a Prisma y termine en un 500.
- */
+//* convierte una fecha "2026-09-15" (o un iso, solo importa el dia) a mediodia UTC
+//? asi se guardan todas las fechas del proyecto, al mediodia no se corre el dia por la zona horaria
+//! devuelve null si la fecha no existe (ej: 2026-02-31) para responder 400 y no un 500 por Invalid Date
 export function fechaCalendarioAMediodiaUTC(valor: unknown): Date | null {
     if (typeof valor !== 'string') return null;
 
@@ -66,8 +57,8 @@ export function fechaCalendarioAMediodiaUTC(valor: unknown): Date | null {
 
     const fecha = new Date(Date.UTC(anio, mes, dia, 12, 0, 0));
 
-    //! Date.UTC no rechaza días inexistentes: los corre al mes siguiente
-    //! (2026-02-31 se vuelve 2026-03-03). Comparamos para detectarlo.
+    //! Date.UTC no rechaza dias que no existen, los pasa al mes siguiente (2026-02-31 -> 2026-03-03)
+    //? por eso se compara para detectarlo
     if (
         fecha.getUTCFullYear() !== anio ||
         fecha.getUTCMonth() !== mes ||

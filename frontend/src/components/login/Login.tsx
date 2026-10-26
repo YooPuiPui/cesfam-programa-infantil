@@ -52,14 +52,14 @@ export default function Login() {
                     <h1 className="text-2xl font-bold text-slate-800">SGPI - Sistema de Gestión del Programa Infantil</h1>
                 </div>
 
-                {/* Aviso de sesión vencida (solo aparece si se llegó por una sesión expirada) */}
+                {/* aviso de sesion vencida */}
                 {sesionExpirada && (
                     <div className="bg-amber-50 text-amber-800 border border-amber-200 p-3 rounded-lg mb-6 text-sm text-center">
                         Tu sesión expiró. Vuelve a iniciar sesión.
                     </div>
                 )}
 
-                {/* Mensaje de Error (solo aparece si hay error) */}
+                {/* mensaje de error */}
                 {error && (
                     <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm text-center">
                         {error}

@@ -1,13 +1,8 @@
-// Script de corrección única para el campo `sector` de pacientes que ya
-// estaban en la base de datos antes de que la importación de Excel empezara
-// a normalizarlo (ver normalizarSector() en importacion.service.ts).
-//
-// Uso:
-//   npx ts-node scripts/corregir-sector-existente.ts              -> vista previa, no escribe nada
-//   npx ts-node scripts/corregir-sector-existente.ts --aplicar    -> aplica los cambios de verdad
-//
-// No es una ruta de la API ni se conecta a ningún botón de la interfaz.
-// Se ejecuta a mano, una vez, desde la terminal.
+//* script de una sola vez: normaliza el sector de los pacientes que ya estaban en la base
+//? usa normalizarSector() de importacion.service.ts
+//? sin flag es solo vista previa: npx ts-node scripts/corregir-sector-existente.ts
+//? con --aplicar guarda los cambios: npx ts-node scripts/corregir-sector-existente.ts --aplicar
+//! no es una ruta de la api, se corre a mano
 
 import { PrismaClient } from '@prisma/client';
 import { normalizarSector } from '../src/services/importacion.service';
@@ -30,7 +25,7 @@ async function main() {
         return;
     }
 
-    // Agrupar por "valor original -> valor nuevo" para el resumen
+    //? agrupa por "valor original -> valor nuevo" para el resumen
     const grupos = new Map<string, number>();
     for (const p of candidatos) {
         const clave = `"${p.sector}" -> "${p.sectorNuevo}"`;

@@ -67,12 +67,6 @@ backend/*.sql
 
 Microsoft/
 
-# archivos de Claude Code (no se versionan)
-.claude/
-.claude.json
-CLAUDE.md
-CLAUDE.local.md
-
 # datos clinicos reales (pacientes identificables) - NUNCA versionar
 database/naneas/
 *.xlsx

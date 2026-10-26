@@ -23,9 +23,8 @@ export const crearSesion: RequestHandler = async(req, res): Promise<void> => {
             return;
         }
 
-        //! El proyecto guarda las fechas de calendario al mediodia UTC para no
-        //! correr el dia entre America/Santiago y UTC. El helper ademas rechaza
-        //! formatos invalidos, que si no llegarian a Prisma como Invalid Date.
+        //! las fechas se guardan al mediodia UTC para no correr el dia
+        //? el helper tambien rechaza formatos invalidos (si no llegarian a prisma como Invalid Date)
         const fechaSesion = fechaCalendarioAMediodiaUTC(fecha);
 
         if(!fechaSesion){
@@ -44,9 +43,8 @@ export const crearSesion: RequestHandler = async(req, res): Promise<void> => {
             }
         }
 
-        //! Regla de negocio: uno u otro, nunca ambos, nunca ninguno.
-        //! Esto Prisma no lo valida solo porque son dos columnas independientes,
-        //! así que la regla vive acá, antes de tocar la base de datos.
+        //! regla: un profesional interno o uno externo, nunca los dos ni ninguno
+        //? prisma no lo valida porque son dos columnas distintas, por eso va aca
         const tieneInterno = !!rut_profesional;
         const tieneExterno = !!profesional_externo;
 
@@ -173,9 +171,8 @@ export const editarSesion: RequestHandler = async (req, res): Promise <void> => 
 
         const datos = req.body;
 
-        //? Necesitamos el estado actual para validar como queda la sesion DESPUES
-        //? del PATCH: mirar solo el body dejaria pasar el caso de editar el
-        //? profesional externo en una sesion que ya tiene uno interno.
+        //? se necesita lo que ya esta guardado para validar como queda la sesion despues de editar
+        //? mirando solo el body se escapa el caso de cambiar el externo en una sesion que ya tiene interno
         const actual = await sesionService.buscarSesionPorId(id);
 
         if(!actual){
@@ -323,7 +320,7 @@ export const eliminarSesion: RequestHandler = async (req, res): Promise<void> =>
             return;
         }
 
-        // P2003 acá significa: hay InscripcionTaller que dependen de esta sesión
+        //? P2003 = la sesion tiene inscripciones
         if (error.code === 'P2003') {
             res.status(409).json({ error: 'No se puede eliminar: esta sesión ya tiene pacientes inscritos.' });
             return;

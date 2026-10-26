@@ -216,7 +216,7 @@ export default function Profesionales() {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
                     },
-                    // el RUT es la clave que usan sesiones y controles: solo se envía al crear
+                    //! el rut lo usan sesiones y controles como clave, solo se manda al crear
                     body: JSON.stringify(editando ? datos : { rut: form.rut.trim(), ...datos }),
                 }
             );
@@ -258,7 +258,7 @@ export default function Profesionales() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ activo: !p.activo }), // solo este campo; el resto no se toca
+                body: JSON.stringify({ activo: !p.activo }), //? solo este campo
             });
 
             const data = await respuesta.json().catch(() => ({}));

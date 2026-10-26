@@ -180,7 +180,7 @@ export default function InscribirPaciente() {
             }
         }
 
-        // El correo del tutor es opcional; solo se valida el formato si se ingresó algo.
+        //? el correo del tutor es opcional, solo se valida si escribieron algo
         if (form.tutor_correo.trim() && !/^\S+@\S+\.\S+$/.test(form.tutor_correo.trim())) {
             nextErrors.tutor_correo = "Ingresa un correo válido.";
         }

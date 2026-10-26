@@ -19,6 +19,6 @@ export const controlSchema = z.object({
     perimetro_cefalico: z.coerce.number().optional(),
 });
 
-// Exportamos el tipo para que TypeScript nos ayude con el autocompletado en el frontend
+//* tipo del formulario, para el autocompletado
 export type ControlFormValues = z.infer<typeof controlSchema>;
 

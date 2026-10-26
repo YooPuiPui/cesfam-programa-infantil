@@ -26,8 +26,7 @@ export const crearInscripcion: RequestHandler = async (req, res): Promise<void> 
             return;
         }
 
-        // Verificamos que el paciente exista antes de intentar el insert,
-        // para dar un 404 claro en vez de depender del P2003 genérico de Prisma
+        //? se revisa que el paciente exista para dar un 404 claro y no el P2003 generico de prisma
         const paciente = await pacienteService.buscarPacientePorRut(rut_paciente.trim());
 
         if (!paciente) {

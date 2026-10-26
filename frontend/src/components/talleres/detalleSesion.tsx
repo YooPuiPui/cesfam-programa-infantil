@@ -59,13 +59,12 @@ const iniciales = (nombre: string, apellido: string): string => {
     return `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
 };
 
-// Dia calendario de hoy en America/Santiago (AAAA-MM-DD), igual que el backend
+//* dia de hoy en America/Santiago (AAAA-MM-DD), igual que el backend
 const obtenerHoyChile = (): string => {
     return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date());
 };
 
-// Compara por dia calendario en America/Santiago, igual que el backend
-// para no marcar asistencia en sesiones que aun no ocurren.
+//! compara por dia (America/Santiago) como el backend, para no marcar asistencia en sesiones que no han ocurrido
 const esSesionFutura = (fechaSesion: string): boolean => {
     const fechaSesionSoloDia = fechaSesion.slice(0, 10);
     return fechaSesionSoloDia > obtenerHoyChile();
@@ -229,7 +228,7 @@ export default function DetalleSesion() {
         }
     };
 
-    // A diferencia de la asistencia, la convocatoria se puede editar en cualquier momento
+    //? la convocatoria se puede editar siempre, la asistencia no
     const cambiarConvocatoria = async (idInscripcion: number, nuevoEstado: EstadoConvocatoria) => {
         const anterior = inscripciones.find((i) => i.id_inscripcion === idInscripcion);
         if (!anterior) return;
@@ -321,7 +320,7 @@ export default function DetalleSesion() {
     const rutsInscritos = new Set(inscripciones.map((i) => i.rut_paciente));
     const resultadosSinInscritos = resultados.filter((p) => !rutsInscritos.has(p.rut));
 
-    // mismos mensajes y mismo orden que valida el backend al inscribir
+    //? mismos mensajes y orden que valida el backend al inscribir
     const motivoSinInscripcion = sesion?.terminada
         ? "La sesión ya terminó"
         : sesion && !sesion.taller.activo
@@ -424,7 +423,7 @@ export default function DetalleSesion() {
                                     )}
 
                                     {!buscando && resultadosSinInscritos.map((p) => {
-                                        // el campo es true por defecto: solo un false explícito cuenta como inactivo
+                                        //? activo es true por defecto, solo un false cuenta como inactivo
                                         const inactivo = p.activo === false;
 
                                         return (

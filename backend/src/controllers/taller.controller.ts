@@ -1,7 +1,7 @@
 import { Request, Response, RequestHandler } from "express";
 import * as tallerService from '../services/taller.service';
 
-//? Tope del rango etario de los talleres; tambien es el default de edad_max en el schema
+//? tope de edad de los talleres, es el mismo default de edad_max en el schema
 const EDAD_TOPE_TALLER = 18;
 
 
@@ -19,8 +19,7 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
             return;
         }
 
-        //! parseInt('abc') es NaN y Prisma lo rechaza con un error opaco (500),
-        //! asi que las edades se validan aca y se responde 400.
+        //! las edades se validan aca: parseInt('abc') da NaN y prisma lo rechaza con un 500
         let edadMinLimpia: number | undefined;
         let edadMaxLimpia: number | undefined;
 
@@ -52,8 +51,7 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
             }
         }
 
-        //? Comparamos contra los valores por defecto del schema (0 y 18) para
-        //? cubrir el caso de que venga solo una de las dos edades.
+        //? se compara con los defaults del schema (0 y 18) por si viene solo una edad
         const minEfectiva = edadMinLimpia !== undefined ? edadMinLimpia : 0;
         const maxEfectiva = edadMaxLimpia !== undefined ? edadMaxLimpia : EDAD_TOPE_TALLER;
 
@@ -159,10 +157,9 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
         const datos = req.body;
         const datosLimpios: any = {};
 
-        //? actualizar con lo que viene en el body
+        //* actualiza solo lo que viene en el body
         if (datos.nombre !== undefined) {
-            //! Un nombre null pasaba el !== undefined y reventaba en .trim() con
-            //! un 500; y el nombre es obligatorio en el schema, no puede vaciarse.
+            //! un nombre null reventaba en .trim() con 500, y el nombre no puede quedar vacio
             if (typeof datos.nombre !== 'string' || datos.nombre.trim() === '') {
                 res.status(400).json({error: 'El nombre del taller no puede quedar vacio'});
                 return;
@@ -174,8 +171,7 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
         if (datos.descripcion !== undefined) datosLimpios.descripcion = datos.descripcion;
 
         if (datos.activo !== undefined) {
-            //! si llegara "false" como texto, Prisma lo rechazaria con un 500 opaco;
-            //! se valida aca y se responde 400 con un mensaje claro
+            //! si "false" llega como texto prisma lo rechaza con 500, se valida aca
             if (typeof datos.activo !== 'boolean') {
                 res.status(400).json({error: 'El estado del taller debe ser verdadero o falso'});
                 return;
@@ -216,8 +212,7 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
             datosLimpios.edad_max = edadMax;
         }
 
-        //? Si se toca una sola edad hay que compararla con la que ya esta en la
-        //? base, no con la del body: el rango resultante es el que debe ser valido.
+        //? si cambia una sola edad se compara con la que ya esta guardada, el rango final es el que debe ser valido
         if (datosLimpios.edad_min !== undefined || datosLimpios.edad_max !== undefined) {
             const actual = await tallerService.buscarTallerPorId(id);
 
