@@ -68,7 +68,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
     } catch (error: any) {
 
         console.error(' ERROR ATRAPADO EN EL CONTROLADOR ');
-        console.error('Motivo del fallo:', error.message);
+        console.error('Motivo del fallo:', error);
 
         // Validar si es un error de RUT duplicado
         if (error.message && error.message.includes('Ya existe un paciente con el RUT')) {
@@ -80,8 +80,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
         }
 
         res.status(500).json({
-            error: 'Error interno en la Base de Datos',
-            detalle: error.message
+            error: 'Error interno en la Base de Datos'
         });
     }
 };
@@ -140,7 +139,7 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         });
 
     } catch (error: any) {
-        console.error('Error al actualizar al paciente', error.message);
+        console.error('Error al actualizar al paciente', error);
 
 
         if (error.code === 'P2025') {
@@ -149,8 +148,7 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         }
 
         res.status(500).json({
-            error: 'Error interno al actualizar la db',
-            detalle: error.message
+            error: 'Error interno al actualizar la db'
         });
     }
 };

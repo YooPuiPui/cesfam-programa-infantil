@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from '../../service/api';
+import { CLAVE_SESION_EXPIRADA } from '../../utils/sesion';
 
 export default function Login() {
     const [rut, setRut] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [sesionExpirada] = useState(() => sessionStorage.getItem(CLAVE_SESION_EXPIRADA) === '1');
     const navigate = useNavigate();
+
+    useEffect(() => {
+        sessionStorage.removeItem(CLAVE_SESION_EXPIRADA);
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,6 +51,13 @@ export default function Login() {
                 <div className="text-center mb-8">
                     <h1 className="text-2xl font-bold text-slate-800">SGPI - Sistema de Gestión del Programa Infantil</h1>
                 </div>
+
+                {/* Aviso de sesión vencida (solo aparece si se llegó por una sesión expirada) */}
+                {sesionExpirada && (
+                    <div className="bg-amber-50 text-amber-800 border border-amber-200 p-3 rounded-lg mb-6 text-sm text-center">
+                        Tu sesión expiró. Vuelve a iniciar sesión.
+                    </div>
+                )}
 
                 {/* Mensaje de Error (solo aparece si hay error) */}
                 {error && (

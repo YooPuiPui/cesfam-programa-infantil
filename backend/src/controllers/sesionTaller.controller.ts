@@ -94,7 +94,7 @@ export const crearSesion: RequestHandler = async(req, res): Promise<void> => {
         })
 
     } catch (error: any) {
-        console.error('Erros al crear sesion', error.message);
+        console.error('Erros al crear sesion', error);
 
         //? P2003 = lo fk no existe o el id_taller o el rut_profesional son inválidos
         if(error.code === 'P2003'){
@@ -102,7 +102,7 @@ export const crearSesion: RequestHandler = async(req, res): Promise<void> => {
             return;
         }
 
-        res.status(500).json({error: 'Error interno en la base de dotos', detalle: error.message});
+        res.status(500).json({error: 'Error interno en la base de dotos'});
     }
 };
 
@@ -246,7 +246,7 @@ export const editarSesion: RequestHandler = async (req, res): Promise <void> => 
         });
 
     } catch (error:any) {
-        console.error('Error al actualizar la sesion ', error.message);
+        console.error('Error al actualizar la sesion ', error);
 
         if(error.code === 'P2025'){
             res.status(404).json({error: 'La sesion que intentas editar no existe '});
@@ -254,7 +254,7 @@ export const editarSesion: RequestHandler = async (req, res): Promise <void> => 
 
         }
 
-        res.status(500).json({error: 'Error interno al actualizar la base de datos ', detalle: error.message});
+        res.status(500).json({error: 'Error interno al actualizar la base de datos '});
     }
 }
 
@@ -294,8 +294,8 @@ export const terminarSesion: RequestHandler = async (req, res): Promise<void> =>
         res.status(200).json({ mensaje: 'Sesión terminada con éxito', datos: resultado });
 
     } catch (error: any) {
-        console.error('Error al terminar la sesión:', error.message);
-        res.status(500).json({ error: 'Error interno al actualizar la base de datos', detalle: error.message });
+        console.error('Error al terminar la sesión:', error);
+        res.status(500).json({ error: 'Error interno al actualizar la base de datos' });
     }
 };
 

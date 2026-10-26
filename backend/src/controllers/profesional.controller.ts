@@ -44,14 +44,14 @@ export const crearProfesional: RequestHandler = async (req, res): Promise<void> 
 
     } catch (error: any) {
         console.error(' ERROR ATRAPADO EN EL CONTROLADOR ');
-        console.error('Motivo del fallo:', error.message);
+        console.error('Motivo del fallo:', error);
 
         if (error.code === 'P2002') {
             res.status(409).json({ error: 'Ya existe un profesional con ese RUT' });
             return;
         }
 
-        res.status(500).json({ error: 'Error interno en la Base de Datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno en la Base de Datos' });
     }
 };
 
@@ -119,14 +119,14 @@ export const editarProfesional: RequestHandler = async (req, res): Promise<void>
         });
 
     } catch (error: any) {
-        console.error('Error al actualizar al profesional', error.message);
+        console.error('Error al actualizar al profesional', error);
 
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'El profesional que intentas editar no existe en la base de datos' });
             return;
         }
 
-        res.status(500).json({ error: 'Error interno al actualizar la db', detalle: error.message });
+        res.status(500).json({ error: 'Error interno al actualizar la db' });
     }
 };
 

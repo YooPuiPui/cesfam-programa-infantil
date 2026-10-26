@@ -98,14 +98,14 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
         });
 
     } catch (error: any) {
-        console.error('ERROR AL CREAR CONTROL:', error.message);
+        console.error('ERROR AL CREAR CONTROL:', error);
 
         if (error.code === 'P2003') {
             res.status(400).json({ error: 'El profesional especificado no existe en la base de datos.' });
             return;
         }
 
-        res.status(500).json({ error: 'Error interno en la Base de Datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno en la Base de Datos' });
     }
 };
 
@@ -208,7 +208,7 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         });
 
     } catch (error: any) {
-        console.error('Error al actualizar control:', error.message);
+        console.error('Error al actualizar control:', error);
 
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'El control que intentas editar no existe en la base de datos' });
@@ -220,7 +220,7 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
             return;
         }
 
-        res.status(500).json({ error: 'Error interno al actualizar la base de datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno al actualizar la base de datos' });
     }
 };
 

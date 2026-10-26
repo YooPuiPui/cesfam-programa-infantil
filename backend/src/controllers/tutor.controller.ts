@@ -32,14 +32,14 @@ export const crearTutor: RequestHandler = async (req, res): Promise<void> => {
         });
 
     } catch (error: any) {
-        console.error('ERROR AL CREAR TUTOR:', error.message);
+        console.error('ERROR AL CREAR TUTOR:', error);
         
         if (error.code === 'P2002') {
             res.status(400).json({ error: 'El RUT ya está registrado en el sistema' });
             return;
         }
 
-        res.status(500).json({ error: 'Error interno en la Base de Datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno en la Base de Datos' });
     }
 };
 
@@ -138,7 +138,7 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
         });
 
     } catch (error: any) {
-        console.error('Error al actualizar tutor:', error.message);
+        console.error('Error al actualizar tutor:', error);
 
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'El tutor que intentas editar no existe en la base de datos' });
@@ -150,7 +150,7 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
-        res.status(500).json({ error: 'Error interno al actualizar la base de datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno al actualizar la base de datos' });
     }
 };
 
