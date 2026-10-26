@@ -74,14 +74,14 @@ export const crearInscripcion: RequestHandler = async (req, res): Promise<void> 
         });
 
     } catch (error: any) {
-        console.error('ERROR AL CREAR INSCRIPCIÓN:', error.message);
+        console.error('ERROR AL CREAR INSCRIPCIÓN:', error);
 
         if (error.code === 'P2002') {
             res.status(409).json({ error: 'Este paciente ya está inscrito en esta sesión.' });
             return;
         }
 
-        res.status(500).json({ error: 'Error interno en la Base de Datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno en la Base de Datos' });
     }
 };
 
@@ -229,7 +229,7 @@ export const editarInscripcion: RequestHandler = async (req, res): Promise<void>
         });
 
     } catch (error: any) {
-        console.error('Error al actualizar inscripción:', error.message);
+        console.error('Error al actualizar inscripción:', error);
 
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'La inscripción que intentas editar no existe' });
@@ -237,7 +237,7 @@ export const editarInscripcion: RequestHandler = async (req, res): Promise<void>
 
         }
 
-        res.status(500).json({ error: 'Error interno al actualizar la base de datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno al actualizar la base de datos' });
     }
 
 };

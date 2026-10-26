@@ -78,7 +78,7 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
 
 
     }catch(error: any){
-        console.error('ERROR AL CREAR EL TALLER', error.message);
+        console.error('ERROR AL CREAR EL TALLER', error);
 
         //! P2002 es que prisma detecto que el nombre ya existe
         if(error.code === 'P2002'){
@@ -86,7 +86,7 @@ export const crearTaller: RequestHandler = async (req, res): Promise<void> =>{
             return;
         }
 
-        res.status(500).json({error: 'Error interno en la base de datos', detalle: error.message});
+        res.status(500).json({error: 'Error interno en la base de datos'});
     }
 }
 
@@ -243,7 +243,7 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
         });
 
     } catch (error: any) {
-        console.error('Error al actualizar taller:', error.message);
+        console.error('Error al actualizar taller:', error);
 
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'El taller que intentas editar no existe' });
@@ -255,7 +255,7 @@ export const editarTaller: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
-        res.status(500).json({ error: 'Error interno al actualizar la base de datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno al actualizar la base de datos' });
     }
 };
 
