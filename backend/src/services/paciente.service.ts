@@ -2,7 +2,7 @@ import prisma from '../config/prisma';
 
 export const crearPacienteConTutor = async (datosPaciente: any, datosTutor: any) => {
 
-    // Verificar si ya existe un paciente con ese RUT antes de intentar crear
+    //! revisa que no exista un paciente con ese rut antes de crear
     const pacienteExistente = await prisma.paciente.findUnique({
         where: { rut: datosPaciente.rut }
     });

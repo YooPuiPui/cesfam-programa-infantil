@@ -32,7 +32,7 @@ interface Profesional {
     activo: boolean;
 }
 
-// rut_profesional y profesional_externo son excluyentes
+//! rut_profesional y profesional_externo son excluyentes
 const responsableSesion = (sesion: SesionTaller): string => {
     if (sesion.profesional) return `${sesion.profesional.nombre} ${sesion.profesional.apellido}`;
     if (sesion.profesional_externo) return sesion.profesional_externo;

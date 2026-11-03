@@ -28,7 +28,7 @@ export const importarExcel: RequestHandler = async (req, res): Promise<void> => 
 
         
     } catch (error:any) {
-        console.error('error al importar el archivo', error.message);
+        console.error('error al importar el archivo', error);
 
         if(error.message && error.message.includes('Sheet')){
             res.status(400).json({ error: 'El archivo no parece ser un Excel válido, o no tiene las hojas esperadas (NANEAS, TEA).' });
@@ -36,7 +36,7 @@ export const importarExcel: RequestHandler = async (req, res): Promise<void> => 
 
         }
 
-        res.status(500).json({error: 'error interno al procesar el archivo', detalle: error.message});
+        res.status(500).json({error: 'error interno al procesar el archivo'});
 
     }
 

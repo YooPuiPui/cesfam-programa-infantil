@@ -26,8 +26,7 @@ export const crearInscripcion: RequestHandler = async (req, res): Promise<void> 
             return;
         }
 
-        // Verificamos que el paciente exista antes de intentar el insert,
-        // para dar un 404 claro en vez de depender del P2003 genérico de Prisma
+        //? se revisa que el paciente exista para dar un 404 claro y no el P2003 generico de prisma
         const paciente = await pacienteService.buscarPacientePorRut(rut_paciente.trim());
 
         if (!paciente) {
@@ -74,14 +73,14 @@ export const crearInscripcion: RequestHandler = async (req, res): Promise<void> 
         });
 
     } catch (error: any) {
-        console.error('ERROR AL CREAR INSCRIPCIÓN:', error.message);
+        console.error('ERROR AL CREAR INSCRIPCIÓN:', error);
 
         if (error.code === 'P2002') {
             res.status(409).json({ error: 'Este paciente ya está inscrito en esta sesión.' });
             return;
         }
 
-        res.status(500).json({ error: 'Error interno en la Base de Datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno en la Base de Datos' });
     }
 };
 
@@ -229,7 +228,7 @@ export const editarInscripcion: RequestHandler = async (req, res): Promise<void>
         });
 
     } catch (error: any) {
-        console.error('Error al actualizar inscripción:', error.message);
+        console.error('Error al actualizar inscripción:', error);
 
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'La inscripción que intentas editar no existe' });
@@ -237,7 +236,7 @@ export const editarInscripcion: RequestHandler = async (req, res): Promise<void>
 
         }
 
-        res.status(500).json({ error: 'Error interno al actualizar la base de datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno al actualizar la base de datos' });
     }
 
 };

@@ -127,7 +127,7 @@ export default function PlantillaControl() {
                     </div>
                 </div>
 
-                {/* 2. REGISTRO CLÍNICO (Sincronizado con Zod Form) */}
+                {/* 2. REGISTRO CLÍNICO */}
                 <div className="border-2 border-black mb-8 flex-1">
                     <div className="bg-gray-200 border-b-2 border-black p-1.5">
                         <h2 className="font-bold uppercase tracking-wider ml-1 text-xs">2.- Registro de Atención</h2>
@@ -148,7 +148,7 @@ export default function PlantillaControl() {
                         </p>
                     </div>
 
-                    {/* EXPLORACIÓN FÍSICA Y MEDIDAS (Peso y Talla integrados aquí) */}
+                    {/* EXPLORACIÓN FÍSICA Y MEDIDAS */}
                     <div className="p-3 border-b-2 border-black min-h-[160px]">
                         <div className="flex justify-between items-start mb-2">
                             <p className="font-bold uppercase underline underline-offset-2">Exploración Física:</p>
@@ -164,7 +164,7 @@ export default function PlantillaControl() {
                         <p className="uppercase whitespace-pre-wrap">{controlData.exploracion_fisica || '---'}</p>
                     </div>
 
-                    {/* DIAGNÓSTICO (Con fallback preventivo por si viene con el nombre de Prisma) */}
+                    {/* DIAGNÓSTICO */}
                     <div className="p-3 border-b-2 border-black min-h-[120px]">
                         <p className="font-bold mb-1 uppercase underline underline-offset-2">Diagnóstico:</p>
                         <p className="uppercase whitespace-pre-wrap">
@@ -172,7 +172,7 @@ export default function PlantillaControl() {
                         </p>
                     </div>
 
-                    {/* ACTUACIÓN / PLAN (con Próximo Control como badge) */}
+                    {/* ACTUACIÓN / PLAN */}
                     <div className="p-3 min-h-[160px]">
                         <div className="flex justify-between items-start mb-2">
                             <p className="font-bold uppercase underline underline-offset-2">Actuación / Plan / Indicaciones:</p>

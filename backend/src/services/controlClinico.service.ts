@@ -108,7 +108,7 @@ export const buscarControlPaginado = async (
             break;
     }
 
-    // busqueda por RUT del paciente o por nombre/apellido 
+    //* busqueda por rut del paciente o por nombre/apellido
     if (busqueda && busqueda.trim() !== '') {
         const palabras = busqueda.trim().split(/\s+/);
 
@@ -169,8 +169,8 @@ export const obtenerConteosAgenda = async () => {
 };
 
 
-// obtiene por cada paciente activo, el id del control creado más recientemente
-// (los pacientes desactivados no entran a la agenda ni a sus conteos)
+//* trae el id del control mas reciente de cada paciente activo
+//? los desactivados no entran a la agenda ni a sus conteos
 const obtenerIdsControlesVigentes = async (): Promise<number[]> => {
     const resultado = await prisma.$queryRaw<{ id_control: number }[]>`
         SELECT DISTINCT ON (c.rut_paciente) c.id_control

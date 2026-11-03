@@ -41,7 +41,7 @@ export default function CrearTaller() {
         });
     };
 
-    // Replica las mismas reglas que taller.controller.ts 
+    //? mismas reglas que taller.controller.ts
     const validar = (): boolean => {
         const nextErrors: Partial<Record<keyof FormState, string>> = {};
 
@@ -68,7 +68,7 @@ export default function CrearTaller() {
             nextErrors.edad_max = "La edad máxima no puede ser mayor a 18 años.";
         }
 
-        // mismos defaults del schema (0 y 18) cuando falta uno de los dos
+        //? defaults del schema (0 y 18) si falta una de las dos edades
         const minEfectiva = form.edad_min.trim() !== "" && !isNaN(edadMin) ? edadMin : 0;
         const maxEfectiva = form.edad_max.trim() !== "" && !isNaN(edadMax) ? edadMax : 18;
 

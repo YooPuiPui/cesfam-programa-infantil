@@ -21,7 +21,7 @@ export const obtenerProfesionales = async () => {
 };
 
 export const obtenerProfesionalPorId = async (idProfesional: number) => {
-    //* Busca al paciente por su id y reemplaza los compos enviados
+    //* busca al profesional por su id
     return await prisma.profesional.findUnique({
         where: {
             id_profesional :idProfesional

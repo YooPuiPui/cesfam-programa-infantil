@@ -130,7 +130,7 @@ export default function Dashboard() {
         { name: "Este mes", value: conteosAgenda.mes },
     ];
 
-    // Diagnósticos: separar categorías con ≥2 pacientes (gráfico) de las con exactamente 1 (lista)
+    //? diagnosticos con 2 o mas pacientes van al grafico, los de 1 solo van en lista
     const diagnosticosOrdenados = [...caracterizacion.diagnosticos].sort((a, b) => b.value - a.value);
     const diagnosticosMulti = diagnosticosOrdenados.filter(d => d.value >= 2);
     const diagnosticosSingle = diagnosticosOrdenados

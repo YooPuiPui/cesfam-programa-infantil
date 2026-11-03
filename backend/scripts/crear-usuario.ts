@@ -1,17 +1,8 @@
-// Script de administración para crear un usuario del sistema (o cambiarle la
-// contraseña a uno que ya existe). Reemplaza al antiguo registro público
-// (POST /auth/registro), que fue eliminado de la API.
-//
-// Uso (desde /backend):
-//   npx ts-node scripts/crear-usuario.ts
-//
-// Pregunta de forma interactiva, paso a paso: RUT, nombre completo, cargo/rol
-// y contraseña. La contraseña se escribe sin eco en pantalla y se pide dos
-// veces. Por seguridad NO se acepta por argumentos de línea de comandos ni por
-// variables de entorno. Si el RUT ya existe, ofrece cambiar solo su contraseña.
-//
-// No es una ruta de la API ni se conecta a ningún botón de la interfaz.
-// Se ejecuta a mano, desde la terminal del servidor.
+//* script para crear un usuario (o cambiarle la contraseña si ya existe)
+//? reemplaza al registro publico /auth/registro que se saco de la api
+//? uso desde /backend: npx ts-node scripts/crear-usuario.ts
+//! la contraseña se pide por terminal, sin eco y dos veces, no se acepta por argumentos ni variables de entorno
+//! no es una ruta de la api, se corre a mano en el servidor
 
 import 'dotenv/config';
 import * as readline from 'readline';
@@ -25,8 +16,7 @@ const ROL_POR_DEFECTO = 'Profesional';
 const LARGO_MINIMO_CLAVE = 8;
 const LINEA = '==========================================';
 
-// Todo lo que readline escribe pasa por esta salida; mientras `silenciado`
-// sea true no se muestra nada, así la contraseña no queda en pantalla.
+//? lo que escribe readline pasa por aca, con `silenciado` en true no se muestra nada (para la contraseña)
 let silenciado = false;
 const salida = new Writable({
     write(chunk, encoding, callback) {
@@ -45,20 +35,19 @@ function preguntar(texto: string, oculto = false): Promise<string> {
         const alCerrar = () => reject(new OperacionCancelada());
         rl.once('close', alCerrar);
 
-        // El texto de la pregunta se escribe directo a la consola (no por `salida`)
-        // para que siempre se vea, incluso al pedir la contraseña.
+        //? la pregunta va directo a la consola (no por `salida`) para que se vea siempre
         process.stdout.write(texto);
         silenciado = oculto;
         rl.question('', (respuesta) => {
             silenciado = false;
             rl.off('close', alCerrar);
-            if (oculto) process.stdout.write('\n'); // el Enter no se mostró
+            if (oculto) process.stdout.write('\n'); //? el enter no se mostro
             resolve(respuesta);
         });
     });
 }
 
-// Encabezado de cada paso, para que se entienda qué se está pidiendo.
+//* titulo de cada paso
 function paso(numero: number, titulo: string, ayuda: string[] = []) {
     console.log(`\n------------------------------------------`);
     console.log(` PASO ${numero}: ${titulo}`);
@@ -66,8 +55,8 @@ function paso(numero: number, titulo: string, ayuda: string[] = []) {
     for (const linea of ayuda) console.log(`  ${linea}`);
 }
 
-// Deja el RUT como lo guarda el sistema: sin puntos, con guion y K mayúscula.
-// Devuelve null si el formato es inválido o el dígito verificador no calza.
+//* deja el rut como lo guarda el sistema (sin puntos, con guion y K mayuscula)
+//! devuelve null si el formato o el digito verificador no calzan
 function normalizarRut(valor: string): string | null {
     const limpio = valor.toUpperCase().replace(/[.\s-]/g, '');
     if (!/^\d{6,8}[0-9K]$/.test(limpio)) return null;
@@ -75,7 +64,7 @@ function normalizarRut(valor: string): string | null {
     const cuerpo = limpio.slice(0, -1);
     const dv = limpio.slice(-1);
 
-    // Módulo 11: se multiplica cada dígito (de derecha a izquierda) por 2,3,4,5,6,7,2,3...
+    //? modulo 11: cada digito (de derecha a izquierda) se multiplica por 2,3,4,5,6,7,2,3...
     let suma = 0;
     let factor = 2;
     for (let i = cuerpo.length - 1; i >= 0; i--) {

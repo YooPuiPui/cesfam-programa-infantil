@@ -62,7 +62,7 @@ export function validarFormatoRUT(rut: string): boolean {
     if (!rut) return false;
 
     const rutLimpio = rut.replace(/[.-]/g, '').toUpperCase().trim();
-    // Debe tener 8 o 9 caracteres: 7-8 números + 1 dígito (0-9 o K)
+    //? 7 u 8 numeros + 1 digito (0-9 o K)
     const regex = /^\d{7,8}[0-9kK]$/;
 
     return regex.test(rutLimpio);
@@ -106,14 +106,7 @@ export function calcularIMC(peso_kg: number, talla_cm: number): number {
     const tallaMetros = talla_cm / 100;
     const imc = peso_kg / (tallaMetros * tallaMetros);
 
-    return Math.round(imc * 10) / 10; // Redondea a 1 decimal
-}
-
-export function clasificarIMC(imc: number, edad_anos: number): string {
-    if (imc < 16) return 'Bajo peso';
-    if (imc < 21) return 'Normal';
-    if (imc < 26) return 'Sobrepeso';
-    return 'Obesidad';
+    return Math.round(imc * 10) / 10; //? redondea a 1 decimal
 }
 
 export function formatearPeso(peso_kg: number | undefined): string {
@@ -134,13 +127,6 @@ export function colorEstado(activo: boolean): string {
         : 'bg-red-100 text-red-800 px-2 py-1 rounded text-sm';
 }
 
-
-
-export function iconoSexo(sexo: string): string {
-    if (sexo.toLowerCase().includes('masculino')) return '♂';
-    if (sexo.toLowerCase().includes('femenino')) return '♀';
-    return '◆';
-}
 
 
 //?  Si tiene nombre_social lo usa si no, usa nombre + apellido

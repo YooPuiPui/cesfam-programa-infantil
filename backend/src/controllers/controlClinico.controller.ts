@@ -10,7 +10,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
     try {
         const { paciente, control, tutor } = req.body;
 
-        // validacion inicial
+        //* validacion inicial
         if (!paciente || !paciente.rut || !control) {
             res.status(400).json({
                 error: 'JSON inválido. Debes enviar el "rut" dentro del bloque "paciente" y los datos en el bloque "control".'
@@ -18,15 +18,12 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
-        // El IMC solo aplica desde los 2 años (24 meses). Antes de esa edad, el indicador
-        // nutricional correcto es peso/edad, que ya se registra en peso_kg.
+        //? el imc solo aplica desde los 2 años (24 meses), antes se usa peso/edad que ya va en peso_kg
         const edadMesesNum = Number(control.edad_meses);
         const aplicaImc = !Number.isNaN(edadMesesNum) && edadMesesNum >= 24;
 
-        //  validación de campos obligatorios del control
-        // Ojo: edad_meses se compara con "=== undefined || === null", no con "!",
-        // porque 0 meses (un recién nacido) es un valor válido que "!" trataría
-        // como si el dato faltara.
+        //! campos obligatorios del control
+        //? edad_meses no se valida con "!" porque 0 meses (recien nacido) es valido
         if (
             control.edad_meses === undefined || control.edad_meses === null ||
             !control.peso_kg || !control.talla_cm ||
@@ -48,8 +45,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
         if (pacienteExistente) {
             id_paciente_final = pacienteExistente.id_paciente;
         } else {
-            // el paciente no existe. 
-
+            //! el paciente tiene que estar creado antes
             res.status(404).json({
                 error: `No se encontró ningún paciente con el RUT ${paciente.rut}. Por favor, registre al paciente en Admisión primero.`
             });
@@ -68,7 +64,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
-        // mapeo y conversión de tipos usando el ID que acabamos de encontrar
+        //* limpia los datos y pasa los numeros a number
         const controlLimpio = {
             fecha_control: hoyChileMediodiaUTC(),
             motivo_consulta: control.motivo_consulta || null,
@@ -98,14 +94,14 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
         });
 
     } catch (error: any) {
-        console.error('ERROR AL CREAR CONTROL:', error.message);
+        console.error('ERROR AL CREAR CONTROL:', error);
 
         if (error.code === 'P2003') {
             res.status(400).json({ error: 'El profesional especificado no existe en la base de datos.' });
             return;
         }
 
-        res.status(500).json({ error: 'Error interno en la Base de Datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno en la Base de Datos' });
     }
 };
 
@@ -188,7 +184,7 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         if (datos.rut_paciente !== undefined) {
             datosLimpios.rut_paciente = String(datos.rut_paciente).trim();
 
-            // tampoco se puede mover el control a un paciente desactivado
+            //! tampoco se puede mover el control a un paciente desactivado
             if (datosLimpios.rut_paciente !== controlActual.rut_paciente) {
                 const pacienteDestino = await prisma.paciente.findUnique({ where: { rut: datosLimpios.rut_paciente } });
 
@@ -208,7 +204,7 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         });
 
     } catch (error: any) {
-        console.error('Error al actualizar control:', error.message);
+        console.error('Error al actualizar control:', error);
 
         if (error.code === 'P2025') {
             res.status(404).json({ error: 'El control que intentas editar no existe en la base de datos' });
@@ -220,7 +216,7 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
             return;
         }
 
-        res.status(500).json({ error: 'Error interno al actualizar la base de datos', detalle: error.message });
+        res.status(500).json({ error: 'Error interno al actualizar la base de datos' });
     }
 };
 

@@ -19,7 +19,7 @@ export const verificarToken = (req: AuthRequest, res: Response, next: NextFuncti
 
     try {
         const verificado = jwt.verify(token, JWT_SECRET);
-        req.usuario = verificado; // guardamos la info del usuario en la petición
+        req.usuario = verificado; //* guarda los datos del usuario en la peticion
         next(); 
     } catch (error) {
         res.status(403).json({ error: "Token no válido o expirado" });
