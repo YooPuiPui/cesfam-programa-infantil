@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, CalendarDays, ArrowRight, ArrowLeft, SearchX, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, CalendarRange, ArrowUpDown, Search } from "lucide-react";
+import { Loader2, CalendarDays, ArrowRight, ArrowLeft, SearchX, AlertTriangle, CheckCircle2, CalendarRange, ArrowUpDown, Search } from "lucide-react";
 import type { ControlClinico, Paciente } from "../../types";
 import { API_BASE_URL } from '../../service/api';
+import Paginacion from '../layout/paginacion';
 
 type ControlAgenda = ControlClinico & {
     paciente?: Pick<Paciente, "rut" | "nombre" | "apellido">;
@@ -470,25 +471,7 @@ export default function AgendaControles() {
                     </div>
 
                     {/* Paginación */}
-                    <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 p-4">
-                        <span className="text-sm font-medium text-slate-600">Página {page} de {totalPages}</span>
-                        <div className="flex items-center gap-2">
-                            <button
-                                disabled={page === 1}
-                                onClick={() => setPage((p) => p - 1)}
-                                className="flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-                            >
-                                <ChevronLeft className="mr-1 h-4 w-4" /> Anterior
-                            </button>
-                            <button
-                                disabled={page >= totalPages}
-                                onClick={() => setPage((p) => p + 1)}
-                                className="flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-                            >
-                                Siguiente <ChevronRight className="ml-1 h-4 w-4" />
-                            </button>
-                        </div>
-                    </div>
+                    <Paginacion page={page} totalPages={totalPages} onChange={setPage} />
                 </div>
             )}
         </div>
