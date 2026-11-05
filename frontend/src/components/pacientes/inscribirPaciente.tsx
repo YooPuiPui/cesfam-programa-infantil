@@ -496,7 +496,7 @@ export default function InscribirPaciente() {
                                 </label>
                                 <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
                                     <input type="checkbox" checked={form.es_naneas_prematuro} onChange={(e) => actualizarCampo("es_naneas_prematuro", e.target.checked)} className={checkboxClass} />
-                                    Es NANEAS / Prematuro
+                                    Es Prematuro / NANEAS
                                 </label>
                                 <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
                                     <input type="checkbox" checked={form.es_migrante} onChange={(e) => actualizarCampo("es_migrante", e.target.checked)} className={checkboxClass} />
