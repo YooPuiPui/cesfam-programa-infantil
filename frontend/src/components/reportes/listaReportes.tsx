@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Search, TrendingUp, AlertTriangle, Loader2, ChevronLeft, ChevronRight, Filter, ArrowLeft } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Loader2, Filter, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from '../../service/api';
+import Paginacion from '../layout/paginacion';
 
 interface ReportePaciente {
     rut: string;
@@ -190,25 +191,7 @@ export default function ReportesList() {
                         </div>
                     )}
 
-                    <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
-                        <span className="text-sm font-medium text-slate-600">Página {page} de {totalPages}</span>
-                        <div className="flex items-center gap-2">
-                            <button
-                                disabled={page === 1}
-                                onClick={() => setPage(page - 1)}
-                                className="flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50"
-                            >
-                                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
-                            </button>
-                            <button
-                                disabled={page >= totalPages}
-                                onClick={() => setPage(page + 1)}
-                                className="flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50"
-                            >
-                                Siguiente <ChevronRight className="h-4 w-4 ml-1" />
-                            </button>
-                        </div>
-                    </div>
+                    <Paginacion page={page} totalPages={totalPages} onChange={setPage} />
                 </>
             )}
         </div>
