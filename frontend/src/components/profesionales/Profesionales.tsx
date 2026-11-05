@@ -394,7 +394,7 @@ export default function Profesionales() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Apellido</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Apellidos</label>
                                 <input
                                     type="text"
                                     value={form.apellido}
