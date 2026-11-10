@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save, Loader2, UserRound, UsersRound, ShieldAlert, CheckCircle2, CircleAlert } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
+import { validarRUTCompleto } from '../../utils/formatters';
 
 
 type FormFieldValue = string | boolean;
@@ -170,6 +171,14 @@ export default function InscribirPaciente() {
                 nextErrors[field] = message;
             }
         });
+
+        //! si el rut esta escrito, el digito verificador tiene que ser correcto
+        if (!nextErrors.rut && !validarRUTCompleto(form.rut)) {
+            nextErrors.rut = "El RUT del paciente no es válido. Revisa el dígito verificador.";
+        }
+        if (!nextErrors.tutor_rut && !validarRUTCompleto(form.tutor_rut)) {
+            nextErrors.tutor_rut = "El RUT del tutor no es válido. Revisa el dígito verificador.";
+        }
 
         if (form.es_poblacion_trans) {
             if (!form.nombre_social.trim()) {

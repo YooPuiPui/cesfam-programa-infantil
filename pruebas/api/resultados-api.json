@@ -1,0 +1,366 @@
+{
+  "api": "http://localhost:3000/api",
+  "fecha": "2026-11-10T02:57:15.622Z",
+  "resultados": [
+    {
+      "id": "API-01",
+      "modulo": "Acceso",
+      "descripcion": "Consultar pacientes sin token",
+      "esperado": "401",
+      "obtenido": "401",
+      "ms": 84,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-02",
+      "modulo": "Acceso",
+      "descripcion": "Consultar pacientes con un token alterado",
+      "esperado": "403",
+      "obtenido": "403",
+      "ms": 11,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-03",
+      "modulo": "Acceso",
+      "descripcion": "Iniciar sesión sin contraseña",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 50,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-04",
+      "modulo": "Acceso",
+      "descripcion": "Iniciar sesión con contraseña incorrecta",
+      "esperado": "401",
+      "obtenido": "401",
+      "ms": 182,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-05",
+      "modulo": "Acceso",
+      "descripcion": "Iniciar sesión con un RUT no registrado entrega el mismo mensaje",
+      "esperado": "401",
+      "obtenido": "401",
+      "ms": 4,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-06",
+      "modulo": "Acceso",
+      "descripcion": "Iniciar sesión con credenciales correctas",
+      "esperado": "200",
+      "obtenido": "200",
+      "ms": 65,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-07",
+      "modulo": "Pacientes",
+      "descripcion": "Inscribir un paciente con sus datos y los de su tutor",
+      "esperado": "201",
+      "obtenido": "201",
+      "ms": 35,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-08",
+      "modulo": "Pacientes",
+      "descripcion": "Inscribir un paciente con un RUT ya registrado",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 13,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-09",
+      "modulo": "Pacientes",
+      "descripcion": "Inscribir un paciente sin los datos del tutor",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 4,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-10",
+      "modulo": "Pacientes",
+      "descripcion": "Inscribir un paciente con un RUT de dígito verificador incorrecto",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 2,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-11",
+      "modulo": "Controles",
+      "descripcion": "Registrar un control clínico válido",
+      "esperado": "201",
+      "obtenido": "201",
+      "ms": 34,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-12",
+      "modulo": "Controles",
+      "descripcion": "Registrar un control sin peso",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 2,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-13",
+      "modulo": "Controles",
+      "descripcion": "Registrar un control con un peso fuera de rango (500 kg)",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 2,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-14",
+      "modulo": "Controles",
+      "descripcion": "Registrar un control con una fecha de próximo control inexistente (2026-02-30)",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 5,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-15",
+      "modulo": "Controles",
+      "descripcion": "Registrar un control para un RUT no registrado",
+      "esperado": "404",
+      "obtenido": "404",
+      "ms": 4,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-16",
+      "modulo": "Controles",
+      "descripcion": "Registrar un control para un paciente desactivado",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 5,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-17",
+      "modulo": "Rendimiento",
+      "descripcion": "Consultar los conteos de la agenda de controles",
+      "esperado": "200 en ≤ 2000 ms",
+      "obtenido": "200",
+      "ms": 44,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-18",
+      "modulo": "Rendimiento",
+      "descripcion": "Consultar la primera página del listado de pacientes",
+      "esperado": "200 en ≤ 2000 ms",
+      "obtenido": "200",
+      "ms": 23,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-19",
+      "modulo": "Rendimiento",
+      "descripcion": "Consultar la caracterización de la población del Dashboard",
+      "esperado": "200 en ≤ 2000 ms",
+      "obtenido": "200",
+      "ms": 27,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-20",
+      "modulo": "Rendimiento",
+      "descripcion": "Generar el reporte de evolución de un paciente con controles",
+      "esperado": "200 en ≤ 3000 ms",
+      "obtenido": "200",
+      "ms": 8,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-21",
+      "modulo": "Talleres",
+      "descripcion": "Crear un taller con edad mínima mayor que la máxima",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 2,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-22",
+      "modulo": "Talleres",
+      "descripcion": "Crear un taller válido",
+      "esperado": "201",
+      "obtenido": "201",
+      "ms": 6,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-23",
+      "modulo": "Talleres",
+      "descripcion": "Crear un taller con un nombre ya registrado",
+      "esperado": "409",
+      "obtenido": "409",
+      "ms": 18,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-24",
+      "modulo": "Talleres",
+      "descripcion": "Crear una sesión con una fecha inexistente (2026-02-30)",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 2,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-25",
+      "modulo": "Talleres",
+      "descripcion": "Inscribir un paciente activo en una sesión",
+      "esperado": "201",
+      "obtenido": "201",
+      "ms": 15,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-26",
+      "modulo": "Talleres",
+      "descripcion": "Inscribir otra vez al mismo paciente en la sesión",
+      "esperado": "409",
+      "obtenido": "409",
+      "ms": 12,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-27",
+      "modulo": "Talleres",
+      "descripcion": "Inscribir un paciente desactivado",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 6,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-28",
+      "modulo": "Talleres",
+      "descripcion": "Registrar asistencia en una sesión que aún no ocurre",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 8,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-29",
+      "modulo": "Talleres",
+      "descripcion": "Terminar una sesión antes de su fecha",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 9,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-30",
+      "modulo": "Talleres",
+      "descripcion": "Registrar la convocatoria y la asistencia en la sesión del día",
+      "esperado": "200",
+      "obtenido": "200",
+      "ms": 13,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-31",
+      "modulo": "Talleres",
+      "descripcion": "Terminar la sesión del día",
+      "esperado": "200",
+      "obtenido": "200",
+      "ms": 11,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-32",
+      "modulo": "Talleres",
+      "descripcion": "Modificar la asistencia de una sesión terminada",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 5,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-33",
+      "modulo": "Talleres",
+      "descripcion": "Crear una sesión en un taller desactivado",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 5,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-34",
+      "modulo": "Importación",
+      "descripcion": "Importar sin adjuntar un archivo",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 6,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-35",
+      "modulo": "Importación",
+      "descripcion": "Importar un archivo que no es una planilla Excel",
+      "esperado": "400",
+      "obtenido": "400",
+      "ms": 5,
+      "estado": "APROBADO",
+      "nota": ""
+    },
+    {
+      "id": "API-36",
+      "modulo": "Profesionales",
+      "descripcion": "Registrar un profesional con un RUT ya registrado",
+      "esperado": "409",
+      "obtenido": "409",
+      "ms": 8,
+      "estado": "APROBADO",
+      "nota": ""
+    }
+  ]
+}

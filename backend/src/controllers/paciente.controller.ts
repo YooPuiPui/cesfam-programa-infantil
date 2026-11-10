@@ -2,6 +2,7 @@ import { Request, Response, RequestHandler } from 'express';
 import * as pacienteService from '../services/paciente.service';
 import prisma from '../config/prisma';
 import { normalizarTexto } from '../services/importacion.service';
+import { validarRut } from '../utils/validarRut';
 
 export const crearPaciente = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -13,7 +14,15 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
+        if (!validarRut(paciente.rut)) {
+            res.status(400).json({ error: 'El RUT del paciente no es válido. Revisa el dígito verificador.' });
+            return;
+        }
 
+        if (!validarRut(tutor.rut)) {
+            res.status(400).json({ error: 'El RUT del tutor no es válido. Revisa el dígito verificador.' });
+            return;
+        }
 
         const pacienteLimpio = {
             rut: paciente.rut,
