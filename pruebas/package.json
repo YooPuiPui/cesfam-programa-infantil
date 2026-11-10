@@ -1,0 +1,12 @@
+{
+  "name": "pruebas-sgpi",
+  "private": true,
+  "description": "Pruebas técnicas del sistema SGPI: unitarias (Vitest) y de API (Node, sin dependencias)",
+  "scripts": {
+    "unitarias": "vitest run --reporter=verbose",
+    "api": "node api/pruebas-api.mjs"
+  },
+  "devDependencies": {
+    "vitest": "3.2.4"
+  }
+}

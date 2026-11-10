@@ -36,6 +36,20 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
+        //! rangos de peso y talla, los mismos que valida el frontend (controlClinicoSchema.ts)
+        const pesoNum = Number(control.peso_kg);
+        const tallaNum = Number(control.talla_cm);
+
+        if (Number.isNaN(pesoNum) || pesoNum < 0.5 || pesoNum > 150) {
+            res.status(400).json({ error: 'El peso debe estar entre 0,5 y 150 kg.' });
+            return;
+        }
+
+        if (Number.isNaN(tallaNum) || tallaNum < 20 || tallaNum > 200) {
+            res.status(400).json({ error: 'La talla debe estar entre 20 y 200 cm.' });
+            return;
+        }
+
         let id_paciente_final: number;
 
         const pacienteExistente = await prisma.paciente.findUnique({

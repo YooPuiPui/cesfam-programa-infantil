@@ -229,6 +229,11 @@ function leerHoja(workbook: XLSX.WorkBook, nombreHoja: 'NANEAS' | 'TEA'): FilaIm
 export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Promise<ResumenImportacion> => {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
 
+    //! si no trae ninguna de las hojas esperadas se corta, el controlador lo responde como 400
+    if (!workbook.Sheets['NANEAS'] && !workbook.Sheets['TEA']) {
+        throw new Error('Sheet NANEAS o TEA no encontrada en el archivo');
+    }
+
     const filasNaneas = leerHoja(workbook, 'NANEAS');
     const filasTea = leerHoja(workbook, 'TEA');
 
