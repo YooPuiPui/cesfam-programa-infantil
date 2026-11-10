@@ -68,8 +68,9 @@ export function validarFormatoRUT(rut: string): boolean {
     return regex.test(rutLimpio);
 }
 
-export function calcularDigitoVerificadorRUT(rut: string): string {
-    const rutLimpio = rut.replace(/[.-]/g, '').slice(0, -1);
+//? recibe solo el número del RUT, sin el dígito verificador (ej: "12345678")
+export function calcularDigitoVerificadorRUT(numero: string): string {
+    const rutLimpio = numero.replace(/[.-]/g, '');
     let suma = 0;
     let multiplicador = 2;
 
@@ -84,9 +85,10 @@ export function calcularDigitoVerificadorRUT(rut: string): string {
     const resto = suma % 11;
     const digito = 11 - resto;
 
-    if (digito === 11) return 'K';
-    if (digito === 10) return '1';
+    if (digito === 11) return '0';
+    if (digito === 10) return 'K';
     return digito.toString();
+
 }
 
 export function validarRUTCompleto(rut: string): boolean {

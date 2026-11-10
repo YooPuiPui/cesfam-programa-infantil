@@ -16,6 +16,12 @@ export const importarExcel: RequestHandler = async (req, res): Promise<void> => 
 
         }
 
+        //! solo se aceptan archivos .xlsx
+        if (!archivo.originalname || !archivo.originalname.toLowerCase().endsWith('.xlsx')) {
+            res.status(400).json({ error: 'Solo se aceptan archivos .xlsx.' });
+            return;
+        }
+
         const dryRun = req.body.dryRun !== 'false';
 
         const resumen = await importarExcelNaneas(archivo.buffer, dryRun);
