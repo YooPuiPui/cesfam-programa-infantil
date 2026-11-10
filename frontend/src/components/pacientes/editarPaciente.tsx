@@ -279,7 +279,7 @@ export default function EditarPaciente() {
         ],
         es_salud_mental: form.es_salud_mental,
         credencial_discapacidad: form.credencial_discapacidad,
-        credencial_discapacidad_detalle: form.credencial_discapacidad !== "sin_dato" ? form.credencial_discapacidad_detalle.trim() : "",
+        credencial_discapacidad_detalle: form.credencial_discapacidad === "si" ? form.credencial_discapacidad_detalle.trim() : "",
         cuidador_nombre: form.cuidador_nombre.trim(),
         cuidador_telefono: form.cuidador_telefono.trim(),
         cuidador_parentesco: form.cuidador_parentesco.trim(),
@@ -516,7 +516,7 @@ export default function EditarPaciente() {
                                 <option value="en_tramite">En trámite</option>
                             </select>
                         </div>
-                        {form.credencial_discapacidad !== "sin_dato" && (
+                        {form.credencial_discapacidad === "si" && (
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Detalle (porcentaje, vigencia, etc.)</label>
                                 <input type="text" value={form.credencial_discapacidad_detalle} onChange={(e) => actualizarCampo("credencial_discapacidad_detalle", e.target.value)} className={fieldClass(false)} placeholder="Ej: 35%, vigente hasta 2030" />
