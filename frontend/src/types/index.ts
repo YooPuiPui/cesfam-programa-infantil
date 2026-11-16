@@ -1,3 +1,16 @@
+export interface Comuna {
+    id_comuna: number;
+    nombre: string;
+}
+
+export interface Cuidador {
+    id_cuidador: number;
+    nombre: string;
+    apellidos?: string | null;
+    telefono?: string | null;
+    parentesco?: string | null;
+}
+
 export interface Tutor {
     id_tutor: number;
     rut: string;
@@ -9,7 +22,8 @@ export interface Tutor {
     correo?: string;
     direccion: string;
     sector?: string;
-    comuna: string;
+    id_comuna: number;
+    comuna?: Comuna;        // viene incluida en las respuestas del backend
     verificado: boolean;
 }
 
@@ -25,7 +39,8 @@ export interface Paciente {
     nacionalidad?: string;
     direccion: string;
     sector?: string;
-    comuna: string;
+    id_comuna: number;
+    comuna?: Comuna;        // viene incluida en las respuestas del backend
     nhc?: string;
     prevision?: string;        // fonasa. isapre etc
     fecha_inscripcion: string;
@@ -43,10 +58,9 @@ export interface Paciente {
     credencial_discapacidad?: 'sin_dato' | 'si' | 'no' | 'en_tramite';
     credencial_discapacidad_detalle?: string;
 
-    //* cuidador (distinto del tutor legal, opcional)
-    cuidador_nombre?: string;
-    cuidador_telefono?: string;
-    cuidador_parentesco?: string;
+    //* cuidador (distinto del tutor legal, opcional), viene en las respuestas del backend
+    id_cuidador?: number | null;
+    cuidador?: Cuidador | null;
 
     //* relacion con tutor
     tutor?: Tutor;
@@ -112,6 +126,12 @@ export interface ApiResponse<T> {
 }
 
 export interface FormCrearPaciente {
-    paciente: Omit<Paciente, 'id_paciente' | 'creado_en'>;
-    tutor: Omit<Tutor, 'id_tutor'>;
+    //? en el request el cuidador se manda plano (cuidador_nombre/telefono/parentesco)
+    paciente: Omit<Paciente, 'id_paciente' | 'creado_en' | 'comuna' | 'id_cuidador' | 'cuidador'> & {
+        cuidador_nombre?: string;
+        cuidador_apellidos?: string;
+        cuidador_telefono?: string;
+        cuidador_parentesco?: string;
+    };
+    tutor: Omit<Tutor, 'id_tutor' | 'comuna'>;
 }

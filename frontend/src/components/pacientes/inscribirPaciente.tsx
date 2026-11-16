@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save, Loader2, UserRound, UsersRound, ShieldAlert, CheckCircle2, CircleAlert } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
+import type { Comuna } from '../../types';
 import { validarRUTCompleto } from '../../utils/formatters';
 
 
@@ -17,7 +18,7 @@ type FormState = {
     nacionalidad: string;
     direccion: string;
     sector: string;
-    comuna: string;
+    id_comuna: string;
     prevision: string;
     fecha_inscripcion: string;
     es_sename: boolean;
@@ -37,6 +38,7 @@ type FormState = {
     credencial_discapacidad: string;
     credencial_discapacidad_detalle: string;
     cuidador_nombre: string;
+    cuidador_apellidos: string;
     cuidador_telefono: string;
     cuidador_parentesco: string;
     tutor_rut: string;
@@ -47,7 +49,7 @@ type FormState = {
     tutor_parentesco: string;
     tutor_correo: string;
     tutor_direccion: string;
-    tutor_comuna: string;
+    tutor_id_comuna: string;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
@@ -73,7 +75,8 @@ function formatearRut(valor: string): string {
 const OPCIONES_SECTOR = ["Sector 1 - Azul", "Sector 2 - Rojo"];
 
 
-const OPCIONES_COMUNA = ["Concepción"];
+//? las comunas se cargan desde GET /api/comunas, el value del select es el id_comuna
+const COMUNA_POR_DEFECTO = "Concepción";
 
 const initialState: FormState = {
     rut: "",
@@ -84,7 +87,7 @@ const initialState: FormState = {
     nacionalidad: "Chilena",
     direccion: "",
     sector: "",
-    comuna: "Concepción",
+    id_comuna: "",
     prevision: "",
     fecha_inscripcion: hoyLocal(),
     es_sename: false,
@@ -104,7 +107,8 @@ const initialState: FormState = {
     credencial_discapacidad: "sin_dato",
     credencial_discapacidad_detalle: "",
     cuidador_nombre: "",
-    cuidador_telefono: "",
+    cuidador_apellidos: "",
+    cuidador_telefono: "+569",
     cuidador_parentesco: "",
     tutor_rut: "",
     tutor_nombre: "",
@@ -114,7 +118,7 @@ const initialState: FormState = {
     tutor_parentesco: "",
     tutor_correo: "",
     tutor_direccion: "",
-    tutor_comuna: "Concepción",
+    tutor_id_comuna: "",
 };
 
 const fieldClass = (hasError: boolean) =>
@@ -132,6 +136,38 @@ export default function InscribirPaciente() {
     const [guardando, setGuardando] = useState(false);
     const [errorGeneral, setErrorGeneral] = useState("");
     const [mensajeExito, setMensajeExito] = useState("");
+    const [comunas, setComunas] = useState<Comuna[]>([]);
+
+    //* carga las comunas desde el backend y deja Concepción preseleccionada como antes
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const cargarComunas = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/comunas`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!response.ok) throw new Error("No se pudieron cargar las comunas.");
+
+                const lista: Comuna[] = await response.json();
+                setComunas(lista);
+
+                const porDefecto = lista.find((c) => c.nombre === COMUNA_POR_DEFECTO);
+                if (porDefecto) {
+                    setForm((anterior) => ({
+                        ...anterior,
+                        id_comuna: anterior.id_comuna || String(porDefecto.id_comuna),
+                        tutor_id_comuna: anterior.tutor_id_comuna || String(porDefecto.id_comuna),
+                    }));
+                }
+            } catch (error) {
+                setErrorGeneral(error instanceof Error ? error.message : "No se pudieron cargar las comunas.");
+            }
+        };
+
+        cargarComunas();
+    }, []);
 
     useEffect(() => {
         if (!mensajeExito) return;
@@ -153,7 +189,7 @@ export default function InscribirPaciente() {
             ["sexo_biologico", "El sexo biológico es obligatorio."],
             ["direccion", "La dirección del paciente es obligatoria."],
             ["sector", "El sector es obligatorio."],
-            ["comuna", "La comuna es obligatoria."],
+            ["id_comuna", "La comuna es obligatoria."],
             ["prevision", "La previsión es obligatoria."],
             ["fecha_inscripcion", "La fecha de inscripción es obligatoria."],
             ["tutor_rut", "El RUT del tutor es obligatorio."],
@@ -162,7 +198,7 @@ export default function InscribirPaciente() {
             ["tutor_telefono", "El teléfono del tutor es obligatorio."],
             ["tutor_parentesco", "El parentesco es obligatorio."],
             ["tutor_direccion", "La dirección del tutor es obligatoria."],
-            ["tutor_comuna", "La comuna del tutor es obligatoria."],
+            ["tutor_id_comuna", "La comuna del tutor es obligatoria."],
         ];
 
         requiredFields.forEach(([field, message]) => {
@@ -234,7 +270,7 @@ export default function InscribirPaciente() {
             nacionalidad: form.nacionalidad.trim() || "Chilena",
             direccion: form.direccion.trim(),
             sector: form.sector.trim(),
-            comuna: form.comuna.trim(),
+            id_comuna: Number(form.id_comuna),
             prevision: form.prevision.trim(),
             fecha_inscripcion: form.fecha_inscripcion,
             es_sename: form.es_sename,
@@ -255,7 +291,9 @@ export default function InscribirPaciente() {
             credencial_discapacidad: form.credencial_discapacidad,
             credencial_discapacidad_detalle: form.credencial_discapacidad === "si" ? form.credencial_discapacidad_detalle.trim() : "",
             cuidador_nombre: form.cuidador_nombre.trim(),
-            cuidador_telefono: form.cuidador_telefono.trim(),
+            cuidador_apellidos: form.cuidador_apellidos.trim(),
+            //? si solo quedó el prefijo "+569" (sin número), se manda vacío
+            cuidador_telefono: form.cuidador_telefono.trim() === "+569" ? "" : form.cuidador_telefono.trim(),
             cuidador_parentesco: form.cuidador_parentesco.trim(),
         },
         tutor: {
@@ -267,7 +305,7 @@ export default function InscribirPaciente() {
             parentesco: form.tutor_parentesco.trim(),
             correo: form.tutor_correo.trim(),
             direccion: form.tutor_direccion.trim(),
-            comuna: form.tutor_comuna.trim(),
+            id_comuna: Number(form.tutor_id_comuna),
         },
     }), [form]);
 
@@ -403,13 +441,13 @@ export default function InscribirPaciente() {
                                 {errors.fecha_nacimiento && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.fecha_nacimiento}</span>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre *</label>
-                                <input type="text" value={form.nombre} onChange={(e) => actualizarCampo("nombre", e.target.value)} className={fieldClass(Boolean(errors.nombre))} placeholder="Nombre" />
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombres *</label>
+                                <input type="text" value={form.nombre} onChange={(e) => actualizarCampo("nombre", e.target.value)} className={fieldClass(Boolean(errors.nombre))} placeholder="Nombres" />
                                 {errors.nombre && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.nombre}</span>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellido *</label>
-                                <input type="text" value={form.apellido} onChange={(e) => actualizarCampo("apellido", e.target.value)} className={fieldClass(Boolean(errors.apellido))} placeholder="Apellido" />
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellidos *</label>
+                                <input type="text" value={form.apellido} onChange={(e) => actualizarCampo("apellido", e.target.value)} className={fieldClass(Boolean(errors.apellido))} placeholder="Apellidos" />
                                 {errors.apellido && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.apellido}</span>}
                             </div>
                             <div>
@@ -452,13 +490,13 @@ export default function InscribirPaciente() {
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Comuna *</label>
-                                <select value={form.comuna} onChange={(e) => actualizarCampo("comuna", e.target.value)} className={fieldClass(Boolean(errors.comuna))}>
+                                <select value={form.id_comuna} onChange={(e) => actualizarCampo("id_comuna", e.target.value)} className={fieldClass(Boolean(errors.id_comuna))}>
                                     <option value="">Seleccionar...</option>
-                                    {OPCIONES_COMUNA.map((c) => (
-                                        <option key={c} value={c}>{c}</option>
+                                    {comunas.map((c) => (
+                                        <option key={c.id_comuna} value={String(c.id_comuna)}>{c.nombre}</option>
                                     ))}
                                 </select>
-                                {errors.comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.comuna}</span>}
+                                {errors.id_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.id_comuna}</span>}
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Previsión *</label>
@@ -624,13 +662,13 @@ export default function InscribirPaciente() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre *</label>
-                                <input type="text" value={form.tutor_nombre} onChange={(e) => actualizarCampo("tutor_nombre", e.target.value)} className={fieldClass(Boolean(errors.tutor_nombre))} placeholder="Nombre" />
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombres *</label>
+                                <input type="text" value={form.tutor_nombre} onChange={(e) => actualizarCampo("tutor_nombre", e.target.value)} className={fieldClass(Boolean(errors.tutor_nombre))} placeholder="Nombres" />
                                 {errors.tutor_nombre && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_nombre}</span>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellido *</label>
-                                <input type="text" value={form.tutor_apellido} onChange={(e) => actualizarCampo("tutor_apellido", e.target.value)} className={fieldClass(Boolean(errors.tutor_apellido))} placeholder="Apellido" />
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellidos *</label>
+                                <input type="text" value={form.tutor_apellido} onChange={(e) => actualizarCampo("tutor_apellido", e.target.value)} className={fieldClass(Boolean(errors.tutor_apellido))} placeholder="Apellidos" />
                                 {errors.tutor_apellido && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_apellido}</span>}
                             </div>
                             <div>
@@ -657,13 +695,13 @@ export default function InscribirPaciente() {
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Comuna *</label>
-                                <select value={form.tutor_comuna} onChange={(e) => actualizarCampo("tutor_comuna", e.target.value)} className={fieldClass(Boolean(errors.tutor_comuna))}>
+                                <select value={form.tutor_id_comuna} onChange={(e) => actualizarCampo("tutor_id_comuna", e.target.value)} className={fieldClass(Boolean(errors.tutor_id_comuna))}>
                                     <option value="">Seleccionar...</option>
-                                    {OPCIONES_COMUNA.map((c) => (
-                                        <option key={c} value={c}>{c}</option>
+                                    {comunas.map((c) => (
+                                        <option key={c.id_comuna} value={String(c.id_comuna)}>{c.nombre}</option>
                                     ))}
                                 </select>
-                                {errors.tutor_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_comuna}</span>}
+                                {errors.tutor_id_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_id_comuna}</span>}
                             </div>
                         </div>
                     </section>
@@ -677,14 +715,18 @@ export default function InscribirPaciente() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <div>
-                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre</label>
-                                <input type="text" value={form.cuidador_nombre} onChange={(e) => actualizarCampo("cuidador_nombre", e.target.value)} className={fieldClass(false)} placeholder="Nombre del cuidador" />
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombres</label>
+                                <input type="text" value={form.cuidador_nombre} onChange={(e) => actualizarCampo("cuidador_nombre", e.target.value)} className={fieldClass(false)} placeholder="Nombres del cuidador" />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellidos</label>
+                                <input type="text" value={form.cuidador_apellidos} onChange={(e) => actualizarCampo("cuidador_apellidos", e.target.value)} className={fieldClass(false)} placeholder="Apellidos del cuidador" />
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono</label>
-                                <input type="text" value={form.cuidador_telefono} onChange={(e) => actualizarCampo("cuidador_telefono", e.target.value)} className={fieldClass(false)} placeholder="+56912345678" />
+                                <input type="text" value={form.cuidador_telefono} onChange={(e) => actualizarCampo("cuidador_telefono", formatearTelefono(e.target.value))} className={fieldClass(false)} placeholder="+56912345678 (opcional)" maxLength={12} />
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Parentesco</label>
