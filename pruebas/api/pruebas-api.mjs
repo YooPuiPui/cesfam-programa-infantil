@@ -27,6 +27,7 @@ if (!/\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(API) && process.env.PERMITIR_REMO
 // ---------------------------------------------------------------- utilidades
 const resultados = [];
 let token = null;
+let idComuna = null; // id real de una comuna, se obtiene de GET /comunas después de iniciar sesión
 
 function hoyChile() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -95,12 +96,12 @@ function pacienteDePrueba(rut, extra = {}) {
   return {
     paciente: {
       rut, nombre: 'Prueba', apellido: 'Técnica API', fecha_nacimiento: sumarDias(hoyChile(), -700),
-      sexo_biologico: 'Femenino', direccion: 'Calle de prueba 123', comuna: 'Concepción', sector: 'Sector 1 - Azul',
+      sexo_biologico: 'Femenino', direccion: 'Calle de prueba 123', id_comuna: idComuna, sector: 'Sector 1 - Azul',
       prevision: 'FONASA', es_naneas_prematuro: true, ...extra,
     },
     tutor: {
       rut: rutAleatorio(), nombre: 'Tutor', apellido: 'De Prueba', telefono: '+56911111111', parentesco: 'Madre',
-      correo: 'prueba@ejemplo.cl', direccion: 'Calle de prueba 123', comuna: 'Concepción',
+      correo: 'prueba@ejemplo.cl', direccion: 'Calle de prueba 123', id_comuna: idComuna,
     },
   };
 }
@@ -128,6 +129,10 @@ if (!token) {
 }
 
 // --- Datos de apoyo
+const comunas = (await pedir('GET', '/comunas')).datos;
+idComuna = Array.isArray(comunas) && comunas.length > 0 ? comunas[0].id_comuna : null;
+if (!idComuna) { console.error('No hay comunas en la base (corre el seed o la migración).'); process.exit(1); }
+
 const profesionales = (await pedir('GET', '/profesionales')).datos || [];
 const profesional = (Array.isArray(profesionales) ? profesionales : buscar(profesionales, ['datos']) || []).find((p) => p.activo !== false);
 if (!profesional) { console.error('No hay profesionales activos en la base (corre el seed).'); process.exit(1); }

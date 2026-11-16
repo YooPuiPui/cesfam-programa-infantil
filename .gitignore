@@ -72,3 +72,5 @@ database/naneas/
 *.xlsx
 *.xls
 *.csv
+*.tsbuildinfo
+pruebas/api/resultados-api.json
