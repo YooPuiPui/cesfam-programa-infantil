@@ -1,13 +1,29 @@
 import { Request, Response, RequestHandler } from "express";
 import * as tutorService from '../services/tutor.service';
+import prisma from '../config/prisma';
+
+//? revisa que el id_comuna sea un entero y exista en la tabla Comuna
+const comunaExiste = async (idComuna: any): Promise<boolean> => {
+    const id = Number(idComuna);
+    if (!Number.isInteger(id)) return false;
+
+    const comuna = await prisma.comuna.findUnique({ where: { id_comuna: id } });
+    return comuna !== null;
+};
 
 export const crearTutor: RequestHandler = async (req, res): Promise<void> => {
     try {
         const datos = req.body;
 
         //! valida que esten los datos obligatorios
-        if (!datos.nombre || !datos.apellido || !datos.telefono || !datos.parentesco || !datos.direccion || !datos.comuna) {
+        if (!datos.nombre || !datos.apellido || !datos.telefono || !datos.parentesco || !datos.direccion || !datos.id_comuna) {
             res.status(400).json({ error: 'Faltan datos obligatorios (nombre, apellido, teléfono, parentesco, dirección, comuna)' });
+            return;
+        }
+
+        //! la comuna debe existir
+        if (!(await comunaExiste(datos.id_comuna))) {
+            res.status(400).json({ error: 'La comuna del tutor no existe.' });
             return;
         }
 
@@ -21,7 +37,7 @@ export const crearTutor: RequestHandler = async (req, res): Promise<void> => {
             correo: datos.correo || null,
             direccion: datos.direccion,
             sector: datos.sector || null,
-            comuna: datos.comuna,
+            id_comuna: Number(datos.id_comuna),
         };
 
         const resultado = await tutorService.crearTutor(tutorLimpio);
@@ -123,7 +139,13 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
         if (datos.correo !== undefined) datosLimpios.correo = datos.correo;
         if (datos.direccion) datosLimpios.direccion = datos.direccion;
         if (datos.sector !== undefined) datosLimpios.sector = datos.sector;
-        if (datos.comuna) datosLimpios.comuna = datos.comuna;
+        if (datos.id_comuna !== undefined) {
+            if (!(await comunaExiste(datos.id_comuna))) {
+                res.status(400).json({ error: 'La comuna del tutor no existe.' });
+                return;
+            }
+            datosLimpios.id_comuna = Number(datos.id_comuna);
+        }
 
         //! editar al tutor lo marca como verificado
         //? se fuerza aca y no viene del body, para que nadie lo verifique sin pasar por la edicion

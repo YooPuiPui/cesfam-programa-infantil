@@ -164,6 +164,24 @@ function separarCuidador(raw: unknown): { nombre: string | null; parentesco: str
     return { nombre: texto, parentesco: null };
 }
 
+//? el excel no trae comuna, todos van con esta (se busca por nombre y se crea si no existe)
+const COMUNA_POR_DEFECTO = 'Concepción';
+
+//! solo se llama cuando NO es simulacion, porque si la comuna no existe se crea en la base
+async function obtenerIdComuna(nombre: string, cache: Map<string, number>): Promise<number> {
+    const enCache = cache.get(nombre);
+    if (enCache !== undefined) return enCache;
+
+    const comuna = await prisma.comuna.upsert({
+        where: { nombre },
+        update: {},
+        create: { nombre },
+    });
+
+    cache.set(nombre, comuna.id_comuna);
+    return comuna.id_comuna;
+}
+
 function separarNombreApellido(nombreCompleto: string): { nombre: string; apellido: string } {
     const palabras = nombreCompleto.trim().split(/\s+/).filter(Boolean);
     if (palabras.length <= 1) return { nombre: palabras[0] || '', apellido: '' };
@@ -257,6 +275,9 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
         errores: [],
     };
 
+    //? cache por importacion para no consultar la comuna en cada fila
+    const cacheComunas = new Map<string, number>();
+
     for (const fila of filasPorRut.values()) {
         try {
             const diagnosticos = dividirDiagnosticos(fila.diagnosticoRaw);
@@ -277,9 +298,15 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                             diagnosticos: diagnosticos.length > 0 ? diagnosticos : existente.diagnosticos,
                             credencial_discapacidad: credencial !== 'sin_dato' ? credencial : existente.credencial_discapacidad,
                             credencial_discapacidad_detalle: credencialDetalle || existente.credencial_discapacidad_detalle,
-                            cuidador_nombre: cuidadorNombre || existente.cuidador_nombre,
-                            cuidador_parentesco: cuidadorParentesco || existente.cuidador_parentesco,
                             sector: sectorNormalizado || existente.sector,
+                            //? con nombre: actualiza su cuidador (conserva el parentesco si el excel no trae) o lo crea si no tenia
+                            ...(cuidadorNombre
+                                ? {
+                                    cuidador: existente.id_cuidador
+                                        ? { update: { nombre: cuidadorNombre, ...(cuidadorParentesco ? { parentesco: cuidadorParentesco } : {}) } }
+                                        : { create: { nombre: cuidadorNombre, parentesco: cuidadorParentesco } },
+                                }
+                                : {}),
                         },
                     });
                 }
@@ -295,6 +322,8 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                 const sexoNormalizado = normalizarSexo(fila.sexo) || 'Femenino';
 
                 if (!dryRun) {
+                    const idComuna = await obtenerIdComuna(COMUNA_POR_DEFECTO, cacheComunas);
+
                     await prisma.paciente.create({
                         data: {
                             rut: fila.rut,
@@ -304,14 +333,13 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                             sexo_biologico: sexoNormalizado,
                             direccion: fila.direccion ? String(fila.direccion) : 'Sin dato',
                             sector: sectorNormalizado,
-                            comuna: 'Concepción',
+                            comuna: { connect: { id_comuna: idComuna } },
                             activo: true,
                             es_naneas_prematuro: true,
                             diagnosticos,
                             credencial_discapacidad: credencial,
                             credencial_discapacidad_detalle: credencialDetalle,
-                            cuidador_nombre: cuidadorNombre,
-                            cuidador_parentesco: cuidadorParentesco,
+                            ...(cuidadorNombre ? { cuidador: { create: { nombre: cuidadorNombre, parentesco: cuidadorParentesco } } } : {}),
                             tutor: {
                                 create: {
                                     nombre: 'Apoderado',
@@ -320,7 +348,7 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                                     telefono: telefonoTutor.principal,
                                     telefono_secundario: telefonoTutor.secundario,
                                     direccion: fila.direccion ? String(fila.direccion) : 'Sin dato',
-                                    comuna: 'Concepción',
+                                    comuna: { connect: { id_comuna: idComuna } },
                                     verificado: false,
                                     
                                 },

@@ -4,6 +4,18 @@ import prisma from '../config/prisma';
 import { normalizarTexto } from '../services/importacion.service';
 import { validarRut } from '../utils/validarRut';
 
+//? revisa que el id_comuna sea un entero y exista en la tabla Comuna
+const comunaExiste = async (idComuna: any): Promise<boolean> => {
+    const id = Number(idComuna);
+    if (!Number.isInteger(id)) return false;
+
+    const comuna = await prisma.comuna.findUnique({ where: { id_comuna: id } });
+    return comuna !== null;
+};
+
+//? el cuidador llega plano (cuidador_nombre/telefono/parentesco), se limpian los espacios
+const textoLimpio = (valor: any): string => String(valor ?? '').trim();
+
 export const crearPaciente = async (req: Request, res: Response): Promise<void> => {
     try {
         const { paciente, tutor } = req.body;
@@ -24,6 +36,37 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
+        //! las comunas del paciente y del tutor deben existir
+        if (!(await comunaExiste(paciente.id_comuna))) {
+            res.status(400).json({ error: 'La comuna del paciente no existe.' });
+            return;
+        }
+
+        if (!(await comunaExiste(tutor.id_comuna))) {
+            res.status(400).json({ error: 'La comuna del tutor no existe.' });
+            return;
+        }
+
+        //* cuidador: con nombre se crea; telefono/parentesco solos no se pueden guardar
+        const cuidadorNombre = textoLimpio(paciente.cuidador_nombre);
+        const cuidadorApellidos = textoLimpio(paciente.cuidador_apellidos);
+        const cuidadorTelefono = textoLimpio(paciente.cuidador_telefono);
+        const cuidadorParentesco = textoLimpio(paciente.cuidador_parentesco);
+
+        if (!cuidadorNombre && (cuidadorApellidos || cuidadorTelefono || cuidadorParentesco)) {
+            res.status(400).json({ error: 'Para registrar un cuidador debes indicar su nombre.' });
+            return;
+        }
+
+        const cuidadorLimpio = cuidadorNombre
+            ? {
+                nombre: cuidadorNombre,
+                apellidos: cuidadorApellidos || null,
+                telefono: cuidadorTelefono || null,
+                parentesco: cuidadorParentesco || null,
+            }
+            : null;
+
         const pacienteLimpio = {
             rut: paciente.rut,
             nombre: paciente.nombre,
@@ -35,7 +78,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             nacionalidad: paciente.nacionalidad || 'Chilena',
             direccion: paciente.direccion,
             sector: paciente.sector,
-            comuna: paciente.comuna,
+            id_comuna: Number(paciente.id_comuna),
             nhc: paciente.nhc,
             prevision: paciente.prevision,
             activo: paciente.activo !== undefined ? paciente.activo : true,
@@ -48,9 +91,6 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             diagnosticos: paciente.diagnosticos || [],
             credencial_discapacidad: paciente.credencial_discapacidad || 'sin_dato',
             credencial_discapacidad_detalle: paciente.credencial_discapacidad_detalle || null,
-            cuidador_nombre: paciente.cuidador_nombre || null,
-            cuidador_telefono: paciente.cuidador_telefono || null,
-            cuidador_parentesco: paciente.cuidador_parentesco || null,
         };
 
 
@@ -63,11 +103,11 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             parentesco: tutor.parentesco,
             correo: tutor.correo,
             direccion: tutor.direccion,
-            comuna: tutor.comuna,
+            id_comuna: Number(tutor.id_comuna),
         };
 
 
-        const resultado = await pacienteService.crearPacienteConTutor(pacienteLimpio, tutorLimpio);
+        const resultado = await pacienteService.crearPacienteConTutor(pacienteLimpio, tutorLimpio, cuidadorLimpio);
 
         res.status(201).json({
             mensaje: 'Paciente y Tutor creados con éxito',
@@ -118,7 +158,13 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         if (datos.nacionalidad) datosLimpios.nacionalidad = datos.nacionalidad;
         if (datos.direccion) datosLimpios.direccion = datos.direccion
         if (datos.sector) datosLimpios.sector = datos.sector;
-        if (datos.comuna) datosLimpios.comuna = datos.comuna;
+        if (datos.id_comuna !== undefined) {
+            if (!(await comunaExiste(datos.id_comuna))) {
+                res.status(400).json({ error: 'La comuna del paciente no existe.' });
+                return;
+            }
+            datosLimpios.id_comuna = Number(datos.id_comuna);
+        }
         if (datos.nhc) datosLimpios.nhc = datos.nhc;
         if (datos.prevision) datosLimpios.prevision = datos.prevision;
         if (datos.fecha_inscripcion) datosLimpios.fecha_inscripcion = datos.fecha_inscripcion;
@@ -134,11 +180,31 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         if (datos.diagnosticos !== undefined) datosLimpios.diagnosticos = datos.diagnosticos;
         if (datos.credencial_discapacidad !== undefined) datosLimpios.credencial_discapacidad = datos.credencial_discapacidad;
         if (datos.credencial_discapacidad_detalle !== undefined) datosLimpios.credencial_discapacidad_detalle = datos.credencial_discapacidad_detalle;
-        if (datos.cuidador_nombre !== undefined) datosLimpios.cuidador_nombre = datos.cuidador_nombre;
-        if (datos.cuidador_telefono !== undefined) datosLimpios.cuidador_telefono = datos.cuidador_telefono;
-        if (datos.cuidador_parentesco !== undefined) datosLimpios.cuidador_parentesco = datos.cuidador_parentesco;
 
-        const resultado = await pacienteService.actualizarPaciente(id, datosLimpios);
+        //* cuidador: solo se toca si viene alguno de los cuatro campos
+        //? undefined = no tocar, null = desvincular del paciente, objeto = actualizar o crear
+        let datosCuidador: { nombre: string; apellidos?: string | null; telefono?: string | null; parentesco?: string | null } | null | undefined = undefined;
+
+        if (datos.cuidador_nombre !== undefined || datos.cuidador_apellidos !== undefined || datos.cuidador_telefono !== undefined || datos.cuidador_parentesco !== undefined) {
+            const cuidadorNombre = textoLimpio(datos.cuidador_nombre);
+            const cuidadorApellidos = textoLimpio(datos.cuidador_apellidos);
+            const cuidadorTelefono = textoLimpio(datos.cuidador_telefono);
+            const cuidadorParentesco = textoLimpio(datos.cuidador_parentesco);
+
+            if (cuidadorNombre) {
+                datosCuidador = { nombre: cuidadorNombre };
+                if (datos.cuidador_apellidos !== undefined) datosCuidador.apellidos = cuidadorApellidos || null;
+                if (datos.cuidador_telefono !== undefined) datosCuidador.telefono = cuidadorTelefono || null;
+                if (datos.cuidador_parentesco !== undefined) datosCuidador.parentesco = cuidadorParentesco || null;
+            } else if (cuidadorApellidos || cuidadorTelefono || cuidadorParentesco) {
+                res.status(400).json({ error: 'Para registrar un cuidador debes indicar su nombre.' });
+                return;
+            } else {
+                datosCuidador = null;
+            }
+        }
+
+        const resultado = await pacienteService.actualizarPaciente(id, datosLimpios, datosCuidador);
 
         res.status(200).json({
             mensaje: 'Paciente actualizado con exito',
