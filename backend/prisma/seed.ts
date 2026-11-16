@@ -4,7 +4,7 @@
 //? todos los pacientes tienen al menos un control
 //? uso desde /backend: npx prisma db seed (solo si no hay pacientes) o npx prisma db seed -- --reset
 //? si se define SEED_PASSWORD se crea el usuario de login del profesional principal (la tabla Usuario nunca se borra)
-//! --reset borra pacientes, tutores, controles, profesionales y talleres, no correr con datos reales
+//! --reset borra pacientes, cuidadores, tutores, comunas, controles, profesionales y talleres, no correr con datos reales
 
 import { PrismaClient, EstadoAsistencia, EstadoConvocatoria, EstadoCredencialDiscapacidad, Prisma } from '@prisma/client';
 import { faker } from '@faker-js/faker/locale/es';
@@ -468,8 +468,11 @@ async function limpiar() {
     await prisma.sesionTaller.deleteMany();
     await prisma.taller.deleteMany();
     await prisma.controlClinico.deleteMany();
+    //! orden por claves foraneas: primero los pacientes (referencian cuidador, tutor y comuna), despues cuidador, tutor y al final comuna
     await prisma.paciente.deleteMany();
+    await prisma.cuidador.deleteMany();
     await prisma.tutor.deleteMany();
+    await prisma.comuna.deleteMany();
     await prisma.profesional.deleteMany();
 }
 
@@ -523,6 +526,13 @@ async function main() {
         console.log('SEED_PASSWORD no definido: no se creó ni modificó ningún usuario de login.');
     }
 
+    //* comuna (pacientes y tutores la referencian por id_comuna)
+    const comuna = await prisma.comuna.upsert({
+        where: { nombre: COMUNA_UNICA },
+        update: {},
+        create: { nombre: COMUNA_UNICA },
+    });
+
     //* tutores verificados (varios tienen mas de un hijo)
     //? cada tutor es una familia: los hijos llevan sus apellidos y el apellido del tutor calza con el parentesco
     const tutores = [];
@@ -550,7 +560,7 @@ async function main() {
                 correo: faker.datatype.boolean({ probability: parentesco === 'Abuela' ? 0.25 : 0.65 }) ? correoDesde(nombre, apellido) : null,
                 direccion: direccionConcepcion(),
                 sector: faker.helpers.weightedArrayElement(SECTORES),
-                comuna: COMUNA_UNICA,
+                id_comuna: comuna.id_comuna,
                 verificado: true,
             },
         });
@@ -596,7 +606,7 @@ async function main() {
                     telefono: telefonoMovil(),
                     direccion: faker.helpers.arrayElement([direccionConcepcion(), 'Sin dato']),
                     sector: faker.helpers.weightedArrayElement(SECTORES),
-                    comuna: COMUNA_UNICA,
+                    id_comuna: comuna.id_comuna,
                     verificado: false,
                 },
             });
@@ -637,6 +647,13 @@ async function main() {
         let fechaInscripcion = sumarDias(serie[0].fecha, -faker.number.int({ min: 0, max: 20 }));
         if (fechaInscripcion.getTime() < fechaNacimiento.getTime()) fechaInscripcion = fechaNacimiento;
 
+        //? el cuidador es una entidad aparte, se crea antes y el paciente lo referencia por id_cuidador
+        const cuidadorCreado = cuidador
+            ? await prisma.cuidador.create({
+                data: { nombre: cuidador.nombre, telefono: telefonoMovil(), parentesco: cuidador.parentesco },
+            })
+            : null;
+
         const paciente = await prisma.paciente.create({
             data: {
                 rut: generarRUT(fechaNacimiento.getUTCFullYear()),
@@ -649,7 +666,7 @@ async function main() {
                 nacionalidad: esMigrante ? faker.helpers.arrayElement(['Venezolana', 'Haitiana', 'Colombiana', 'Peruana']) : 'Chilena',
                 direccion: tutor.direccion === 'Sin dato' ? direccionConcepcion() : tutor.direccion,
                 sector: tutor.sector,
-                comuna: COMUNA_UNICA,
+                id_comuna: comuna.id_comuna,
                 nhc: `${faker.number.int({ min: 10000, max: 99999 })}`,
                 prevision: faker.helpers.weightedArrayElement([
                     { weight: 25, value: 'FONASA A' }, { weight: 30, value: 'FONASA B' }, { weight: 20, value: 'FONASA C' },
@@ -666,9 +683,7 @@ async function main() {
                 diagnosticos,
                 credencial_discapacidad: credencial.estado,
                 credencial_discapacidad_detalle: credencial.detalle,
-                cuidador_nombre: cuidador?.nombre ?? null,
-                cuidador_telefono: cuidador ? telefonoMovil() : null,
-                cuidador_parentesco: cuidador?.parentesco ?? null,
+                id_cuidador: cuidadorCreado?.id_cuidador ?? null,
                 id_tutor_principal: tutor.id_tutor,
             },
         });
