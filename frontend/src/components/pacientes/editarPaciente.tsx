@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, Loader2, UserRound, UsersRound, UserCheck, ShieldAlert, CheckCircle2, CircleAlert } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
+import type { Comuna } from '../../types';
 
 type FormFieldValue = string | boolean;
 
@@ -15,7 +16,7 @@ type FormState = {
     nacionalidad: string;
     direccion: string;
     sector: string;
-    comuna: string;
+    id_comuna: string;
     prevision: string;
     es_sename: boolean;
     es_naneas_prematuro: boolean;
@@ -34,6 +35,7 @@ type FormState = {
     credencial_discapacidad: string;
     credencial_discapacidad_detalle: string;
     cuidador_nombre: string;
+    cuidador_apellidos: string;
     cuidador_telefono: string;
     cuidador_parentesco: string;
     tutor_nombre: string;
@@ -44,13 +46,12 @@ type FormState = {
     tutor_correo: string;
     tutor_direccion: string;
     tutor_sector: string;
-    tutor_comuna: string;
+    tutor_id_comuna: string;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
 const OPCIONES_SECTOR = ["Sector 1 - Azul", "Sector 2 - Rojo"];
-const OPCIONES_COMUNA = ["Concepción"];
 const OPCIONES_PARENTESCO = ["Madre", "Padre", "Abuela/o", "Tutor legal", "Otro familiar"];
 
 const DIAGNOSTICOS_CONOCIDOS = [
@@ -71,7 +72,7 @@ const initialState: FormState = {
     nacionalidad: "Chilena",
     direccion: "",
     sector: "",
-    comuna: "Concepción",
+    id_comuna: "",
     prevision: "",
     es_sename: false,
     es_naneas_prematuro: false,
@@ -90,7 +91,8 @@ const initialState: FormState = {
     credencial_discapacidad: "sin_dato",
     credencial_discapacidad_detalle: "",
     cuidador_nombre: "",
-    cuidador_telefono: "",
+    cuidador_apellidos: "",
+    cuidador_telefono: "+569",
     cuidador_parentesco: "",
     tutor_nombre: "",
     tutor_apellido: "",
@@ -100,7 +102,7 @@ const initialState: FormState = {
     tutor_correo: "",
     tutor_direccion: "",
     tutor_sector: "",
-    tutor_comuna: "",
+    tutor_id_comuna: "",
 };
 
 const fieldClass = (hasError: boolean) =>
@@ -125,6 +127,25 @@ export default function EditarPaciente() {
     const [errorGeneral, setErrorGeneral] = useState("");
     const [errorCarga, setErrorCarga] = useState("");
     const [mensajeExito, setMensajeExito] = useState("");
+    const [comunas, setComunas] = useState<Comuna[]>([]);
+
+    //* carga las comunas desde el backend para los selects
+    useEffect(() => {
+        const cargarComunas = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`${API_BASE_URL}/comunas`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!response.ok) throw new Error("No se pudieron cargar las comunas.");
+                setComunas(await response.json());
+            } catch (err) {
+                setErrorGeneral(err instanceof Error ? err.message : "No se pudieron cargar las comunas.");
+            }
+        };
+
+        cargarComunas();
+    }, []);
 
     useEffect(() => {
         const cargarPaciente = async () => {
@@ -157,7 +178,7 @@ export default function EditarPaciente() {
                     nacionalidad: p.nacionalidad ?? "Chilena",
                     direccion: p.direccion ?? "",
                     sector: p.sector ?? "",
-                    comuna: p.comuna ?? "Concepción",
+                    id_comuna: p.id_comuna != null ? String(p.id_comuna) : "",
                     prevision: p.prevision ?? "",
                     es_sename: Boolean(p.es_sename),
                     es_naneas_prematuro: Boolean(p.es_naneas_prematuro),
@@ -175,9 +196,10 @@ export default function EditarPaciente() {
                     es_salud_mental: Boolean(p.es_salud_mental),
                     credencial_discapacidad: p.credencial_discapacidad ?? "sin_dato",
                     credencial_discapacidad_detalle: p.credencial_discapacidad_detalle ?? "",
-                    cuidador_nombre: p.cuidador_nombre ?? "",
-                    cuidador_telefono: p.cuidador_telefono ?? "",
-                    cuidador_parentesco: p.cuidador_parentesco ?? "",
+                    cuidador_nombre: p.cuidador?.nombre ?? "",
+                    cuidador_apellidos: p.cuidador?.apellidos ?? "",
+                    cuidador_telefono: p.cuidador?.telefono || "+569",
+                    cuidador_parentesco: p.cuidador?.parentesco ?? "",
                     tutor_nombre: p.tutor?.nombre ?? "",
                     tutor_apellido: p.tutor?.apellido ?? "",
                     tutor_telefono: p.tutor?.telefono ?? "",
@@ -186,7 +208,7 @@ export default function EditarPaciente() {
                     tutor_correo: p.tutor?.correo ?? "",
                     tutor_direccion: p.tutor?.direccion ?? "",
                     tutor_sector: p.tutor?.sector ?? "",
-                    tutor_comuna: p.tutor?.comuna ?? "",
+                    tutor_id_comuna: p.tutor?.id_comuna != null ? String(p.tutor.id_comuna) : "",
                 });
             } catch (err) {
                 setErrorCarga(err instanceof Error ? err.message : "Error al cargar el paciente.");
@@ -206,6 +228,18 @@ export default function EditarPaciente() {
         return () => window.clearTimeout(timeout);
     }, [mensajeExito, navigate, rut]);
 
+    //? fuerza el prefijo "+569" y deja solo 8 dígitos después
+    function formatearTelefono(valor: string): string {
+        const PREFIJO = "+569";
+
+        if (valor.length <= PREFIJO.length) {
+            return PREFIJO;
+        }
+
+        const resto = valor.slice(PREFIJO.length).replace(/[^0-9]/g, "");
+        return PREFIJO + resto.slice(0, 8);
+    }
+
     const actualizarCampo = (campo: keyof FormState, valor: FormFieldValue) => {
         setForm((anterior) => ({ ...anterior, [campo]: valor }));
         setErrors((anterior) => {
@@ -224,14 +258,14 @@ export default function EditarPaciente() {
             ["sexo_biologico", "El sexo biológico es obligatorio."],
             ["direccion", "La dirección del paciente es obligatoria."],
             ["sector", "El sector es obligatorio."],
-            ["comuna", "La comuna es obligatoria."],
+            ["id_comuna", "La comuna es obligatoria."],
             ["prevision", "La previsión es obligatoria."],
             ["tutor_nombre", "El nombre del tutor es obligatorio."],
             ["tutor_apellido", "El apellido del tutor es obligatorio."],
             ["tutor_telefono", "El teléfono del tutor es obligatorio."],
             ["tutor_parentesco", "El parentesco del tutor es obligatorio."],
             ["tutor_direccion", "La dirección del tutor es obligatoria."],
-            ["tutor_comuna", "La comuna del tutor es obligatoria."],
+            ["tutor_id_comuna", "La comuna del tutor es obligatoria."],
         ];
 
         requiredFields.forEach(([field, message]) => {
@@ -261,7 +295,7 @@ export default function EditarPaciente() {
         nacionalidad: form.nacionalidad.trim() || "Chilena",
         direccion: form.direccion.trim(),
         sector: form.sector.trim(),
-        comuna: form.comuna.trim(),
+        id_comuna: Number(form.id_comuna),
         prevision: form.prevision.trim(),
         es_sename: form.es_sename,
         es_naneas_prematuro: form.es_naneas_prematuro,
@@ -281,7 +315,9 @@ export default function EditarPaciente() {
         credencial_discapacidad: form.credencial_discapacidad,
         credencial_discapacidad_detalle: form.credencial_discapacidad === "si" ? form.credencial_discapacidad_detalle.trim() : "",
         cuidador_nombre: form.cuidador_nombre.trim(),
-        cuidador_telefono: form.cuidador_telefono.trim(),
+        cuidador_apellidos: form.cuidador_apellidos.trim(),
+        //? si solo quedó el prefijo "+569" (sin número), se manda vacío
+        cuidador_telefono: form.cuidador_telefono.trim() === "+569" ? "" : form.cuidador_telefono.trim(),
         cuidador_parentesco: form.cuidador_parentesco.trim(),
     }), [form]);
 
@@ -294,7 +330,7 @@ export default function EditarPaciente() {
         correo: form.tutor_correo.trim(),
         direccion: form.tutor_direccion.trim(),
         sector: form.tutor_sector.trim(),
-        comuna: form.tutor_comuna.trim(),
+        id_comuna: Number(form.tutor_id_comuna),
     }), [form]);
 
     const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -448,12 +484,12 @@ export default function EditarPaciente() {
                             {errors.sexo_biologico && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.sexo_biologico}</span>}
                         </div>
                         <div>
-                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre *</label>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombres *</label>
                             <input type="text" value={form.nombre} onChange={(e) => actualizarCampo("nombre", e.target.value)} className={fieldClass(Boolean(errors.nombre))} />
                             {errors.nombre && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.nombre}</span>}
                         </div>
                         <div>
-                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellido *</label>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellidos *</label>
                             <input type="text" value={form.apellido} onChange={(e) => actualizarCampo("apellido", e.target.value)} className={fieldClass(Boolean(errors.apellido))} />
                             {errors.apellido && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.apellido}</span>}
                         </div>
@@ -488,13 +524,13 @@ export default function EditarPaciente() {
                         </div>
                         <div>
                             <label className="mb-1.5 block text-sm font-bold text-slate-700">Comuna *</label>
-                            <select value={form.comuna} onChange={(e) => actualizarCampo("comuna", e.target.value)} className={fieldClass(Boolean(errors.comuna))}>
+                            <select value={form.id_comuna} onChange={(e) => actualizarCampo("id_comuna", e.target.value)} className={fieldClass(Boolean(errors.id_comuna))}>
                                 <option value="">Seleccionar...</option>
-                                {OPCIONES_COMUNA.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
+                                {comunas.map((c) => (
+                                    <option key={c.id_comuna} value={String(c.id_comuna)}>{c.nombre}</option>
                                 ))}
                             </select>
-                            {errors.comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.comuna}</span>}
+                            {errors.id_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.id_comuna}</span>}
                         </div>
                         <div>
                             <label className="mb-1.5 block text-sm font-bold text-slate-700">Previsión *</label>
@@ -605,12 +641,12 @@ export default function EditarPaciente() {
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
-                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre *</label>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombres *</label>
                             <input type="text" value={form.tutor_nombre} onChange={(e) => actualizarCampo("tutor_nombre", e.target.value)} className={fieldClass(Boolean(errors.tutor_nombre))} />
                             {errors.tutor_nombre && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_nombre}</span>}
                         </div>
                         <div>
-                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellido *</label>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellidos *</label>
                             <input type="text" value={form.tutor_apellido} onChange={(e) => actualizarCampo("tutor_apellido", e.target.value)} className={fieldClass(Boolean(errors.tutor_apellido))} />
                             {errors.tutor_apellido && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_apellido}</span>}
                         </div>
@@ -653,13 +689,13 @@ export default function EditarPaciente() {
                         </div>
                         <div>
                             <label className="mb-1.5 block text-sm font-bold text-slate-700">Comuna *</label>
-                            <select value={form.tutor_comuna} onChange={(e) => actualizarCampo("tutor_comuna", e.target.value)} className={fieldClass(Boolean(errors.tutor_comuna))}>
+                            <select value={form.tutor_id_comuna} onChange={(e) => actualizarCampo("tutor_id_comuna", e.target.value)} className={fieldClass(Boolean(errors.tutor_id_comuna))}>
                                 <option value="">Seleccionar...</option>
-                                {OPCIONES_COMUNA.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
+                                {comunas.map((c) => (
+                                    <option key={c.id_comuna} value={String(c.id_comuna)}>{c.nombre}</option>
                                 ))}
                             </select>
-                            {errors.tutor_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_comuna}</span>}
+                            {errors.tutor_id_comuna && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.tutor_id_comuna}</span>}
                         </div>
                     </div>
                 </section>
@@ -673,14 +709,18 @@ export default function EditarPaciente() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <div>
-                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombre</label>
-                            <input type="text" value={form.cuidador_nombre} onChange={(e) => actualizarCampo("cuidador_nombre", e.target.value)} className={fieldClass(false)} placeholder="Nombre del cuidador" />
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Nombres</label>
+                            <input type="text" value={form.cuidador_nombre} onChange={(e) => actualizarCampo("cuidador_nombre", e.target.value)} className={fieldClass(false)} placeholder="Nombres del cuidador" />
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Apellidos</label>
+                            <input type="text" value={form.cuidador_apellidos} onChange={(e) => actualizarCampo("cuidador_apellidos", e.target.value)} className={fieldClass(false)} placeholder="Apellidos del cuidador" />
                         </div>
                         <div>
                             <label className="mb-1.5 block text-sm font-bold text-slate-700">Teléfono</label>
-                            <input type="text" value={form.cuidador_telefono} onChange={(e) => actualizarCampo("cuidador_telefono", e.target.value)} className={fieldClass(false)} placeholder="+56912345678" />
+                            <input type="text" value={form.cuidador_telefono} onChange={(e) => actualizarCampo("cuidador_telefono", formatearTelefono(e.target.value))} className={fieldClass(false)} placeholder="+56912345678 (opcional)" maxLength={12} />
                         </div>
                         <div>
                             <label className="mb-1.5 block text-sm font-bold text-slate-700">Parentesco</label>

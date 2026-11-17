@@ -363,19 +363,19 @@ export default function FichaPaciente() {
                             </>
                         )}
 
-                        {paciente?.cuidador_nombre && (
+                        {paciente?.cuidador?.nombre && (
                             <div className="mt-4 pt-4 border-t border-slate-100">
                                 <h3 className="text-sm font-bold text-slate-800 mb-2">Cuidador</h3>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="text-base font-bold text-slate-900">{paciente.cuidador_nombre}</p>
-                                    {paciente.cuidador_parentesco && (
+                                    <p className="text-base font-bold text-slate-900">{[paciente.cuidador.nombre, paciente.cuidador.apellidos].filter(Boolean).join(" ")}</p>
+                                    {paciente.cuidador.parentesco && (
                                         <span className="px-2 py-0.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
-                                            {paciente.cuidador_parentesco}
+                                            {paciente.cuidador.parentesco}
                                         </span>
                                     )}
                                 </div>
-                                {paciente.cuidador_telefono && (
-                                    <p className="text-sm font-medium text-slate-900 mt-1">Tel: <span className="text-slate-900 font-bold">{paciente.cuidador_telefono}</span></p>
+                                {paciente.cuidador.telefono && (
+                                    <p className="text-sm font-medium text-slate-900 mt-1">Tel: <span className="text-slate-900 font-bold">{paciente.cuidador.telefono}</span></p>
                                 )}
                             </div>
                         )}

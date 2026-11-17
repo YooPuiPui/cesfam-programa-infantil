@@ -1,6 +1,15 @@
 import prisma from '../config/prisma';
 
-export const crearPacienteConTutor = async (datosPaciente: any, datosTutor: any) => {
+//? relaciones que se devuelven siempre con el paciente: tutor (con su comuna), comuna y cuidador
+const incluirRelaciones = {
+    tutor: { include: { comuna: true } },
+    comuna: true,
+    cuidador: true,
+} as const;
+
+type DatosCuidador = { nombre: string; apellidos?: string | null; telefono?: string | null; parentesco?: string | null };
+
+export const crearPacienteConTutor = async (datosPaciente: any, datosTutor: any, datosCuidador: DatosCuidador | null = null) => {
 
     //! revisa que no exista un paciente con ese rut antes de crear
     const pacienteExistente = await prisma.paciente.findUnique({
@@ -11,19 +20,27 @@ export const crearPacienteConTutor = async (datosPaciente: any, datosTutor: any)
         throw new Error(`Ya existe un paciente con el RUT ${datosPaciente.rut}`);
     }
 
+    //! prisma no deja mezclar el campo suelto id_comuna con relaciones anidadas, por eso se separa y se usa connect
+    const { id_comuna: idComunaPaciente, ...restoPaciente } = datosPaciente;
+    const { id_comuna: idComunaTutor, ...restoTutor } = datosTutor;
+
     const nuevoPaciente = await prisma.paciente.create({
         data: {
-            ...datosPaciente,
+            ...restoPaciente,
+            comuna: { connect: { id_comuna: idComunaPaciente } },
+            //? si no hay cuidador no se manda nada y queda sin cuidador
+            ...(datosCuidador ? { cuidador: { create: datosCuidador } } : {}),
             tutor: {
                 connectOrCreate: {
                     where: { rut: datosTutor.rut },
-                    create: datosTutor,
+                    create: {
+                        ...restoTutor,
+                        comuna: { connect: { id_comuna: idComunaTutor } },
+                    },
                 }
             },
         },
-        include: {
-            tutor: true,
-        },
+        include: incluirRelaciones,
     });
 
     return nuevoPaciente;
@@ -31,14 +48,39 @@ export const crearPacienteConTutor = async (datosPaciente: any, datosTutor: any)
 
 
 
-export const actualizarPaciente = async (idPaciente: number, datosPaciente: any) => {
+//? datosCuidador: undefined = no tocar el cuidador, null = desvincularlo, objeto = actualizarlo o crearlo
+export const actualizarPaciente = async (idPaciente: number, datosPaciente: any, datosCuidador?: DatosCuidador | null) => {
+
+    //! con relaciones anidadas prisma no acepta el campo suelto id_comuna, va con connect
+    const { id_comuna, ...restoPaciente } = datosPaciente;
+    const data: any = { ...restoPaciente };
+
+    if (id_comuna !== undefined) {
+        data.comuna = { connect: { id_comuna } };
+    }
+
+    if (datosCuidador === null) {
+        //* solo se desvincula, la fila del cuidador no se borra
+        data.cuidador = { disconnect: true };
+    } else if (datosCuidador !== undefined) {
+        const pacienteActual = await prisma.paciente.findUnique({
+            where: { id_paciente: idPaciente },
+            select: { id_cuidador: true },
+        });
+
+        //? si el paciente no existe el update lanza P2025 y el controlador responde 404
+        data.cuidador = pacienteActual?.id_cuidador
+            ? { update: datosCuidador }
+            : { create: datosCuidador };
+    }
 
     //* Busca al paciente por su id y reemplaza los compos enviados
     const pacienteActualizado = await prisma.paciente.update({
         where: {
             id_paciente: idPaciente,
         },
-        data: datosPaciente,
+        data,
+        include: incluirRelaciones,
     });
 
     return pacienteActualizado;
@@ -48,9 +90,7 @@ export const actualizarPaciente = async (idPaciente: number, datosPaciente: any)
 export const obtenerTodosLosPacientes = async () => {
 
     return await prisma.paciente.findMany({
-        include: {
-            tutor: true,
-        },
+        include: incluirRelaciones,
     });
 };
 
@@ -61,9 +101,7 @@ export const obtenerPacientePorId = async (idPaciente: number) => {
             id_paciente: idPaciente
         },
 
-        include: {
-            tutor: true,
-        },
+        include: incluirRelaciones,
     });
 };
 
@@ -107,9 +145,7 @@ export const buscarPacientePorRut = async (rut: string) => {
 export const buscarPacientePorRutConTutor = async (rut: string) => {
     return await prisma.paciente.findUnique({
         where: { rut },
-        include: {
-            tutor: true
-        }
+        include: incluirRelaciones,
     });
 };
 
@@ -163,13 +199,8 @@ export const obtenerCaracterizacionPacientes = async () => {
 
     //? 5. CUIDADOR (tiene / no tiene)
     const [conCuidador, sinCuidador] = await Promise.all([
-        prisma.paciente.count({
-            where: { AND: [{ cuidador_nombre: { not: null } }, { cuidador_nombre: { not: '' } }] },
-        }),
-        prisma.paciente.count({
-            where: { OR: [{ cuidador_nombre: null }, { cuidador_nombre: '' }] },
-        }),
-        
+        prisma.paciente.count({ where: { id_cuidador: { not: null } } }),
+        prisma.paciente.count({ where: { id_cuidador: null } }),
     ]);
 
     return {

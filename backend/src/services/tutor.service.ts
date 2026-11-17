@@ -3,6 +3,9 @@ import prisma from '../config/prisma';
 export const crearTutor = async (datosTutor: any) => {
     return await prisma.tutor.create({
         data: datosTutor,
+        include: {
+            comuna: true,
+        },
     });
 };
 
@@ -10,6 +13,7 @@ export const obtenerTutores = async () => {
     return await prisma.tutor.findMany({
         include: {
             pacientes: true,
+            comuna: true,
         },
     });
 };
@@ -21,6 +25,7 @@ export const obtenerTutorPorId = async (idTutor: number) => {
         },
         include: {
             pacientes: true,
+            comuna: true,
         },
     });
 };
@@ -30,6 +35,7 @@ export const obtenerTutorPorRut = async (rut: string) => {
         where: { rut },
         include: {
             pacientes: true,
+            comuna: true,
         },
     });
 };
@@ -40,6 +46,9 @@ export const editarTutor = async (idTutor: number, datosTutor: any) => {
             id_tutor: idTutor,
         },
         data: datosTutor,
+        include: {
+            comuna: true,
+        },
     });
 };
 
