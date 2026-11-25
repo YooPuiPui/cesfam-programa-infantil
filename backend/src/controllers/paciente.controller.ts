@@ -3,6 +3,8 @@ import * as pacienteService from '../services/paciente.service';
 import prisma from '../config/prisma';
 import { normalizarTexto } from '../services/importacion.service';
 import { validarRut } from '../utils/validarRut';
+import { validarDiagnosticosIds } from '../services/diagnostico.service';
+import { aplanarDiagnosticos, incluirDiagnosticos } from '../utils/aplanarDiagnosticos';
 
 //? revisa que el id_comuna sea un entero y exista en la tabla Comuna
 const comunaExiste = async (idComuna: any): Promise<boolean> => {
@@ -67,6 +69,13 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             }
             : null;
 
+        //! los diagnosticos deben ser condiciones de base activas del catalogo
+        const diagnosticos = await validarDiagnosticosIds(paciente.diagnosticos_ids ?? [], 'CONDICION');
+        if ('error' in diagnosticos) {
+            res.status(400).json({ error: diagnosticos.error });
+            return;
+        }
+
         const pacienteLimpio = {
             rut: paciente.rut,
             nombre: paciente.nombre,
@@ -88,7 +97,6 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             es_poblacion_trans: paciente.es_poblacion_trans !== undefined ? paciente.es_poblacion_trans : false,
             es_migrante: paciente.es_migrante !== undefined ? paciente.es_migrante : false,
             es_salud_mental: paciente.es_salud_mental !== undefined ? paciente.es_salud_mental : false,
-            diagnosticos: paciente.diagnosticos || [],
             credencial_discapacidad: paciente.credencial_discapacidad || 'sin_dato',
             credencial_discapacidad_detalle: paciente.credencial_discapacidad_detalle || null,
         };
@@ -107,7 +115,7 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
         };
 
 
-        const resultado = await pacienteService.crearPacienteConTutor(pacienteLimpio, tutorLimpio, cuidadorLimpio);
+        const resultado = await pacienteService.crearPacienteConTutor(pacienteLimpio, tutorLimpio, cuidadorLimpio, diagnosticos.ids);
 
         res.status(201).json({
             mensaje: 'Paciente y Tutor creados con éxito',
@@ -177,7 +185,6 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         if (datos.es_poblacion_trans !== undefined) datosLimpios.es_poblacion_trans = datos.es_poblacion_trans;
         if (datos.es_salud_mental !== undefined) datosLimpios.es_salud_mental = datos.es_salud_mental;
 
-        if (datos.diagnosticos !== undefined) datosLimpios.diagnosticos = datos.diagnosticos;
         if (datos.credencial_discapacidad !== undefined) datosLimpios.credencial_discapacidad = datos.credencial_discapacidad;
         if (datos.credencial_discapacidad_detalle !== undefined) datosLimpios.credencial_discapacidad_detalle = datos.credencial_discapacidad_detalle;
 
@@ -204,7 +211,19 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
             }
         }
 
-        const resultado = await pacienteService.actualizarPaciente(id, datosLimpios, datosCuidador);
+        //! los diagnosticos solo se reemplazan si vienen en el body
+        let diagnosticosIds: number[] | undefined = undefined;
+
+        if (datos.diagnosticos_ids !== undefined) {
+            const diagnosticos = await validarDiagnosticosIds(datos.diagnosticos_ids, 'CONDICION');
+            if ('error' in diagnosticos) {
+                res.status(400).json({ error: diagnosticos.error });
+                return;
+            }
+            diagnosticosIds = diagnosticos.ids;
+        }
+
+        const resultado = await pacienteService.actualizarPaciente(id, datosLimpios, datosCuidador, diagnosticosIds);
 
         res.status(200).json({
             mensaje: 'Paciente actualizado con exito',
@@ -289,7 +308,8 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                     controlClinico: {
                         orderBy: { fecha_control: 'desc' },
                         take: 1
-                    }
+                    },
+                    ...incluirDiagnosticos,
                 }
             });
 
@@ -299,7 +319,7 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
             });
 
             res.status(200).json({
-                data: filtrados.slice(skip, skip + limit),
+                data: filtrados.slice(skip, skip + limit).map(aplanarDiagnosticos),
                 meta: {
                     total: filtrados.length,
                     page,
@@ -320,14 +340,15 @@ export const obtenerPacientes = async (req: Request, res: Response): Promise<voi
                     controlClinico: {
                         orderBy: { fecha_control: 'desc' },
                         take: 1
-                    }
+                    },
+                    ...incluirDiagnosticos,
                 }
             }),
             prisma.paciente.count({ where })
         ]);
 
         res.status(200).json({
-            data: data,
+            data: data.map(aplanarDiagnosticos),
             meta: {
                 total,
                 page,

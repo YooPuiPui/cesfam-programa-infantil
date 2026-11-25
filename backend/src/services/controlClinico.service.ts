@@ -1,36 +1,62 @@
 import prisma from "../config/prisma";
 import { Prisma } from "@prisma/client";
 import { obtenerHoyChile } from '../utils/fechaChile';
+import { aplanarDiagnosticos, incluirDiagnosticos } from '../utils/aplanarDiagnosticos';
 
-export const crearControl = async (datosControl: Prisma.ControlClinicoUncheckedCreateInput) => {
+//? datos del profesional que se devuelven en los listados de controles
+const incluirProfesional = { select: { nombre: true, apellido: true, estamento: true } } as const;
 
-    return await prisma.controlClinico.create({
-        data: datosControl,
+type ConDiagnosticos = Parameters<typeof aplanarDiagnosticos>[0];
+
+//* aplana los diagnosticos del control y los de su paciente
+const aplanarControlYPaciente = <C extends ConDiagnosticos, P extends ConDiagnosticos>(control: C, paciente: P) => ({
+    ...aplanarDiagnosticos(control),
+    paciente: aplanarDiagnosticos(paciente),
+});
+
+//* el control y sus diagnosticos se crean en una sola escritura
+export const crearControl = async (datosControl: Prisma.ControlClinicoUncheckedCreateInput, diagnosticosIds: number[]) => {
+
+    const control = await prisma.controlClinico.create({
+        data: {
+            ...datosControl,
+            diagnosticosRel: { createMany: { data: diagnosticosIds.map((id_diagnostico) => ({ id_diagnostico })) } },
+        },
+        include: incluirDiagnosticos,
     });
 
+    return aplanarDiagnosticos(control);
 }
 
 export const buscarControl = async () => {
-    return await prisma.controlClinico.findMany({
+    const controles = await prisma.controlClinico.findMany({
         include: {
-            paciente: true,
+            paciente: { include: incluirDiagnosticos },
+            Profesional: incluirProfesional,
+            ...incluirDiagnosticos,
         },
         orderBy: {
             fecha_control: 'desc'
         }
     });
+    return controles.map(({ paciente, ...control }) => aplanarControlYPaciente(control, paciente));
 }
 
 export const buscarControlPorRut = async (rutPaciente: string) => {
 
-    return await prisma.controlClinico.findMany({
+    const controles = await prisma.controlClinico.findMany({
         where: {
             rut_paciente: rutPaciente,
+        },
+        include: {
+            Profesional: incluirProfesional,
+            ...incluirDiagnosticos,
         },
         orderBy: {
             fecha_control: 'desc'
         }
     });
+    return controles.map(aplanarDiagnosticos);
 }
 
 export const eliminarControl = async (idControl: number) => {
@@ -42,26 +68,45 @@ export const eliminarControl = async (idControl: number) => {
     })
 }
 
-export const editarControl = async (idControl: number, datosControl: Prisma.ControlClinicoUncheckedUpdateInput) => {
+//? diagnosticosIds: undefined = no tocar los diagnosticos, lista = reemplaza el conjunto completo
+export const editarControl = async (idControl: number, datosControl: Prisma.ControlClinicoUncheckedUpdateInput, diagnosticosIds?: number[]) => {
 
-    return await prisma.controlClinico.update({
+    const control = await prisma.controlClinico.update({
         where: {
             id_control: idControl,
         },
-        data: datosControl,
-    })
+        data: {
+            ...datosControl,
+            ...(diagnosticosIds !== undefined
+                ? {
+                    diagnosticosRel: {
+                        deleteMany: {},
+                        createMany: { data: diagnosticosIds.map((id_diagnostico) => ({ id_diagnostico })) },
+                    },
+                }
+                : {}),
+        },
+        include: incluirDiagnosticos,
+    });
+
+    return aplanarDiagnosticos(control);
 }
 
 export const buscarControlPorId = async (idControl: number) => {
-    return await prisma.controlClinico.findUnique({
+    const encontrado = await prisma.controlClinico.findUnique({
         where: { id_control: idControl },
         include: {
             paciente: {
-                include: { tutor: true }
+                include: { tutor: true, ...incluirDiagnosticos }
             },
-            Profesional: true
+            Profesional: true,
+            ...incluirDiagnosticos,
         }
     });
+    if (!encontrado) return null;
+
+    const { paciente, ...control } = encontrado;
+    return aplanarControlYPaciente(control, paciente);
 };
 
 export const buscarControlPaginado = async (
@@ -127,14 +172,18 @@ export const buscarControlPaginado = async (
             where,
             skip,
             take: limit,
-            include: { paciente: true },
+            include: {
+                paciente: { include: incluirDiagnosticos },
+                Profesional: incluirProfesional,
+                ...incluirDiagnosticos,
+            },
             orderBy: { fecha_proximoControl: direccionOrden }
         }),
         prisma.controlClinico.count({ where })
     ]);
 
     return {
-        data,
+        data: data.map(({ paciente, ...control }) => aplanarControlYPaciente(control, paciente)),
         meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     };
 };
