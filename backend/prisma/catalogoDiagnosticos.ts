@@ -2,7 +2,7 @@
 //? es el mismo que inserta la migracion diagnosticos_catalogo
 //? el nombre es una etiqueta propia del sistema, NO la glosa oficial de la CIE-10
 //! codigo_cie10 es de referencia (CIE-10 MINSAL/DEIS v2018), null si no hay equivalente: no inventar codigos
-//? los nombres de CONDICION van tal como se guardan hoy (importador, seed y frontend los comparan exactos)
+//? seed y frontend comparan los nombres de CONDICION exactos; el importador ignora mayusculas, tildes y espacios repetidos
 
 export interface DiagnosticoCatalogo {
     nombre: string;
@@ -21,7 +21,7 @@ export const CATALOGO_CONDICION: DiagnosticoCatalogo[] = [
     dx('TEA NO VERBAL'),
     dx('TEA (SD DE ASPERGER)'),
     dx('SINDROME DE ASPERGER'),
-    dx('TRASTORNOS GENERALIZADOS DEL DESARROLLO', 'F84.9'),
+    dx('Trastornos Generalizados del Desarrollo', 'F84.9'),
     dx('TDAH', 'F90.0'),
     dx('TOD'),
     dx('Trastorno Conductual'),
@@ -37,7 +37,7 @@ export const CATALOGO_CONDICION: DiagnosticoCatalogo[] = [
     dx('FIL'),
     dx('TIS'),
     dx('Epilepsia', 'G40.9'),
-    dx('PARALISIS CEREBRAL', 'G80.9'),
+    dx('Parálisis Cerebral', 'G80.9'),
     dx('HIDROCEFALIA'),
     dx('MICROCEFALIA'),
     dx('CHIARI G1'),
@@ -51,7 +51,7 @@ export const CATALOGO_CONDICION: DiagnosticoCatalogo[] = [
     dx('PREMATURA 34 SEMANAS'),
     dx('PREMATURO 30 SEMANAS'),
     dx('PREMATURO 31 SEMANAS'),
-    dx('ASMA', 'J45.9'),
+    dx('Asma', 'J45.9'),
     dx('RINITIS'),
     dx('Hipotiroidismo', 'E03.9'),
     dx('DIABETES MELLITUS'),

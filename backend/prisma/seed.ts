@@ -114,19 +114,19 @@ const DIAGNOSTICOS: Diagnostico[] = [
     { value: 'TDAH', weight: 27, min: 48 },
     { value: 'TEA Grado 1', weight: 19, min: 18, tea: true },
     { value: 'Epilepsia', weight: 16 },
-    { value: 'ASMA', weight: 9, min: 12 },
+    { value: 'Asma', weight: 9, min: 12 },
     { value: 'Obs TEA', weight: 7, min: 18, max: 84, tea: true },
     { value: 'Síndrome de Down', weight: 6 },
     { value: 'En Estudio de Genética', weight: 5 },
     { value: 'TIS', weight: 5, min: 24 },
     { value: 'Trastorno Ansioso', weight: 5, min: 60 },
     { value: 'TEA Grado 2', weight: 4, min: 18, tea: true },
-    { value: 'TRASTORNOS GENERALIZADOS DEL DESARROLLO', weight: 4, min: 18, tea: true },
+    { value: 'Trastornos Generalizados del Desarrollo', weight: 4, min: 18, tea: true },
     { value: 'TEA (SD DE ASPERGER)', weight: 4, min: 48, tea: true },
     { value: 'TEL Expresivo', weight: 4, min: 36, max: 144 },
     { value: 'Hipotiroidismo', weight: 3 },
     { value: 'TOD', weight: 3, min: 48 },
-    { value: 'PARALISIS CEREBRAL', weight: 3 },
+    { value: 'Parálisis Cerebral', weight: 3 },
     { value: 'Trastorno Conductual', weight: 2, min: 48 },
     { value: 'TEL', weight: 2, min: 36, max: 144 },
     { value: 'TEA GRADO 3', weight: 2, min: 18, tea: true },
@@ -157,7 +157,7 @@ const DIAGNOSTICOS: Diagnostico[] = [
 ];
 const VALORES_TEA = new Set(DIAGNOSTICOS.filter((d) => d.tea).map((d) => d.value));
 const DIAGNOSTICOS_SALUD_MENTAL = new Set(['TDAH', 'Trastorno Ansioso', 'Trastorno Conductual', 'TOD', 'MUTISMO']);
-const DIAGNOSTICOS_DEPENDENCIA = new Set(['Síndrome de Down', 'PARALISIS CEREBRAL', 'DEPENDIENTE SEVERO', 'TEA GRADO 3', 'TEA Grado 2', 'HIDROCEFALIA']);
+const DIAGNOSTICOS_DEPENDENCIA = new Set(['Síndrome de Down', 'Parálisis Cerebral', 'DEPENDIENTE SEVERO', 'TEA GRADO 3', 'TEA Grado 2', 'HIDROCEFALIA']);
 
 //? edad de la poblacion NANEAS segun el catastro (en meses)
 const RANGOS_EDAD_NANEAS = [
