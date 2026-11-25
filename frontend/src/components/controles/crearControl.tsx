@@ -280,13 +280,12 @@ export default function NuevoControl() {
                         </div>
                     </div>
 
-                    <p className="mt-3 text-xs font-medium text-slate-500">
-                        {edadMesesActual === null
-                            ? 'No se pudo determinar la edad del paciente para calcular el indicador nutricional.'
-                            : aplicaImc
-                                ? 'Se calculará el IMC automáticamente al guardar (indicador aplicable desde los 2 años).'
-                                : 'Este paciente tiene menos de 2 años: se evalúa por peso para la edad, no se calculará IMC.'}
-                    </p>
+                    {/* //? solo se avisa si no hay edad; el IMC se sigue calculando igual al guardar */}
+                    {edadMesesActual === null && (
+                        <p className="mt-3 text-xs font-medium text-slate-500">
+                            No se pudo determinar la edad del paciente para calcular el indicador nutricional.
+                        </p>
+                    )}
                 </div>
 
                 {/* 3. EVALUACIÓN Y PLAN */}
