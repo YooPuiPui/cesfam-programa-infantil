@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import type { TipoDiagnostico } from '@prisma/client';
 import prisma from '../config/prisma';
 
 interface FilaImportada {
@@ -80,6 +81,10 @@ const MAPA_DIAGNOSTICOS_CANONICOS: Record<string, string> = {
     TEAGRADO1: 'TEA Grado 1',
     TEAG1: 'TEA Grado 1',
     TEAGRADO2: 'TEA Grado 2',
+    ASMA: 'Asma',
+    PARALISISCEREBRAL: 'Parálisis Cerebral',
+    PARÁLISISCEREBRAL: 'Parálisis Cerebral',
+    TRASTORNOSGENERALIZADOSDELDESARROLLO: 'Trastornos Generalizados del Desarrollo',
     TDHA: 'TDAH',
     TDAH: 'TDAH',
     EPILEPSIA: 'Epilepsia',
@@ -133,7 +138,55 @@ function dividirDiagnosticos(raw: unknown): string[] {
 //? largo de la columna Diagnostico.nombre
 const LARGO_MAXIMO_DIAGNOSTICO = 120;
 
-//* enlaza al paciente cada diagnostico por nombre exacto, si no existe en el catalogo se crea como condicion sin codigo
+//! motivo que se reporta cuando una fila trae como condicion un diagnostico que es de control
+const MOTIVO_DIAGNOSTICO_DE_CONTROL = 'diagnóstico de control no válido como condición';
+
+//? clave para comparar nombres sin importar mayusculas, tildes ni espacios repetidos
+function claveCatalogo(nombre: string): string {
+    return normalizarTexto(nombre).replace(/\s+/g, ' ');
+}
+
+type Catalogo = Map<string, { nombre: string; tipo: TipoDiagnostico }[]>;
+
+//* catalogo agrupado por clave, si varios comparten clave quedan primero los activos y mas antiguos
+async function cargarCatalogo(): Promise<Catalogo> {
+    const diagnosticos = await prisma.diagnostico.findMany({
+        select: { nombre: true, tipo: true },
+        orderBy: [{ activo: 'desc' }, { id_diagnostico: 'asc' }],
+    });
+
+    const catalogo: Catalogo = new Map();
+    for (const d of diagnosticos) {
+        const clave = claveCatalogo(d.nombre);
+        catalogo.set(clave, [...(catalogo.get(clave) ?? []), d]);
+    }
+    return catalogo;
+}
+
+//* traduce los nombres del excel a las condiciones que se deben enlazar (clave -> nombre), sin repetidas
+//? si ya existe como condicion se usa su nombre, si no existe queda tal como viene, si solo es de control no se enlaza
+function resolverDiagnosticos(nombres: string[], catalogo: Catalogo) {
+    const condiciones = new Map<string, string>();
+    let hayDeControl = false;
+
+    for (const nombre of nombres) {
+        const clave = claveCatalogo(nombre);
+        const coincidencias = catalogo.get(clave) ?? [];
+        const existentes = coincidencias.filter((d) => d.tipo === 'CONDICION');
+
+        if (coincidencias.length > 0 && existentes.length === 0) {
+            hayDeControl = true;
+            continue;
+        }
+
+        const existente = existentes.find((d) => d.nombre === nombre) ?? existentes[0];
+        if (!condiciones.has(clave)) condiciones.set(clave, existente?.nombre ?? nombre);
+    }
+
+    return { condiciones, hayDeControl };
+}
+
+//* enlaza al paciente cada condicion, la que no existe en el catalogo se crea sin codigo
 //? es una escritura anidada: si la fila falla tampoco queda el diagnostico nuevo en el catalogo
 function enlazarDiagnosticos(nombres: string[]) {
     return nombres.map((nombre) => ({
@@ -294,6 +347,8 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
 
     //? cache por importacion para no consultar la comuna en cada fila
     const cacheComunas = new Map<string, number>();
+    //? solo lectura, tambien se usa en la simulacion
+    const catalogo = await cargarCatalogo();
 
     for (const fila of filasPorRut.values()) {
         try {
@@ -308,6 +363,9 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
             const sectorNormalizado = normalizarSector(fila.sector);
             const telefonoTutor = normalizarTelefono(fila.telefono);
 
+            const { condiciones, hayDeControl } = resolverDiagnosticos(diagnosticos, catalogo);
+            const nombresCondiciones = Array.from(condiciones.values());
+
             const existente = await prisma.paciente.findUnique({ where: { rut: fila.rut } });
 
             if (existente) {
@@ -317,8 +375,8 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                         data: {
                             es_naneas_prematuro: true,
                             //? si el excel trae diagnosticos reemplazan a los que tenia, si no se conservan
-                            ...(diagnosticos.length > 0
-                                ? { diagnosticosRel: { deleteMany: {}, create: enlazarDiagnosticos(diagnosticos) } }
+                            ...(nombresCondiciones.length > 0
+                                ? { diagnosticosRel: { deleteMany: {}, create: enlazarDiagnosticos(nombresCondiciones) } }
                                 : {}),
                             credencial_discapacidad: credencial !== 'sin_dato' ? credencial : existente.credencial_discapacidad,
                             credencial_discapacidad_detalle: credencialDetalle || existente.credencial_discapacidad_detalle,
@@ -360,7 +418,7 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                             comuna: { connect: { id_comuna: idComuna } },
                             activo: true,
                             es_naneas_prematuro: true,
-                            diagnosticosRel: { create: enlazarDiagnosticos(diagnosticos) },
+                            diagnosticosRel: { create: enlazarDiagnosticos(nombresCondiciones) },
                             credencial_discapacidad: credencial,
                             credencial_discapacidad_detalle: credencialDetalle,
                             ...(cuidadorNombre ? { cuidador: { create: { nombre: cuidadorNombre, parentesco: cuidadorParentesco } } } : {}),
@@ -383,6 +441,14 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                 resumen.creados++;
                 resumen.detalle_creados.push({ rut: fila.rut, nombre: `${nombre} ${apellido}` });
             }
+
+            //? los diagnosticos nuevos de esta fila ya existen para las siguientes
+            for (const [clave, nombre] of condiciones) {
+                if (!catalogo.has(clave)) catalogo.set(clave, [{ nombre, tipo: 'CONDICION' }]);
+            }
+
+            //! la fila se importa con el resto de sus datos, pero se informa el diagnostico que quedo fuera
+            if (hayDeControl) resumen.errores.push({ rut: fila.rut, motivo: MOTIVO_DIAGNOSTICO_DE_CONTROL });
         } catch (error: any) {
             console.error(`Error al importar el paciente con RUT ${fila.rut}:`, error);
 
