@@ -27,6 +27,16 @@ export interface Tutor {
     verificado: boolean;
 }
 
+//* diagnostico del catalogo, CONDICION = condicion de base del paciente, CONTROL = diagnostico de un control
+export type TipoDiagnostico = 'CONDICION' | 'CONTROL';
+
+export interface Diagnostico {
+    id_diagnostico: number;
+    nombre: string;
+    tipo: TipoDiagnostico;
+    codigo_cie10?: string | null;     // de referencia, no se muestra en la interfaz
+}
+
 export interface Paciente {
     id_paciente: number;
     rut: string;
@@ -54,7 +64,8 @@ export interface Paciente {
     es_salud_mental?: boolean;
 
     //* diagnosticos y credencial de discapacidad
-    diagnosticos?: string[];
+    diagnosticos?: string[];          // nombres, solo en las respuestas del backend
+    diagnosticos_ids?: number[];      // es lo que se envia al crear o editar
     credencial_discapacidad?: 'sin_dato' | 'si' | 'no' | 'en_tramite';
     credencial_discapacidad_detalle?: string;
 
@@ -98,7 +109,9 @@ export interface Control {
     talla_cm: number;
     perimetro_cefalico?: number | null;
     imc: number;
-    problemas_diagnosticados?: string | null;
+    diagnosticos?: string[];          // nombres del catalogo, vacio en controles antiguos
+    diagnosticos_ids?: number[];
+    problemas_diagnosticados?: string | null;     // texto "Otro" (en controles antiguos, el diagnostico completo)
     indicaciones_acuerdos?: string | null;
     fecha_proximoControl: string;
     rut_paciente: string;

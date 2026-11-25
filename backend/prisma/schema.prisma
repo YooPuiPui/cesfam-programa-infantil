@@ -34,6 +34,12 @@ enum EstadoCredencialDiscapacidad {
   en_tramite
 }
 
+// CONDICION = condicion de base del paciente, CONTROL = diagnostico de un control clinico
+enum TipoDiagnostico {
+  CONDICION
+  CONTROL
+}
+
 // 1. Tabla Profesionales
 model Profesional {
   id_profesional Int      @id @default(autoincrement())
@@ -115,8 +121,8 @@ model Paciente {
   es_salud_mental     Boolean  @default(false) // pertenece al programa de salud mental
   creado_en           DateTime @default(now())
 
-  // diagnosticos como lista simple 
-  diagnosticos String[]
+  // condiciones de base del paciente (catalogo Diagnostico de tipo CONDICION)
+  diagnosticosRel PacienteDiagnostico[]
 
   //  credencial de discapacidad
   credencial_discapacidad         EstadoCredencialDiscapacidad @default(sin_dato)
@@ -136,6 +142,8 @@ model Paciente {
 
   controlClinico      ControlClinico[]
   inscripcionesTaller InscripcionTaller[]
+
+  @@index([id_tutor_principal])
 }
 
 model ControlClinico {
@@ -168,10 +176,50 @@ model ControlClinico {
   Profesional     Profesional @relation(fields: [rut_profesional], references: [rut])
 
   creado_en DateTime @default(now())
+
+  diagnosticosRel ControlDiagnostico[]
+
+  @@index([rut_paciente, fecha_control])
+  @@index([fecha_proximoControl])
+}
+
+model Diagnostico {
+  id_diagnostico Int             @id @default(autoincrement())
+  nombre         String          @unique @db.VarChar(120) // etiqueta propia del sistema, NO es la glosa oficial de la CIE-10
+  tipo           TipoDiagnostico
+  codigo_cie10   String?         @db.VarChar(10) // codigo CIE-10 MINSAL/DEIS v2018 de referencia, null si no hay equivalente
+  activo         Boolean         @default(true)
+
+  pacientes PacienteDiagnostico[]
+  controles ControlDiagnostico[]
+
+  @@index([tipo, activo])
+}
+
+model PacienteDiagnostico {
+  id_paciente    Int
+  id_diagnostico Int
+
+  paciente    Paciente    @relation(fields: [id_paciente], references: [id_paciente], onDelete: Cascade)
+  diagnostico Diagnostico @relation(fields: [id_diagnostico], references: [id_diagnostico], onDelete: Restrict)
+
+  @@id([id_paciente, id_diagnostico])
+  @@index([id_diagnostico])
+}
+
+model ControlDiagnostico {
+  id_control     Int
+  id_diagnostico Int
+
+  control     ControlClinico @relation(fields: [id_control], references: [id_control], onDelete: Cascade)
+  diagnostico Diagnostico    @relation(fields: [id_diagnostico], references: [id_diagnostico], onDelete: Restrict)
+
+  @@id([id_control, id_diagnostico])
+  @@index([id_diagnostico])
 }
 
 model Usuario {
-  id        Int      @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   rut       String   @unique
   password  String
   nombre    String
@@ -210,6 +258,8 @@ model SesionTaller {
   creado_en     DateTime @default(now())
 
   inscripciones InscripcionTaller[]
+
+  @@index([id_taller, fecha])
 }
 
 model InscripcionTaller {
@@ -231,4 +281,5 @@ model InscripcionTaller {
   actualizado_en DateTime  @updatedAt
 
   @@unique([rut_paciente, id_sesion])
+  @@index([id_sesion])
 }

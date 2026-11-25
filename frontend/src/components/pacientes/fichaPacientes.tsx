@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FileText, Calendar, History, ArrowLeft, AlertTriangle, TriangleAlert, Loader2 } from 'lucide-react';
 import type { ControlClinico, Paciente } from '../../types';
 import { API_BASE_URL } from '../../service/api';
+import { compararDiagnosticos, nombreDiagnostico, textoDiagnosticoControl } from '../../utils/diagnosticos';
 import { calcularEdadCorta } from '../../utils/formatters';
 
 
@@ -167,7 +168,10 @@ export default function FichaPaciente() {
     );
     //? pacientes antiguos o importados pueden traer estos campos vacios
     const diagnosticos = Array.isArray(paciente?.diagnosticos)
-        ? paciente.diagnosticos.filter((d): d is string => typeof d === 'string' && d.trim() !== '')
+        ? paciente.diagnosticos
+            .filter((d): d is string => typeof d === 'string' && d.trim() !== '')
+            .map(nombreDiagnostico)
+            .sort(compararDiagnosticos)
         : [];
     const credencial = paciente?.credencial_discapacidad ?? 'sin_dato';
     const credencialDetalle = paciente?.credencial_discapacidad_detalle?.trim();
@@ -413,7 +417,9 @@ export default function FichaPaciente() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-slate-200">
-                                    {controles.map((control) => (
+                                    {controles.map((control) => {
+                                        const diagnosticoControl = textoDiagnosticoControl(control);
+                                        return (
                                         <tr key={control.id_control} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-bold text-slate-900">{new Date(control.fecha_control).toLocaleDateString('es-CL', { timeZone: 'UTC' })}</div>
@@ -422,8 +428,8 @@ export default function FichaPaciente() {
                                                 <div className="text-sm font-bold text-slate-800 line-clamp-1 max-w-[300px]" title={control.motivo_consulta ?? undefined}>
                                                     {control.motivo_consulta || 'Control Sano'}
                                                 </div>
-                                                <div className="text-xs font-medium text-slate-500 line-clamp-1 max-w-[300px]" title={control.problemas_diagnosticados ?? undefined}>
-                                                    {control.problemas_diagnosticados || 'Sin diagnóstico registrado'}
+                                                <div className="text-xs font-medium text-slate-500 line-clamp-2 max-w-[300px]" title={diagnosticoControl || undefined}>
+                                                    {diagnosticoControl || 'Sin diagnóstico registrado'}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -436,7 +442,8 @@ export default function FichaPaciente() {
                                                 </button>
                                             </td>
                                         </tr>
-                                    ))}
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

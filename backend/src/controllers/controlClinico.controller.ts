@@ -2,8 +2,12 @@ import { Request, Response, RequestHandler } from "express";
 import * as controlService from '../services/controlClinico.service';
 import prisma from "../config/prisma";
 import { hoyChileMediodiaUTC, fechaCalendarioAMediodiaUTC } from '../utils/fechaChile';
+import { validarDiagnosticosIds } from '../services/diagnostico.service';
 
+//! todo control lleva al menos un diagnostico del catalogo o el texto de "Otro"
+const MENSAJE_SIN_DIAGNOSTICO = 'Selecciona al menos un diagnóstico o descríbelo en «Otro».';
 
+const textoOtro = (valor: unknown): string => (typeof valor === 'string' ? valor.trim() : '');
 
 
 export const crearControl: RequestHandler = async (req, res): Promise<void> => {
@@ -78,6 +82,18 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             return;
         }
 
+        const diagnosticos = await validarDiagnosticosIds(control.diagnosticos_ids ?? [], 'CONTROL');
+        if ('error' in diagnosticos) {
+            res.status(400).json({ error: diagnosticos.error });
+            return;
+        }
+
+        const otroDiagnostico = textoOtro(control.problemas_diagnosticados);
+        if (diagnosticos.ids.length === 0 && !otroDiagnostico) {
+            res.status(400).json({ error: MENSAJE_SIN_DIAGNOSTICO });
+            return;
+        }
+
         //* limpia los datos y pasa los numeros a number
         const controlLimpio = {
             fecha_control: hoyChileMediodiaUTC(),
@@ -89,7 +105,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
             talla_cm: parseFloat(control.talla_cm),
             perimetro_cefalico: control.perimetro_cefalico ? parseFloat(control.perimetro_cefalico) : null,
             imc: aplicaImc ? parseFloat(control.imc) : null,
-            problemas_diagnosticados: control.problemas_diagnosticados || null,
+            problemas_diagnosticados: otroDiagnostico || null,
             indicaciones_acuerdos: control.indicaciones_acuerdos || null,
             fecha_proximoControl: fechaProximoControl,
 
@@ -100,7 +116,7 @@ export const crearControl: RequestHandler = async (req, res): Promise<void> => {
         };
 
 
-        const resultado = await controlService.crearControl(controlLimpio);
+        const resultado = await controlService.crearControl(controlLimpio, diagnosticos.ids);
 
         res.status(201).json({
             mensaje: 'Control clínico creado con éxito',
@@ -185,7 +201,7 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         if (datos.talla_cm !== undefined) datosLimpios.talla_cm = parseFloat(datos.talla_cm);
         if (datos.perimetro_cefalico !== undefined) datosLimpios.perimetro_cefalico = datos.perimetro_cefalico ? parseFloat(datos.perimetro_cefalico) : null;
         if (datos.imc !== undefined) datosLimpios.imc = datos.imc ? parseFloat(datos.imc) : null;
-        if (datos.problemas_diagnosticados !== undefined) datosLimpios.problemas_diagnosticados = datos.problemas_diagnosticados;
+        if (datos.problemas_diagnosticados !== undefined) datosLimpios.problemas_diagnosticados = textoOtro(datos.problemas_diagnosticados) || null;
         if (datos.indicaciones_acuerdos !== undefined) datosLimpios.indicaciones_acuerdos = datos.indicaciones_acuerdos;
         if (datos.fecha_proximoControl !== undefined) {
             const fechaProximoControl = fechaCalendarioAMediodiaUTC(datos.fecha_proximoControl);
@@ -210,7 +226,32 @@ export const editarControl: RequestHandler = async (req, res): Promise<void> => 
         }
         if (datos.rut_profesional !== undefined) datosLimpios.rut_profesional = datos.rut_profesional;
 
-        const resultado = await controlService.editarControl(id, datosLimpios);
+        //! los diagnosticos solo se reemplazan si vienen en el body
+        let diagnosticosIds: number[] | undefined = undefined;
+
+        if (datos.diagnosticos_ids !== undefined) {
+            const diagnosticos = await validarDiagnosticosIds(datos.diagnosticos_ids, 'CONTROL');
+            if ('error' in diagnosticos) {
+                res.status(400).json({ error: diagnosticos.error });
+                return;
+            }
+            diagnosticosIds = diagnosticos.ids;
+        }
+
+        //? la regla se revisa sobre como quedaria el control, solo si se estan tocando los diagnosticos o el "Otro"
+        if (diagnosticosIds !== undefined || datos.problemas_diagnosticados !== undefined) {
+            const idsFinales = diagnosticosIds ?? controlActual.diagnosticos_ids;
+            const textoFinal = datos.problemas_diagnosticados !== undefined
+                ? datosLimpios.problemas_diagnosticados
+                : textoOtro(controlActual.problemas_diagnosticados);
+
+            if (idsFinales.length === 0 && !textoFinal) {
+                res.status(400).json({ error: MENSAJE_SIN_DIAGNOSTICO });
+                return;
+            }
+        }
+
+        const resultado = await controlService.editarControl(id, datosLimpios, diagnosticosIds);
 
         res.status(200).json({
             mensaje: 'Control actualizado con éxito',

@@ -1,5 +1,6 @@
 import prisma from "../config/prisma";
 import { Prisma } from "@prisma/client";
+import { aplanarDiagnosticos, incluirDiagnosticos } from '../utils/aplanarDiagnosticos';
 
 
 
@@ -15,11 +16,12 @@ export const crearInscripcion = async (datosInscripcion: Prisma.InscripcionTalle
 
 //* lista todas las inscripciones de una sesión con los datos del paciente
 export const buscarInscripcionesPorSesion = async (idSesion: number) => {
-    return await prisma.inscripcionTaller.findMany({
+    const inscripciones = await prisma.inscripcionTaller.findMany({
         where: { id_sesion: idSesion },
-        include: { paciente: true },
+        include: { paciente: { include: incluirDiagnosticos } },
         orderBy: { creado_en: 'asc' }
     });
+    return inscripciones.map((i) => ({ ...i, paciente: aplanarDiagnosticos(i.paciente) }));
 
 }
 

@@ -1,15 +1,17 @@
 import prisma from '../config/prisma';
+import { aplanarDiagnosticos, incluirDiagnosticos } from '../utils/aplanarDiagnosticos';
 
-//? relaciones que se devuelven siempre con el paciente: tutor (con su comuna), comuna y cuidador
+//? relaciones que se devuelven siempre con el paciente: tutor (con su comuna), comuna, cuidador y diagnosticos
 const incluirRelaciones = {
     tutor: { include: { comuna: true } },
     comuna: true,
     cuidador: true,
+    ...incluirDiagnosticos,
 } as const;
 
 type DatosCuidador = { nombre: string; apellidos?: string | null; telefono?: string | null; parentesco?: string | null };
 
-export const crearPacienteConTutor = async (datosPaciente: any, datosTutor: any, datosCuidador: DatosCuidador | null = null) => {
+export const crearPacienteConTutor = async (datosPaciente: any, datosTutor: any, datosCuidador: DatosCuidador | null = null, diagnosticosIds: number[] = []) => {
 
     //! revisa que no exista un paciente con ese rut antes de crear
     const pacienteExistente = await prisma.paciente.findUnique({
@@ -39,17 +41,20 @@ export const crearPacienteConTutor = async (datosPaciente: any, datosTutor: any,
                     },
                 }
             },
+            //? va en la misma escritura: si falla un diagnostico no queda el paciente a medias
+            diagnosticosRel: { createMany: { data: diagnosticosIds.map((id_diagnostico) => ({ id_diagnostico })) } },
         },
         include: incluirRelaciones,
     });
 
-    return nuevoPaciente;
+    return aplanarDiagnosticos(nuevoPaciente);
 };
 
 
 
 //? datosCuidador: undefined = no tocar el cuidador, null = desvincularlo, objeto = actualizarlo o crearlo
-export const actualizarPaciente = async (idPaciente: number, datosPaciente: any, datosCuidador?: DatosCuidador | null) => {
+//? diagnosticosIds: undefined = no tocar los diagnosticos, lista = reemplaza el conjunto completo
+export const actualizarPaciente = async (idPaciente: number, datosPaciente: any, datosCuidador?: DatosCuidador | null, diagnosticosIds?: number[]) => {
 
     //! con relaciones anidadas prisma no acepta el campo suelto id_comuna, va con connect
     const { id_comuna, ...restoPaciente } = datosPaciente;
@@ -74,6 +79,13 @@ export const actualizarPaciente = async (idPaciente: number, datosPaciente: any,
             : { create: datosCuidador };
     }
 
+    if (diagnosticosIds !== undefined) {
+        data.diagnosticosRel = {
+            deleteMany: {},
+            createMany: { data: diagnosticosIds.map((id_diagnostico) => ({ id_diagnostico })) },
+        };
+    }
+
     //* Busca al paciente por su id y reemplaza los compos enviados
     const pacienteActualizado = await prisma.paciente.update({
         where: {
@@ -83,26 +95,28 @@ export const actualizarPaciente = async (idPaciente: number, datosPaciente: any,
         include: incluirRelaciones,
     });
 
-    return pacienteActualizado;
+    return aplanarDiagnosticos(pacienteActualizado);
 };
 
 
 export const obtenerTodosLosPacientes = async () => {
 
-    return await prisma.paciente.findMany({
+    const pacientes = await prisma.paciente.findMany({
         include: incluirRelaciones,
     });
+    return pacientes.map(aplanarDiagnosticos);
 };
 
 export const obtenerPacientePorId = async (idPaciente: number) => {
 
-    return await prisma.paciente.findUnique({
+    const paciente = await prisma.paciente.findUnique({
         where: {
             id_paciente: idPaciente
         },
 
         include: incluirRelaciones,
     });
+    return paciente && aplanarDiagnosticos(paciente);
 };
 
 
@@ -143,10 +157,11 @@ export const buscarPacientePorRut = async (rut: string) => {
 };
 
 export const buscarPacientePorRutConTutor = async (rut: string) => {
-    return await prisma.paciente.findUnique({
+    const paciente = await prisma.paciente.findUnique({
         where: { rut },
         include: incluirRelaciones,
     });
+    return paciente && aplanarDiagnosticos(paciente);
 };
 
 
@@ -172,17 +187,14 @@ export const obtenerCaracterizacionPacientes = async () => {
         prisma.paciente.count({ where: { activo: false } }),
     ]);
 
-    //?  3. DIAGNOSTICOS 
-    const pacientesConDiagnostico = await prisma.paciente.findMany({
-        select: { diagnosticos: true },
-    });
-
-    const conteoDiagnosticos: Record<string, number> = {};
-    for (const paciente of pacientesConDiagnostico) {
-        for (const diagnostico of paciente.diagnosticos) {
-            conteoDiagnosticos[diagnostico] = (conteoDiagnosticos[diagnostico] || 0) + 1;
-        }
-    }
+    //?  3. DIAGNOSTICOS (pacientes por condicion de base, agrupado en la base)
+    const conteoDiagnosticos = await prisma.$queryRaw<{ name: string; value: number }[]>`
+        SELECT d.nombre AS name, COUNT(*)::int AS value
+        FROM "PacienteDiagnostico" pd
+        JOIN "Diagnostico" d ON d.id_diagnostico = pd.id_diagnostico
+        GROUP BY d.id_diagnostico
+        ORDER BY value DESC, name ASC
+    `;
 
     //?  4. CREDENCIAL DE DISCAPACIDAD 
     const credencialAgrupada = await prisma.paciente.groupBy({
@@ -212,7 +224,7 @@ export const obtenerCaracterizacionPacientes = async () => {
             { name: 'Activos', value: activos },
             { name: 'Inactivos', value: inactivos },
         ],
-        diagnosticos: Object.entries(conteoDiagnosticos).map(([name, value]) => ({ name, value })),
+        diagnosticos: conteoDiagnosticos,
         credencial_discapacidad: credencialAgrupada.map((item) => ({
             name: nombresCredencial[item.credencial_discapacidad] || item.credencial_discapacidad,
             value: item._count,
