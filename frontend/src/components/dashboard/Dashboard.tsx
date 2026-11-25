@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Loader2, Users, AlertTriangle, CalendarClock } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
+import { compararDiagnosticos, nombreDiagnostico } from '../../utils/diagnosticos';
 
 
 
@@ -131,11 +132,12 @@ export default function Dashboard() {
     ];
 
     //? diagnosticos con 2 o mas pacientes van al grafico, los de 1 solo van en lista
-    const diagnosticosOrdenados = [...caracterizacion.diagnosticos].sort((a, b) => b.value - a.value);
+    //? el grafico va de mayor a menor cantidad, y alfabetico entre los que empatan
+    const diagnosticosOrdenados = caracterizacion.diagnosticos
+        .map(d => ({ ...d, name: nombreDiagnostico(d.name) }))
+        .sort((a, b) => b.value - a.value || compararDiagnosticos(a.name, b.name));
     const diagnosticosMulti = diagnosticosOrdenados.filter(d => d.value >= 2);
-    const diagnosticosSingle = diagnosticosOrdenados
-        .filter(d => d.value === 1)
-        .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    const diagnosticosSingle = diagnosticosOrdenados.filter(d => d.value === 1);
 
     return (
         <div className="space-y-6">
