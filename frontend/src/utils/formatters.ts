@@ -13,8 +13,11 @@ export function calcularEdad(fechaNacimiento: string): string {
         meses += 12;
     }
 
-    return `${años}a ${meses}m`; 
+    return `${años}a ${meses}m`;
 }
+
+//? versión compacta junto al RUT: "8a 9m" -> "8a9m"
+export const calcularEdadCorta = (fechaNacimiento: string): string => calcularEdad(fechaNacimiento).replace(/\s/g, "");
 
 export function formatearFecha(fechaISO: string): string {
     if (!fechaISO) return 'N/A';
