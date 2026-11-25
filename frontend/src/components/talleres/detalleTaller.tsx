@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronRight, Loader2, Pencil, Plus, Power, Save, TriangleAlert, UserRound, GraduationCap } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Loader2, Pencil, Plus, Power, Save, TriangleAlert, UserRound, GraduationCap } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
 import { formatearFecha } from '../../utils/formatters';
 
@@ -88,6 +88,7 @@ export default function DetalleTaller() {
     const [errorCampo, setErrorCampo] = useState<Partial<Record<keyof FormSesion, string>>>({});
     const [errorFormSesion, setErrorFormSesion] = useState("");
     const [guardandoSesion, setGuardandoSesion] = useState(false);
+    const [mensajeExito, setMensajeExito] = useState("");
 
     const obtenerTaller = async () => {
         setCargando(true);
@@ -117,9 +118,17 @@ export default function DetalleTaller() {
 
     useEffect(() => {
         obtenerTaller();
-    }, [id]); 
+    }, [id]);
+
+    //* la alerta de éxito se oculta sola a los 4 segundos (esta pantalla no redirige)
+    useEffect(() => {
+        if (!mensajeExito) return;
+        const timeout = window.setTimeout(() => setMensajeExito(""), 4000);
+        return () => window.clearTimeout(timeout);
+    }, [mensajeExito]);
 
     const abrirFormSesion = async () => {
+        setMensajeExito("");
         setMostrarFormSesion(true);
         setErrorFormSesion("");
         setErrorCampo({});
@@ -197,6 +206,7 @@ export default function DetalleTaller() {
 
             setMostrarFormSesion(false);
             await obtenerTaller();
+            setMensajeExito("Sesión creada con éxito.");
         } catch (err) {
             setErrorFormSesion(err instanceof Error ? err.message : "No se pudo conectar con el servidor.");
         } finally {
@@ -207,6 +217,7 @@ export default function DetalleTaller() {
     const abrirEdicion = () => {
 
         if(!taller) return;
+        setMensajeExito("");
         setFormTaller({
 
             nombre: taller.nombre,
@@ -283,6 +294,7 @@ export default function DetalleTaller() {
 
         setEditando(false);
         await obtenerTaller(); // vuelve a pedir el taller para mostrar los datos nuevos
+        setMensajeExito("Taller actualizado con éxito.");
     } catch (err) {
         setErrorTaller(err instanceof Error ? err.message : "No se pudo conectar con el servidor.");
     } finally {
@@ -312,8 +324,11 @@ const cambiarEstado = async () => {
         const data = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok) throw new Error(data?.error || `No fue posible ${accion} el taller.`);
 
+        //! el texto se decide antes de recargar, porque `taller` cambia con obtenerTaller()
+        const textoExito = taller.activo ? "Taller desactivado con éxito." : "Taller activado con éxito.";
         if (taller.activo) setMostrarFormSesion(false);
         await obtenerTaller();
+        setMensajeExito(textoExito);
     } catch (err) {
         setErrorTaller(err instanceof Error ? err.message : "No se pudo conectar con el servidor.");
     } finally {
@@ -334,6 +349,16 @@ const cambiarEstado = async () => {
                 <ArrowLeft className="h-4 w-4" />
                 Volver
             </button>
+
+            {mensajeExito && (
+                <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800 shadow-sm">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div>
+                        <p className="font-bold">Cambios guardados</p>
+                        <p className="text-sm font-medium">{mensajeExito}</p>
+                    </div>
+                </div>
+            )}
 
             {cargando && (
                 <div className="flex justify-center items-center p-12 text-blue-700">

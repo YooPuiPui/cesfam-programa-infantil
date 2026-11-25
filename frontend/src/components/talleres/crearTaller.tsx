@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Save, Loader2 } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
 
 type FormState = {
@@ -30,6 +30,18 @@ export default function CrearTaller() {
     const [errorCampo, setErrorCampo] = useState<Partial<Record<keyof FormState, string>>>({});
     const [errorGeneral, setErrorGeneral] = useState("");
     const [guardando, setGuardando] = useState(false);
+    const [mensajeExito, setMensajeExito] = useState("");
+
+    //* tras guardar se muestra la alerta y se vuelve a la lista a los ~1,2 segundos
+    useEffect(() => {
+        if (!mensajeExito) return;
+
+        const timeout = window.setTimeout(() => {
+            navigate("/talleres");
+        }, 1200);
+
+        return () => window.clearTimeout(timeout);
+    }, [mensajeExito, navigate]);
 
     const actualizarCampo = (campo: keyof FormState, valor: string) => {
         setForm((anterior) => ({ ...anterior, [campo]: valor }));
@@ -82,6 +94,8 @@ export default function CrearTaller() {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        //! con el taller ya creado se ignora el submit para no duplicarlo con un doble clic
+        if (mensajeExito) return;
         setErrorGeneral("");
 
         if (!validar()) return;
@@ -113,7 +127,7 @@ export default function CrearTaller() {
                 throw new Error(data?.error || "No fue posible crear el taller.");
             }
 
-            navigate("/talleres");
+            setMensajeExito("Taller creado con éxito. Redirigiendo a la lista...");
         } catch (err) {
             setErrorGeneral(err instanceof Error ? err.message : "No se pudo conectar con el servidor.");
         } finally {
@@ -131,6 +145,16 @@ export default function CrearTaller() {
                 <ArrowLeft className="h-4 w-4" />
                 Volver
             </button>
+
+            {mensajeExito && (
+                <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800 shadow-sm">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div>
+                        <p className="font-bold">Cambios guardados</p>
+                        <p className="text-sm font-medium">{mensajeExito}</p>
+                    </div>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
                 <h1 className="text-lg font-semibold text-slate-800">Nuevo taller</h1>
@@ -188,7 +212,7 @@ export default function CrearTaller() {
 
                 <button
                     type="submit"
-                    disabled={guardando}
+                    disabled={guardando || !!mensajeExito}
                     className="flex items-center justify-center text-white bg-blue-700 hover:bg-blue-800 font-semibold rounded-lg text-sm px-4 py-2.5 transition-colors shadow-sm disabled:opacity-50"
                 >
                     {guardando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
