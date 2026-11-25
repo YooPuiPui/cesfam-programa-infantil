@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Loader2, Plus, Search, Filter, Pencil, Power, Save, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Loader2, Plus, Search, Filter, Pencil, Power, Save, TriangleAlert } from "lucide-react";
 import { API_BASE_URL } from "../../service/api";
 import { normalizarTexto } from "../../utils/formatters";
 
@@ -80,6 +80,7 @@ export default function Profesionales() {
     const [errorCampo, setErrorCampo] = useState<Partial<Record<keyof FormProfesional, string>>>({});
     const [errorForm, setErrorForm] = useState("");
     const [guardando, setGuardando] = useState(false);
+    const [mensajeExito, setMensajeExito] = useState("");
 
     const [errorEstado, setErrorEstado] = useState("");
     const [profesionalPorCambiar, setProfesionalPorCambiar] = useState<Profesional | null>(null);
@@ -102,11 +103,8 @@ export default function Profesionales() {
             if (!respuesta.ok) throw new Error("No se pudo obtener la lista de profesionales");
 
             const data: Profesional[] = await respuesta.json();
-            setProfesionales(
-                [...data].sort(
-                    (a, b) => a.apellido.localeCompare(b.apellido, "es") || a.nombre.localeCompare(b.nombre, "es")
-                )
-            );
+            //? el último agregado sale primero
+            setProfesionales([...data].sort((a, b) => b.id_profesional - a.id_profesional));
         } catch (err) {
             setError(err instanceof Error ? err.message : "Error desconocido");
         } finally {
@@ -117,6 +115,13 @@ export default function Profesionales() {
     useEffect(() => {
         obtenerProfesionales();
     }, []);
+
+    //* la alerta de éxito se oculta sola a los 4 segundos (esta pantalla no redirige)
+    useEffect(() => {
+        if (!mensajeExito) return;
+        const timeout = window.setTimeout(() => setMensajeExito(""), 4000);
+        return () => window.clearTimeout(timeout);
+    }, [mensajeExito]);
 
     const profesionalesFiltrados = profesionales.filter((p) => {
         const termino = normalizarTexto(busqueda);
@@ -132,6 +137,7 @@ export default function Profesionales() {
     });
 
     const abrirCrear = () => {
+        setMensajeExito("");
         setEditando(null);
         setForm(initialForm);
         setErrorCampo({});
@@ -140,6 +146,7 @@ export default function Profesionales() {
     };
 
     const abrirEdicion = (p: Profesional) => {
+        setMensajeExito("");
         setEditando(p);
         const esConocido = ESTAMENTOS.includes(p.estamento);
         setForm({
@@ -232,8 +239,11 @@ export default function Profesionales() {
                 throw new Error(data?.error || "No fue posible guardar el profesional.");
             }
 
+            //! el texto se decide antes de cerrarForm(), que limpia `editando`
+            const textoExito = editando ? "Profesional actualizado con éxito." : "Profesional registrado con éxito.";
             cerrarForm();
             await obtenerProfesionales();
+            setMensajeExito(textoExito);
         } catch (err) {
             setErrorForm(err instanceof Error ? err.message : "No se pudo conectar con el servidor.");
         } finally {
@@ -320,6 +330,18 @@ export default function Profesionales() {
                     </button>
                 </div>
             </div>
+
+            {mensajeExito && (
+                <div className="p-4 pb-0">
+                    <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800 shadow-sm">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                        <div>
+                            <p className="font-bold">Cambios guardados</p>
+                            <p className="text-sm font-medium">{mensajeExito}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {mostrarForm && (
                 <div className="p-4 pb-0">
