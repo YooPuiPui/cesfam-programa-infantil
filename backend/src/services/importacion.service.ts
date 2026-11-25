@@ -130,6 +130,23 @@ function dividirDiagnosticos(raw: unknown): string[] {
 }
 
 
+//? largo de la columna Diagnostico.nombre
+const LARGO_MAXIMO_DIAGNOSTICO = 120;
+
+//* enlaza al paciente cada diagnostico por nombre exacto, si no existe en el catalogo se crea como condicion sin codigo
+//? es una escritura anidada: si la fila falla tampoco queda el diagnostico nuevo en el catalogo
+function enlazarDiagnosticos(nombres: string[]) {
+    return nombres.map((nombre) => ({
+        diagnostico: {
+            connectOrCreate: {
+                where: { nombre },
+                create: { nombre, tipo: 'CONDICION' as const },
+            },
+        },
+    }));
+}
+
+
 export function normalizarSector(valor: unknown): string | null {
     if (valor === null || valor === undefined) return null;
     const v = String(valor).trim();
@@ -281,6 +298,10 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
     for (const fila of filasPorRut.values()) {
         try {
             const diagnosticos = dividirDiagnosticos(fila.diagnosticoRaw);
+            //! se revisa antes de escribir para que la simulacion tambien lo informe
+            if (diagnosticos.some((d) => d.length > LARGO_MAXIMO_DIAGNOSTICO)) {
+                throw new Error(`Un diagnóstico de esta fila supera los ${LARGO_MAXIMO_DIAGNOSTICO} caracteres. Revisa la celda de diagnóstico.`);
+            }
             const credencial = normalizarCredencial(fila.credencialDiscapacidadRaw);
             const credencialDetalle = fila.credencialDiscapacidadRaw ? String(fila.credencialDiscapacidadRaw).trim() : null;
             const { nombre: cuidadorNombre, parentesco: cuidadorParentesco } = separarCuidador(fila.cuidadorRaw);
@@ -295,7 +316,10 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                         where: { rut: fila.rut },
                         data: {
                             es_naneas_prematuro: true,
-                            diagnosticos: diagnosticos.length > 0 ? diagnosticos : existente.diagnosticos,
+                            //? si el excel trae diagnosticos reemplazan a los que tenia, si no se conservan
+                            ...(diagnosticos.length > 0
+                                ? { diagnosticosRel: { deleteMany: {}, create: enlazarDiagnosticos(diagnosticos) } }
+                                : {}),
                             credencial_discapacidad: credencial !== 'sin_dato' ? credencial : existente.credencial_discapacidad,
                             credencial_discapacidad_detalle: credencialDetalle || existente.credencial_discapacidad_detalle,
                             sector: sectorNormalizado || existente.sector,
@@ -336,7 +360,7 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
                             comuna: { connect: { id_comuna: idComuna } },
                             activo: true,
                             es_naneas_prematuro: true,
-                            diagnosticos,
+                            diagnosticosRel: { create: enlazarDiagnosticos(diagnosticos) },
                             credencial_discapacidad: credencial,
                             credencial_discapacidad_detalle: credencialDetalle,
                             ...(cuidadorNombre ? { cuidador: { create: { nombre: cuidadorNombre, parentesco: cuidadorParentesco } } } : {}),
