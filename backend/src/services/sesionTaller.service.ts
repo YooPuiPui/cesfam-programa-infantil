@@ -1,5 +1,6 @@
 import prisma from "../config/prisma";
 import { Prisma } from "@prisma/client";
+import { aplanarDiagnosticos, incluirDiagnosticos } from '../utils/aplanarDiagnosticos';
 
 
 
@@ -26,16 +27,21 @@ export const buscarSesionesPorTaller = async (idTaller: number) => {
 
 //* trae una sesion con sus inscripciones, ver quienes fueron convocado
 export const buscarSesionPorId = async (idSesion: number) => {
-    return await prisma.sesionTaller.findUnique({
+    const sesion = await prisma.sesionTaller.findUnique({
         where: { id_sesion: idSesion },
         include: {
             taller: true,
             profesional: true,
             inscripciones: {
-                include: { paciente: true }
+                include: { paciente: { include: incluirDiagnosticos } }
             }
         }
     });
+
+    return sesion && {
+        ...sesion,
+        inscripciones: sesion.inscripciones.map((i) => ({ ...i, paciente: aplanarDiagnosticos(i.paciente) })),
+    };
 }
 
 

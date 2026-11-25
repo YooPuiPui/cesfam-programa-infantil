@@ -13,6 +13,7 @@ import { routerPorSesion as inscripcionTallerRoutesPorSesion, routerPorPaciente 
 import importacionRoutes from './routes/importacion.routes';
 import 'dotenv/config';
 import comunaRoutes from './routes/comuna.routes';
+import diagnosticoRoutes from './routes/diagnostico.routes';
 
 
 
@@ -56,6 +57,7 @@ app.use('/api/pacientes/:rut/inscripciones-talleres', inscripcionTallerRoutesPor
 app.use('/api/inscripciones', inscripcionTallerRoutesPlano);
 app.use('/api/importacion', importacionRoutes);
 app.use('/api/comunas', comunaRoutes);
+app.use('/api/diagnosticos', diagnosticoRoutes);
 
 
 

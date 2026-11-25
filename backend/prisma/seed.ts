@@ -5,11 +5,13 @@
 //? uso desde /backend: npx prisma db seed (solo si no hay pacientes) o npx prisma db seed -- --reset
 //? si se define SEED_PASSWORD se crea el usuario de login del profesional principal (la tabla Usuario nunca se borra)
 //! --reset borra pacientes, cuidadores, tutores, comunas, controles, profesionales y talleres, no correr con datos reales
+//? el catalogo de diagnosticos no se borra, se actualiza en cada corrida
 
-import { PrismaClient, EstadoAsistencia, EstadoConvocatoria, EstadoCredencialDiscapacidad, Prisma } from '@prisma/client';
+import { PrismaClient, EstadoAsistencia, EstadoConvocatoria, EstadoCredencialDiscapacidad, Prisma, TipoDiagnostico } from '@prisma/client';
 import { faker } from '@faker-js/faker/locale/es';
 import bcrypt from 'bcrypt';
 import { obtenerHoyChile } from '../src/utils/fechaChile';
+import { CATALOGO_CONDICION, CATALOGO_CONTROL } from './catalogoDiagnosticos';
 
 const prisma = new PrismaClient();
 const RESET = process.argv.includes('--reset');
@@ -112,19 +114,19 @@ const DIAGNOSTICOS: Diagnostico[] = [
     { value: 'TDAH', weight: 27, min: 48 },
     { value: 'TEA Grado 1', weight: 19, min: 18, tea: true },
     { value: 'Epilepsia', weight: 16 },
-    { value: 'ASMA', weight: 9, min: 12 },
+    { value: 'Asma', weight: 9, min: 12 },
     { value: 'Obs TEA', weight: 7, min: 18, max: 84, tea: true },
     { value: 'Síndrome de Down', weight: 6 },
     { value: 'En Estudio de Genética', weight: 5 },
     { value: 'TIS', weight: 5, min: 24 },
     { value: 'Trastorno Ansioso', weight: 5, min: 60 },
     { value: 'TEA Grado 2', weight: 4, min: 18, tea: true },
-    { value: 'TRASTORNOS GENERALIZADOS DEL DESARROLLO', weight: 4, min: 18, tea: true },
+    { value: 'Trastornos Generalizados del Desarrollo', weight: 4, min: 18, tea: true },
     { value: 'TEA (SD DE ASPERGER)', weight: 4, min: 48, tea: true },
     { value: 'TEL Expresivo', weight: 4, min: 36, max: 144 },
     { value: 'Hipotiroidismo', weight: 3 },
     { value: 'TOD', weight: 3, min: 48 },
-    { value: 'PARALISIS CEREBRAL', weight: 3 },
+    { value: 'Parálisis Cerebral', weight: 3 },
     { value: 'Trastorno Conductual', weight: 2, min: 48 },
     { value: 'TEL', weight: 2, min: 36, max: 144 },
     { value: 'TEA GRADO 3', weight: 2, min: 18, tea: true },
@@ -155,7 +157,7 @@ const DIAGNOSTICOS: Diagnostico[] = [
 ];
 const VALORES_TEA = new Set(DIAGNOSTICOS.filter((d) => d.tea).map((d) => d.value));
 const DIAGNOSTICOS_SALUD_MENTAL = new Set(['TDAH', 'Trastorno Ansioso', 'Trastorno Conductual', 'TOD', 'MUTISMO']);
-const DIAGNOSTICOS_DEPENDENCIA = new Set(['Síndrome de Down', 'PARALISIS CEREBRAL', 'DEPENDIENTE SEVERO', 'TEA GRADO 3', 'TEA Grado 2', 'HIDROCEFALIA']);
+const DIAGNOSTICOS_DEPENDENCIA = new Set(['Síndrome de Down', 'Parálisis Cerebral', 'DEPENDIENTE SEVERO', 'TEA GRADO 3', 'TEA Grado 2', 'HIDROCEFALIA']);
 
 //? edad de la poblacion NANEAS segun el catastro (en meses)
 const RANGOS_EDAD_NANEAS = [
@@ -328,24 +330,25 @@ function factorPesoPersonal(): number {
 }
 
 //* escenarios clinicos (texto de los controles, inventados)
-interface Escenario { motivo: string; anamnesis: string; exploracion: string; diagnostico: string; indicaciones: string }
+//? diagnosticos = nombres del catalogo CONTROL, otro = texto libre opcional (queda en problemas_diagnosticados)
+interface Escenario { motivo: string; anamnesis: string; exploracion: string; diagnosticos: string[]; otro?: string; indicaciones: string }
 const ESCENARIOS: Escenario[] = [
-    { motivo: 'Control sano', anamnesis: 'Asiste a control de salud según calendario. Tutor refiere buen apetito, sueño adecuado y sin síntomas desde el último control.', exploracion: 'Activo, reactivo, en buen estado general. Sin signos de alarma. Piel y mucosas normocoloreadas.', diagnostico: 'Desarrollo acorde a la edad', indicaciones: 'Mantener alimentación acorde a la edad. Continuar esquema de vacunación. Próximo control según calendario.' },
-    { motivo: 'Consulta por resfrío', anamnesis: 'Cuadro de 3 días con congestión nasal, tos leve y febrícula ocasional. Sin dificultad respiratoria ni rechazo alimentario.', exploracion: 'Rinorrea serosa. Auscultación pulmonar sin ruidos agregados.', diagnostico: 'Rinofaringitis aguda', indicaciones: 'Lavado nasal frecuente. Reconsultar si aparece fiebre alta persistente o dificultad respiratoria.' },
-    { motivo: 'Control de peso y talla', anamnesis: 'Control antropométrico de rutina. Sin preocupaciones adicionales.', exploracion: 'Buenas condiciones generales. Medidas dentro de rango esperado.', diagnostico: 'Estado nutricional normal', indicaciones: 'Mantener hábitos alimenticios. Reforzar actividad física.' },
-    { motivo: 'Seguimiento nutricional', anamnesis: 'En seguimiento por evaluación nutricional previa. Adherencia parcial a indicaciones dietéticas.', exploracion: 'Sin signos clínicos de compromiso nutricional agudo.', diagnostico: 'Requiere seguimiento nutricional', indicaciones: 'Derivar a nutricionista. Control de seguimiento en el plazo indicado.' },
-    { motivo: 'Consulta por fiebre', anamnesis: 'Alza térmica de 24 horas cuantificada en domicilio, irritabilidad leve.', exploracion: 'Febril, reactivo. Orofaringe levemente eritematosa, sin foco evidente.', diagnostico: 'Síndrome febril sin foco aparente', indicaciones: 'Antipiréticos según indicación. Reconsultar si persiste más de 48 horas.' },
-    { motivo: 'Control de vacunas', anamnesis: 'Asiste según calendario PNI. Sin reacciones adversas a dosis previas.', exploracion: 'Buen estado general, afebril, sin contraindicaciones.', diagnostico: 'Apto para inmunización según esquema PNI', indicaciones: 'Se administra dosis correspondiente. Observar sitio de punción 48 horas.' },
-    { motivo: 'Evaluación de desarrollo psicomotor', anamnesis: 'Evaluación de hitos del desarrollo. Tutor no refiere preocupaciones.', exploracion: 'Cumple hitos esperados en las áreas evaluadas.', diagnostico: 'Desarrollo psicomotor acorde a la edad', indicaciones: 'Continuar estimulación en el hogar. Próxima evaluación según calendario.' },
-    { motivo: 'Sobrepeso en seguimiento', anamnesis: 'Control por sobrepeso detectado previamente. Cambios parciales en hábitos.', exploracion: 'Evolución antropométrica en contexto de seguimiento.', diagnostico: 'Sobrepeso leve', indicaciones: 'Alimentación saludable y actividad física diaria. Control de seguimiento.' },
+    { motivo: 'Control sano', anamnesis: 'Asiste a control de salud según calendario. Tutor refiere buen apetito, sueño adecuado y sin síntomas desde el último control.', exploracion: 'Activo, reactivo, en buen estado general. Sin signos de alarma. Piel y mucosas normocoloreadas.', diagnosticos: ['Desarrollo psicomotor acorde a la edad'], indicaciones: 'Mantener alimentación acorde a la edad. Continuar esquema de vacunación. Próximo control según calendario.' },
+    { motivo: 'Consulta por resfrío', anamnesis: 'Cuadro de 3 días con congestión nasal, tos leve y febrícula ocasional. Sin dificultad respiratoria ni rechazo alimentario.', exploracion: 'Rinorrea serosa. Auscultación pulmonar sin ruidos agregados.', diagnosticos: ['Rinofaringitis aguda (resfriado común)'], indicaciones: 'Lavado nasal frecuente. Reconsultar si aparece fiebre alta persistente o dificultad respiratoria.' },
+    { motivo: 'Control de peso y talla', anamnesis: 'Control antropométrico de rutina. Sin preocupaciones adicionales.', exploracion: 'Buenas condiciones generales. Medidas dentro de rango esperado.', diagnosticos: ['Estado nutricional normal'], indicaciones: 'Mantener hábitos alimenticios. Reforzar actividad física.' },
+    { motivo: 'Seguimiento nutricional', anamnesis: 'En seguimiento por evaluación nutricional previa. Adherencia parcial a indicaciones dietéticas.', exploracion: 'Sin signos clínicos de compromiso nutricional agudo.', diagnosticos: ['Requiere seguimiento nutricional'], indicaciones: 'Derivar a nutricionista. Control de seguimiento en el plazo indicado.' },
+    { motivo: 'Consulta por fiebre', anamnesis: 'Alza térmica de 24 horas cuantificada en domicilio, irritabilidad leve.', exploracion: 'Febril, reactivo. Orofaringe levemente eritematosa, sin foco evidente.', diagnosticos: ['Síndrome febril sin foco aparente'], otro: 'Orofaringe levemente eritematosa, en observación.', indicaciones: 'Antipiréticos según indicación. Reconsultar si persiste más de 48 horas.' },
+    { motivo: 'Control de vacunas', anamnesis: 'Asiste según calendario PNI. Sin reacciones adversas a dosis previas.', exploracion: 'Buen estado general, afebril, sin contraindicaciones.', diagnosticos: ['Apto para inmunización según esquema PNI'], indicaciones: 'Se administra dosis correspondiente. Observar sitio de punción 48 horas.' },
+    { motivo: 'Evaluación de desarrollo psicomotor', anamnesis: 'Evaluación de hitos del desarrollo. Tutor no refiere preocupaciones.', exploracion: 'Cumple hitos esperados en las áreas evaluadas.', diagnosticos: ['Desarrollo psicomotor acorde a la edad'], indicaciones: 'Continuar estimulación en el hogar. Próxima evaluación según calendario.' },
+    { motivo: 'Sobrepeso en seguimiento', anamnesis: 'Control por sobrepeso detectado previamente. Cambios parciales en hábitos.', exploracion: 'Evolución antropométrica en contexto de seguimiento.', diagnosticos: ['Sobrepeso'], indicaciones: 'Alimentación saludable y actividad física diaria. Control de seguimiento.' },
 ];
 const ESCENARIOS_NANEAS: Escenario[] = [
-    { motivo: 'Control NANEAS', anamnesis: 'Control de seguimiento en programa NANEAS. Cuidador refiere asistencia a terapias y adherencia a indicaciones.', exploracion: 'Buen estado general. Se revisa evolución según diagnóstico de base.', diagnostico: 'Seguimiento NANEAS sin descompensación', indicaciones: 'Mantener terapias en curso. Coordinar con equipo de talleres NANEAS.' },
-    { motivo: 'Seguimiento TEA', anamnesis: 'Familia refiere episodios de desregulación en contexto escolar y dificultades con cambios de rutina.', exploracion: 'Paciente tranquilo durante la atención con apoyo de cuidador. Sin hallazgos agudos.', diagnostico: 'TEA en seguimiento, episodios de desregulación', indicaciones: 'Se sugiere taller Manejo de Desregulaciones. Mantener anticipación de rutinas.' },
-    { motivo: 'Consulta salud mental', anamnesis: 'Tutor consulta por cambios conductuales en el último mes, en contexto escolar.', exploracion: 'Colaborador, sin signos de alarma en examen mental breve.', diagnostico: 'En observación, sin diagnóstico definido', indicaciones: 'Reforzar rutinas y contención familiar. Control para reevaluar.' },
-    { motivo: 'Revisión de terapias', anamnesis: 'Se revisa continuidad de fonoaudiología y terapia ocupacional. Cuidador refiere avances en comunicación.', exploracion: 'Buen estado general. Interacción acorde a su condición de base.', diagnostico: 'Evolución favorable en terapias', indicaciones: 'Mantener plan terapéutico. Actualizar credencial de discapacidad si corresponde.' },
+    { motivo: 'Control NANEAS', anamnesis: 'Control de seguimiento en programa NANEAS. Cuidador refiere asistencia a terapias y adherencia a indicaciones.', exploracion: 'Buen estado general. Se revisa evolución según diagnóstico de base.', diagnosticos: ['Seguimiento NANEAS sin descompensación'], indicaciones: 'Mantener terapias en curso. Coordinar con equipo de talleres NANEAS.' },
+    { motivo: 'Seguimiento TEA', anamnesis: 'Familia refiere episodios de desregulación en contexto escolar y dificultades con cambios de rutina.', exploracion: 'Paciente tranquilo durante la atención con apoyo de cuidador. Sin hallazgos agudos.', diagnosticos: ['Episodios de desregulación'], indicaciones: 'Se sugiere taller Manejo de Desregulaciones. Mantener anticipación de rutinas.' },
+    { motivo: 'Consulta salud mental', anamnesis: 'Tutor consulta por cambios conductuales en el último mes, en contexto escolar.', exploracion: 'Colaborador, sin signos de alarma en examen mental breve.', diagnosticos: ['En observación, sin diagnóstico definido'], otro: 'Cambios conductuales recientes en contexto escolar.', indicaciones: 'Reforzar rutinas y contención familiar. Control para reevaluar.' },
+    { motivo: 'Revisión de terapias', anamnesis: 'Se revisa continuidad de fonoaudiología y terapia ocupacional. Cuidador refiere avances en comunicación.', exploracion: 'Buen estado general. Interacción acorde a su condición de base.', diagnosticos: ['Evolución favorable en terapias'], indicaciones: 'Mantener plan terapéutico. Actualizar credencial de discapacidad si corresponde.' },
 ];
-const ESCENARIO_ADOLESCENTE: Escenario = { motivo: 'Control adolescente', anamnesis: 'Control de salud adolescente. Refiere asistencia escolar regular y actividad física 2 veces por semana.', exploracion: 'Buen estado general. Desarrollo puberal acorde a la edad.', diagnostico: 'Adolescente sano', indicaciones: 'Reforzar hábitos saludables, uso de pantallas y horas de sueño.' };
+const ESCENARIO_ADOLESCENTE: Escenario = { motivo: 'Control adolescente', anamnesis: 'Control de salud adolescente. Refiere asistencia escolar regular y actividad física 2 veces por semana.', exploracion: 'Buen estado general. Desarrollo puberal acorde a la edad.', diagnosticos: ['Adolescente sano'], indicaciones: 'Reforzar hábitos saludables, uso de pantallas y horas de sueño.' };
 
 //* series de controles
 type TipoForzado = 'ninguno' | 'ganancia' | 'perdida';
@@ -409,6 +412,37 @@ function proximoControlDistribuido(): Date {
         : cat === 'mes' ? faker.number.int({ min: 7, max: 30 })
         : faker.number.int({ min: 31, max: 180 });
     return hoyMasDias(off);
+}
+
+//* catalogo de diagnosticos
+const idsDiagnostico = new Map<string, number>(); // clave "TIPO:nombre"
+
+async function cargarCatalogo() {
+    const grupos = [
+        { tipo: TipoDiagnostico.CONDICION, lista: CATALOGO_CONDICION },
+        { tipo: TipoDiagnostico.CONTROL, lista: CATALOGO_CONTROL },
+    ];
+    for (const { tipo, lista } of grupos) {
+        for (const { nombre, codigo_cie10 } of lista) {
+            const d = await prisma.diagnostico.upsert({
+                where: { nombre },
+                update: { tipo, codigo_cie10 },
+                create: { nombre, tipo, codigo_cie10 },
+            });
+            idsDiagnostico.set(`${tipo}:${nombre}`, d.id_diagnostico);
+        }
+    }
+    console.log(`Catálogo de diagnósticos: ${CATALOGO_CONDICION.length} condiciones y ${CATALOGO_CONTROL.length} de control.`);
+}
+
+//! falla si un nombre generado no esta en el catalogo de ese tipo
+function enlazarDiagnosticos(tipo: TipoDiagnostico, nombres: string[]) {
+    const data = nombres.map((nombre) => {
+        const id_diagnostico = idsDiagnostico.get(`${tipo}:${nombre}`);
+        if (id_diagnostico === undefined) throw new Error(`El diagnóstico "${nombre}" no está en el catálogo ${tipo}`);
+        return { id_diagnostico };
+    });
+    return { createMany: { data } };
 }
 
 //* datos del paciente
@@ -487,6 +521,9 @@ async function main() {
         process.exit(1);
     }
     if (RESET) await limpiar();
+
+    //* catalogo de diagnosticos, va antes que pacientes y controles
+    await cargarCatalogo();
 
     //* profesionales
     await prisma.profesional.upsert({
@@ -680,7 +717,7 @@ async function main() {
                 es_poblacion_trans: esTrans,
                 es_migrante: esMigrante,
                 es_salud_mental: esSaludMental,
-                diagnosticos,
+                diagnosticosRel: enlazarDiagnosticos(TipoDiagnostico.CONDICION, diagnosticos),
                 credencial_discapacidad: credencial.estado,
                 credencial_discapacidad_detalle: credencial.detalle,
                 id_cuidador: cuidadorCreado?.id_cuidador ?? null,
@@ -697,7 +734,7 @@ async function main() {
         });
 
         //? creado_en = fecha del control, para que la agenda tome como vigente el ultimo control de cada paciente
-        const controles: Prisma.ControlClinicoCreateManyInput[] = serie.map((c) => {
+        const controles: Prisma.ControlClinicoUncheckedCreateInput[] = serie.map((c) => {
             const esc = c.edadMeses >= 120 && faker.datatype.boolean({ probability: 0.35 }) ? ESCENARIO_ADOLESCENTE
                 : esNaneas && faker.datatype.boolean({ probability: 0.5 }) ? faker.helpers.arrayElement(ESCENARIOS_NANEAS)
                 : faker.helpers.arrayElement(ESCENARIOS);
@@ -712,14 +749,16 @@ async function main() {
                 talla_cm: c.talla,
                 perimetro_cefalico: c.edadMeses <= 36 ? +(perimetroEsperado(c.edadMeses, sexo) * faker.number.float({ min: 0.97, max: 1.03, fractionDigits: 3 })).toFixed(1) : null,
                 imc: c.edadMeses >= EDAD_MESES_IMC ? +(c.peso / Math.pow(c.talla / 100, 2)).toFixed(2) : null,
-                problemas_diagnosticados: esc.diagnostico,
+                problemas_diagnosticados: esc.otro ?? null,
+                diagnosticosRel: enlazarDiagnosticos(TipoDiagnostico.CONTROL, esc.diagnosticos),
                 indicaciones_acuerdos: esc.indicaciones,
                 fecha_proximoControl: c.esUltimo ? proximoControlDistribuido() : sumarDias(c.fecha, faker.number.int({ min: 45, max: 150 })),
                 rut_paciente: paciente.rut,
                 rut_profesional: faker.helpers.arrayElement(profesionalesControl).rut,
             };
         });
-        await prisma.controlClinico.createMany({ data: controles });
+        //? uno a uno porque createMany no permite crear los diagnosticos asociados
+        for (const data of controles) await prisma.controlClinico.create({ data });
         totalControles += controles.length;
 
         if (pacientesCreados.length % 50 === 0) console.log(`${pacientesCreados.length}/${total} pacientes creados...`);

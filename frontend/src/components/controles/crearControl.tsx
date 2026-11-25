@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Save, Loader2, TriangleAlert } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { controlSchema, ControlFormValues } from '../../validation/controlClinicoSchema';
 import { API_BASE_URL } from '../../service/api';
 import { calcularEdadEnMeses } from '../../utils/formatters';
+import { useDiagnosticos } from '../../hooks/useDiagnosticos';
+import SelectorDiagnosticos from '../diagnosticos/SelectorDiagnosticos';
 
 const fieldClass = (hasError: boolean) =>
     `w-full rounded-lg border bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 ${hasError
@@ -23,6 +25,15 @@ const fechaPorDefectoProximoControl = () => {
 const fieldClassDisabled =
     "w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-400 outline-none cursor-not-allowed";
 
+//? nombre del usuario con la sesion iniciada, lo guarda Login.tsx
+const nombreUsuarioSesion = (): string | null => {
+    try {
+        return JSON.parse(localStorage.getItem('usuario') ?? 'null')?.nombre || null;
+    } catch {
+        return null;
+    }
+};
+
 export default function NuevoControl() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -35,9 +46,12 @@ export default function NuevoControl() {
     const [guardando, setGuardando] = useState(false);
     const [mensajeExito, setMensajeExito] = useState("");
     const [ultimoControl, setUltimoControl] = useState<any>(null);
+    const catalogo = useDiagnosticos('CONTROL');
+    const nombreProfesional = nombreUsuarioSesion();
 
     const {
         register,
+        control: controlFormulario,
         handleSubmit,
         formState: { errors }
     } = useForm<ControlFormValues>({
@@ -49,6 +63,7 @@ export default function NuevoControl() {
             talla_cm: '' as unknown as number,
             perimetro_cefalico: undefined,
             exploracion_fisica: '',
+            diagnosticos_ids: [],
             problemas_diagnosticados: '',
             indicaciones_acuerdos: '',
             fecha_proximoControl: '',
@@ -132,7 +147,8 @@ export default function NuevoControl() {
                     talla_cm: data.talla_cm,
                     perimetro_cefalico: aplicaPerimetroCefalico ? data.perimetro_cefalico : null,
                     exploracion_fisica: data.exploracion_fisica,
-                    problemas_diagnosticados: data.problemas_diagnosticados,
+                    diagnosticos_ids: data.diagnosticos_ids,
+                    problemas_diagnosticados: data.problemas_diagnosticados?.trim() || undefined,
                     indicaciones_acuerdos: data.indicaciones_acuerdos,
                     rut_profesional: rutDoctor,
                     edad_meses: paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : 0,
@@ -223,6 +239,9 @@ export default function NuevoControl() {
                     <div>
                         <p className="text-xl font-black text-slate-900 capitalize">{paciente?.nombre?.toLowerCase()} {paciente?.apellido?.toLowerCase()}</p>
                         <p className="text-sm font-semibold text-slate-500">RUT: <span className="text-slate-700">{paciente?.rut}</span></p>
+                        {nombreProfesional && (
+                            <p className="mt-1 text-sm font-semibold text-slate-500">Atención registrada por: <span className="text-slate-700">{nombreProfesional}</span></p>
+                        )}
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                         <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-900">Último control registrado</p>
@@ -328,12 +347,34 @@ export default function NuevoControl() {
                         </div>
 
                         <div>
-                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Diagnóstico(s)</label>
+                            <Controller
+                                name="diagnosticos_ids"
+                                control={controlFormulario}
+                                render={({ field }) => (
+                                    <SelectorDiagnosticos
+                                        etiqueta="Diagnóstico(s) de este control"
+                                        opciones={catalogo.diagnosticos}
+                                        cargando={catalogo.cargando}
+                                        errorCarga={catalogo.error}
+                                        seleccionados={field.value ?? []}
+                                        onChange={field.onChange}
+                                        inputRef={field.ref}
+                                        error={Boolean(errors.diagnosticos_ids)}
+                                    />
+                                )}
+                            />
+                            <p className="mt-1.5 text-xs font-medium text-slate-900">Marca uno o más. Si no está en la lista, descríbelo abajo en «Otro».</p>
+                            {errors.diagnosticos_ids && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.diagnosticos_ids.message}</span>}
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-slate-700">Otro diagnóstico u observación (opcional)</label>
                             <textarea
-                                {...register("problemas_diagnosticados")}
+                                //? al escribir se vuelve a revisar la regla de "al menos un diagnostico"
+                                {...register("problemas_diagnosticados", { deps: ["diagnosticos_ids"] })}
                                 rows={2}
                                 className={`${fieldClass(Boolean(errors.problemas_diagnosticados))} resize-none`}
-                                placeholder=""
+                                placeholder="Ej: tos persistente de 3 días, sin fiebre..."
                             />
                             {errors.problemas_diagnosticados && <span className="mt-1.5 block text-sm font-bold text-red-500">{errors.problemas_diagnosticados.message}</span>}
                         </div>

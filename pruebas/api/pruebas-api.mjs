@@ -171,6 +171,107 @@ const idInactivo = buscar(pInactivo.datos, ['id_paciente']);
 if (idInactivo) { creados.pacientes.push(idInactivo); await pedir('PUT', `/pacientes/${idInactivo}`, { cuerpo: { activo: false } }); }
 await caso('API-16', 'Controles', 'Registrar un control para un paciente desactivado', 400, () => pedir('POST', '/control', { cuerpo: { ...control(), paciente: { rut: rutInactivo } } }));
 
+// --- Diagnósticos (catálogo, pacientes y controles)
+const SIN_DIAGNOSTICO = 'Selecciona al menos un diagnóstico o descríbelo en «Otro».';
+const iguales = (a, b) => JSON.stringify([...(a || [])].sort()) === JSON.stringify([...b].sort());
+// compara los diagnosticos devueltos (nombres e ids, en el mismo orden) con los del catálogo esperados
+function revisarDiagnosticos(obj, esperados) {
+  if (!obj || !Array.isArray(obj.diagnosticos) || !Array.isArray(obj.diagnosticos_ids)) return 'no devolvió diagnosticos y diagnosticos_ids';
+  const nombres = esperados.map((d) => d.nombre), ids = esperados.map((d) => d.id_diagnostico);
+  if (!iguales(obj.diagnosticos, nombres)) return `diagnosticos: ${JSON.stringify(obj.diagnosticos)}, se esperaba ${JSON.stringify(nombres)}`;
+  if (!iguales(obj.diagnosticos_ids, ids)) return `diagnosticos_ids: ${JSON.stringify(obj.diagnosticos_ids)}, se esperaba ${JSON.stringify(ids)}`;
+  const desordenado = obj.diagnosticos_ids.some((id, i) => esperados.find((d) => d.id_diagnostico === id)?.nombre !== obj.diagnosticos[i]);
+  return desordenado ? 'diagnosticos y diagnosticos_ids no van en el mismo orden' : '';
+}
+function revisarCatalogo(r, tipo) {
+  if (!Array.isArray(r.datos) || r.datos.length === 0) return 'no devolvió una lista con diagnósticos';
+  const campos = 'codigo_cie10,id_diagnostico,nombre,tipo';
+  if (r.datos.some((d) => Object.keys(d).sort().join(',') !== campos)) return 'los campos no son los esperados';
+  return r.datos.every((d) => d.tipo === tipo) ? '' : `incluye diagnósticos que no son ${tipo}`;
+}
+
+await caso('API-37', 'Diagnósticos', 'Consultar el catálogo sin token', 401, () => pedir('GET', '/diagnosticos?tipo=CONTROL', { conToken: false }));
+const r38 = await caso('API-38', 'Diagnósticos', 'Consultar el catálogo de condiciones de base', 200, () => pedir('GET', '/diagnosticos?tipo=CONDICION'), { extra: (r) => revisarCatalogo(r, 'CONDICION') });
+const r39 = await caso('API-39', 'Diagnósticos', 'Consultar el catálogo de diagnósticos de control', 200, () => pedir('GET', '/diagnosticos?tipo=CONTROL'), { extra: (r) => revisarCatalogo(r, 'CONTROL') });
+await caso('API-40', 'Diagnósticos', 'Consultar el catálogo con un tipo que no existe', 400, () => pedir('GET', '/diagnosticos?tipo=OTRO'));
+const condiciones = Array.isArray(r38?.datos) ? r38.datos : [];
+const deControl = Array.isArray(r39?.datos) ? r39.datos : [];
+if (condiciones.length < 3 || deControl.length < 3) { console.error('El catálogo de diagnósticos está incompleto (aplica las migraciones).'); process.exit(1); }
+const [condA, condB, condC] = condiciones;
+const [ctrlA, ctrlB, ctrlC] = deControl;
+
+const rutDx = rutAleatorio();
+const p41 = await caso('API-41', 'Diagnósticos', 'Inscribir un paciente con condiciones de base válidas', 201,
+  () => pedir('POST', '/pacientes', { cuerpo: pacienteDePrueba(rutDx, { diagnosticos_ids: [condB.id_diagnostico, condA.id_diagnostico, condA.id_diagnostico] }) }),
+  { extra: (r) => revisarDiagnosticos(r.datos?.datos, [condA, condB]) });
+const idDx = buscar(p41?.datos, ['id_paciente']);
+if (idDx) creados.pacientes.push(idDx);
+const rutRechazado = rutAleatorio();
+const p42 = await caso('API-42', 'Diagnósticos', 'Inscribir un paciente con un diagnóstico de tipo control', 400,
+  () => pedir('POST', '/pacientes', { cuerpo: pacienteDePrueba(rutRechazado, { diagnosticos_ids: [condA.id_diagnostico, ctrlA.id_diagnostico] }) }));
+if (p42?.status === 201) { const id = buscar(p42.datos, ['id_paciente']); if (id) creados.pacientes.push(id); }
+await caso('API-43', 'Diagnósticos', 'El paciente rechazado no quedó guardado', 404, () => pedir('GET', `/pacientes/rut/${rutRechazado}`));
+await caso('API-44', 'Diagnósticos', 'Inscribir un paciente con un diagnóstico inexistente', 400,
+  () => pedir('POST', '/pacientes', { cuerpo: pacienteDePrueba(rutAleatorio(), { diagnosticos_ids: [999999] }) }));
+await caso('API-45', 'Diagnósticos', 'La ficha del paciente devuelve sus diagnósticos', 200, () => pedir('GET', `/pacientes/rut/${rutDx}`),
+  { extra: (r) => revisarDiagnosticos(r.datos, [condA, condB]) });
+await caso('API-46', 'Diagnósticos', 'Editar un paciente reemplaza sus diagnósticos', 200,
+  () => pedir('PUT', `/pacientes/${idDx}`, { cuerpo: { diagnosticos_ids: [condB.id_diagnostico, condC.id_diagnostico] } }),
+  { extra: (r) => revisarDiagnosticos(r.datos?.datos, [condB, condC]) });
+await caso('API-47', 'Diagnósticos', 'Editar otro dato del paciente conserva sus diagnósticos', 200,
+  () => pedir('PUT', `/pacientes/${idDx}`, { cuerpo: { nombre: 'Prueba editada' } }),
+  { extra: (r) => revisarDiagnosticos(r.datos?.datos, [condB, condC]) });
+await caso('API-48', 'Diagnósticos', 'Editar un paciente con un diagnóstico de tipo control', 400,
+  () => pedir('PUT', `/pacientes/${idDx}`, { cuerpo: { diagnosticos_ids: [ctrlA.id_diagnostico] } }));
+await caso('API-49', 'Diagnósticos', 'El listado de pacientes devuelve los diagnósticos', 200, () => pedir('GET', `/pacientes?busqueda=${rutDx}`),
+  { extra: (r) => revisarDiagnosticos(r.datos?.data?.[0], [condB, condC]) });
+
+const controlDx = (extra = {}) => ({ ...control({ problemas_diagnosticados: undefined, ...extra }), paciente: { rut: rutDx } });
+const c50 = await caso('API-50', 'Diagnósticos', 'Registrar un control con diagnósticos válidos y sin texto', 201,
+  () => pedir('POST', '/control', { cuerpo: controlDx({ diagnosticos_ids: [ctrlB.id_diagnostico, ctrlA.id_diagnostico] }) }),
+  { extra: (r) => revisarDiagnosticos(r.datos?.datos, [ctrlA, ctrlB]) || (r.datos?.datos?.problemas_diagnosticados === null ? '' : 'el texto debía quedar vacío') });
+const idControlDx = buscar(c50?.datos, ['id_control']);
+if (idControlDx) creados.controles.push(idControlDx);
+const c51 = await caso('API-51', 'Diagnósticos', 'Registrar un control sin diagnósticos ni texto', 400,
+  () => pedir('POST', '/control', { cuerpo: controlDx({ diagnosticos_ids: [], problemas_diagnosticados: '   ' }) }),
+  { extra: (r) => (r.datos?.error === SIN_DIAGNOSTICO ? '' : `mensaje distinto: "${r.datos?.error}"`) });
+if (c51?.status === 201) { const id = buscar(c51.datos, ['id_control']); if (id) creados.controles.push(id); }
+const c52 = await caso('API-52', 'Diagnósticos', 'Registrar un control solo con el texto de «Otro»', 201,
+  () => pedir('POST', '/control', { cuerpo: controlDx({ problemas_diagnosticados: '  Dermatitis del pañal  ' }) }),
+  { extra: (r) => revisarDiagnosticos(r.datos?.datos, []) || (r.datos?.datos?.problemas_diagnosticados === 'Dermatitis del pañal' ? '' : 'el texto no se guardó sin espacios') });
+const idControlTexto = buscar(c52?.datos, ['id_control']);
+if (idControlTexto) creados.controles.push(idControlTexto);
+const c53 = await caso('API-53', 'Diagnósticos', 'Registrar un control con una condición de base', 400,
+  () => pedir('POST', '/control', { cuerpo: controlDx({ diagnosticos_ids: [condA.id_diagnostico], problemas_diagnosticados: 'Texto' }) }));
+if (c53?.status === 201) { const id = buscar(c53.datos, ['id_control']); if (id) creados.controles.push(id); }
+await caso('API-54', 'Diagnósticos', 'El detalle del control devuelve diagnósticos y profesional', 200, () => pedir('GET', `/control/detalle/${idControlDx}`),
+  { extra: (r) => revisarDiagnosticos(r.datos, [ctrlA, ctrlB]) || revisarDiagnosticos(r.datos?.paciente, [condB, condC]) || (r.datos?.Profesional?.rut ? '' : 'falta el profesional') });
+const revisarProfesional = (c) => (Object.keys(c?.Profesional || {}).sort().join(',') === 'apellido,estamento,nombre' ? '' : 'Profesional debe traer solo nombre, apellido y estamento');
+await caso('API-55', 'Diagnósticos', 'Los controles de un paciente devuelven diagnósticos y profesional', 200, () => pedir('GET', `/control/${rutDx}`),
+  { extra: (r) => { const c = r.datos?.find?.((x) => x.id_control === idControlDx); return revisarDiagnosticos(c, [ctrlA, ctrlB]) || revisarProfesional(c); } });
+await caso('API-56', 'Diagnósticos', 'El listado general de controles devuelve diagnósticos y profesional', 200, () => pedir('GET', '/control'),
+  { extra: (r) => { const c = r.datos?.find?.((x) => x.id_control === idControlDx); return revisarDiagnosticos(c, [ctrlA, ctrlB]) || revisarDiagnosticos(c?.paciente, [condB, condC]) || revisarProfesional(c); } });
+await caso('API-57', 'Diagnósticos', 'La agenda paginada devuelve diagnósticos y profesional', 200, () => pedir('GET', `/control/agenda/paginado?busqueda=${rutDx}`),
+  { extra: (r) => { const c = r.datos?.data?.[0]; return revisarDiagnosticos(c, c?.id_control === idControlDx ? [ctrlA, ctrlB] : []) || revisarDiagnosticos(c?.paciente, [condB, condC]) || revisarProfesional(c); } });
+await caso('API-58', 'Diagnósticos', 'Editar un control reemplaza sus diagnósticos', 200,
+  () => pedir('PUT', `/control/${idControlDx}`, { cuerpo: { diagnosticos_ids: [ctrlB.id_diagnostico, ctrlC.id_diagnostico] } }),
+  { extra: (r) => revisarDiagnosticos(r.datos?.datos, [ctrlB, ctrlC]) });
+await caso('API-59', 'Diagnósticos', 'Editar otro dato del control conserva sus diagnósticos', 200,
+  () => pedir('PUT', `/control/${idControlDx}`, { cuerpo: { motivo_consulta: 'Motivo editado' } }),
+  { extra: (r) => revisarDiagnosticos(r.datos?.datos, [ctrlB, ctrlC]) });
+await caso('API-60', 'Diagnósticos', 'Editar un control dejándolo sin diagnósticos ni texto', 400,
+  () => pedir('PUT', `/control/${idControlDx}`, { cuerpo: { diagnosticos_ids: [] } }));
+await caso('API-61', 'Diagnósticos', 'Borrar el texto de un control que no tiene diagnósticos', 400,
+  () => pedir('PUT', `/control/${idControlTexto}`, { cuerpo: { problemas_diagnosticados: '' } }));
+await caso('API-62', 'Diagnósticos', 'Editar un control con una condición de base', 400,
+  () => pedir('PUT', `/control/${idControlDx}`, { cuerpo: { diagnosticos_ids: [condA.id_diagnostico] } }));
+await caso('API-63', 'Diagnósticos', 'La caracterización cuenta los diagnósticos por nombre', 200, () => pedir('GET', '/pacientes/estadisticas/caracterizacion'),
+  { extra: (r) => {
+    const lista = r.datos?.diagnosticos;
+    if (!Array.isArray(lista) || lista.some((d) => Object.keys(d).sort().join(',') !== 'name,value' || typeof d.value !== 'number')) return 'formato distinto de {name, value}';
+    return lista.some((d) => d.name === condC.nombre && d.value >= 1) ? '' : `no cuenta "${condC.nombre}"`;
+  } });
+
 // --- Rendimiento de consultas (RNF_01 y RNF_06)
 await caso('API-17', 'Rendimiento', 'Consultar los conteos de la agenda de controles', 200, () => pedir('GET', '/control/agenda/conteos'), { limiteMs: 2000 });
 await caso('API-18', 'Rendimiento', 'Consultar la primera página del listado de pacientes', 200, () => pedir('GET', '/pacientes?page=1&limit=30'), { limiteMs: 2000 });

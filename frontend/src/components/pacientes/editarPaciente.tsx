@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, Loader2, UserRound, UsersRound, UserCheck, ShieldAlert, CheckCircle2, CircleAlert } from "lucide-react";
 import { API_BASE_URL } from '../../service/api';
-import type { Comuna } from '../../types';
+import type { Comuna, Diagnostico } from '../../types';
+import { useDiagnosticos } from '../../hooks/useDiagnosticos';
+import SelectorDiagnosticos from '../diagnosticos/SelectorDiagnosticos';
 
 type FormFieldValue = string | boolean;
 
@@ -24,13 +26,7 @@ type FormState = {
     es_poblacion_trans: boolean;
     nombre_social: string;
     identidad_genero: string;
-    dx_tea: boolean;
-    dx_epilepsia: boolean;
-    dx_tgd: boolean;
-    dx_sindrome_down: boolean;
-    dx_paralisis_cerebral: boolean;
-    dx_otro: boolean;
-    dx_otro_texto: string;
+    diagnosticos_ids: number[];
     es_salud_mental: boolean;
     credencial_discapacidad: string;
     credencial_discapacidad_detalle: string;
@@ -54,14 +50,6 @@ type FormErrors = Partial<Record<keyof FormState, string>>;
 const OPCIONES_SECTOR = ["Sector 1 - Azul", "Sector 2 - Rojo"];
 const OPCIONES_PARENTESCO = ["Madre", "Padre", "Abuela/o", "Tutor legal", "Otro familiar"];
 
-const DIAGNOSTICOS_CONOCIDOS = [
-    { campo: "dx_tea" as const, nombre: "TEA", valor: "TEA" },
-    { campo: "dx_epilepsia" as const, nombre: "Epilepsia", valor: "Epilepsia" },
-    { campo: "dx_tgd" as const, nombre: "Trastornos Generalizados del Desarrollo", valor: "TRASTORNOS GENERALIZADOS DEL DESARROLLO" },
-    { campo: "dx_sindrome_down" as const, nombre: "Síndrome de Down", valor: "Síndrome de Down" },
-    { campo: "dx_paralisis_cerebral" as const, nombre: "Parálisis Cerebral", valor: "PARALISIS CEREBRAL" },
-];
-
 const initialState: FormState = {
     id_paciente: null,
     id_tutor: null,
@@ -80,13 +68,7 @@ const initialState: FormState = {
     es_poblacion_trans: false,
     nombre_social: "",
     identidad_genero: "",
-    dx_tea: false,
-    dx_epilepsia: false,
-    dx_tgd: false,
-    dx_sindrome_down: false,
-    dx_paralisis_cerebral: false,
-    dx_otro: false,
-    dx_otro_texto: "",
+    diagnosticos_ids: [],
     es_salud_mental: false,
     credencial_discapacidad: "sin_dato",
     credencial_discapacidad_detalle: "",
@@ -128,6 +110,14 @@ export default function EditarPaciente() {
     const [errorCarga, setErrorCarga] = useState("");
     const [mensajeExito, setMensajeExito] = useState("");
     const [comunas, setComunas] = useState<Comuna[]>([]);
+    const catalogo = useDiagnosticos('CONDICION');
+    const [diagnosticosPaciente, setDiagnosticosPaciente] = useState<Diagnostico[]>([]);
+
+    //? se suman los del paciente que ya no estan en el catalogo (ej: desactivados) para poder verlos y quitarlos
+    const opcionesDiagnostico = useMemo(() => [
+        ...catalogo.diagnosticos,
+        ...diagnosticosPaciente.filter((p) => !catalogo.diagnosticos.some((c) => c.id_diagnostico === p.id_diagnostico)),
+    ], [catalogo.diagnosticos, diagnosticosPaciente]);
 
     //* carga las comunas desde el backend para los selects
     useEffect(() => {
@@ -164,9 +154,9 @@ export default function EditarPaciente() {
                 if (!response.ok) throw new Error("No se pudo cargar la ficha del paciente.");
                 const p = await response.json();
 
-                const diagnosticosExistentes: string[] = Array.isArray(p.diagnosticos) ? p.diagnosticos : [];
-                const nombresConocidos = DIAGNOSTICOS_CONOCIDOS.map((d) => d.valor);
-                const desconocidos = diagnosticosExistentes.filter((d) => !nombresConocidos.includes(d));
+                //? el backend devuelve nombres e ids en el mismo orden
+                const idsPaciente: number[] = p.diagnosticos_ids ?? [];
+                setDiagnosticosPaciente(idsPaciente.map((id, i) => ({ id_diagnostico: id, nombre: p.diagnosticos?.[i] ?? '', tipo: 'CONDICION' })));
 
                 setForm({
                     id_paciente: p.id_paciente,
@@ -186,13 +176,7 @@ export default function EditarPaciente() {
                     es_poblacion_trans: Boolean(p.es_poblacion_trans),
                     nombre_social: p.nombre_social ?? "",
                     identidad_genero: p.identidad_genero ?? "",
-                    dx_tea: diagnosticosExistentes.includes("TEA"),
-                    dx_epilepsia: diagnosticosExistentes.includes("Epilepsia"),
-                    dx_tgd: diagnosticosExistentes.includes("TRASTORNOS GENERALIZADOS DEL DESARROLLO"),
-                    dx_sindrome_down: diagnosticosExistentes.includes("Síndrome de Down"),
-                    dx_paralisis_cerebral: diagnosticosExistentes.includes("PARALISIS CEREBRAL"),
-                    dx_otro: desconocidos.length > 0,
-                    dx_otro_texto: desconocidos.join(", "),
+                    diagnosticos_ids: idsPaciente,
                     es_salud_mental: Boolean(p.es_salud_mental),
                     credencial_discapacidad: p.credencial_discapacidad ?? "sin_dato",
                     credencial_discapacidad_detalle: p.credencial_discapacidad_detalle ?? "",
@@ -303,14 +287,7 @@ export default function EditarPaciente() {
         es_poblacion_trans: form.es_poblacion_trans,
         nombre_social: form.es_poblacion_trans ? form.nombre_social.trim() : "",
         identidad_genero: form.es_poblacion_trans ? form.identidad_genero.trim() : "",
-        diagnosticos: [
-            ...(form.dx_tea ? ["TEA"] : []),
-            ...(form.dx_epilepsia ? ["Epilepsia"] : []),
-            ...(form.dx_tgd ? ["TRASTORNOS GENERALIZADOS DEL DESARROLLO"] : []),
-            ...(form.dx_sindrome_down ? ["Síndrome de Down"] : []),
-            ...(form.dx_paralisis_cerebral ? ["PARALISIS CEREBRAL"] : []),
-            ...(form.dx_otro && form.dx_otro_texto.trim() ? [form.dx_otro_texto.trim()] : []),
-        ],
+        diagnosticos_ids: form.diagnosticos_ids,
         es_salud_mental: form.es_salud_mental,
         credencial_discapacidad: form.credencial_discapacidad,
         credencial_discapacidad_detalle: form.credencial_discapacidad === "si" ? form.credencial_discapacidad_detalle.trim() : "",
@@ -604,29 +581,15 @@ export default function EditarPaciente() {
                         )}
                     </div>
 
-                    <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-700">
-                            <ShieldAlert className="h-4 w-4 text-blue-700" />
-                            Diagnósticos
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                            {DIAGNOSTICOS_CONOCIDOS.map(({ campo, nombre }) => (
-                                <label key={campo} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
-                                    <input type="checkbox" checked={form[campo]} onChange={(e) => actualizarCampo(campo, e.target.checked)} className={checkboxClass} />
-                                    {nombre}
-                                </label>
-                            ))}
-                            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
-                                <input type="checkbox" checked={form.dx_otro} onChange={(e) => actualizarCampo("dx_otro", e.target.checked)} className={checkboxClass} />
-                                Otro (especificar)
-                            </label>
-                        </div>
-                        {form.dx_otro && (
-                            <div className="mt-4">
-                                <label className="mb-1.5 block text-sm font-bold text-slate-700">Especifica el diagnóstico</label>
-                                <input type="text" value={form.dx_otro_texto} onChange={(e) => actualizarCampo("dx_otro_texto", e.target.value)} className={fieldClass(false)} placeholder="Nombre del diagnóstico" />
-                            </div>
-                        )}
+                    <div className="mt-6">
+                        <SelectorDiagnosticos
+                            etiqueta="Diagnósticos"
+                            opciones={opcionesDiagnostico}
+                            cargando={catalogo.cargando}
+                            errorCarga={catalogo.error}
+                            seleccionados={form.diagnosticos_ids}
+                            onChange={(ids) => setForm((anterior) => ({ ...anterior, diagnosticos_ids: ids }))}
+                        />
                     </div>
                 </section>
 

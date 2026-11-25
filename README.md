@@ -88,6 +88,7 @@ flowchart LR
 │   │   ├── controllers
 │   │   │   ├── auth.controller.ts
 │   │   │   ├── controlClinico.controller.ts
+│   │   │   ├── diagnostico.controller.ts
 │   │   │   ├── importacion.controller.ts
 │   │   │   ├── inscripcionTaller.controller.ts
 │   │   │   ├── paciente.controller.ts
@@ -101,6 +102,7 @@ flowchart LR
 │   │   ├── routes
 │   │   │   ├── auth.routes.ts
 │   │   │   ├── controlClinico.routes.ts
+│   │   │   ├── diagnostico.routes.ts
 │   │   │   ├── importacion.routes.ts
 │   │   │   ├── inscripcionTaller.routes.ts
 │   │   │   ├── paciente.routes.ts
@@ -111,6 +113,7 @@ flowchart LR
 │   │   │   └── tutor.routes.ts
 │   │   ├── services
 │   │   │   ├── controlClinico.service.ts
+│   │   │   ├── diagnostico.service.ts
 │   │   │   ├── importacion.service.ts
 │   │   │   ├── inscripcionTaller.service.ts
 │   │   │   ├── paciente.service.ts
@@ -120,11 +123,12 @@ flowchart LR
 │   │   │   ├── taller.service.ts
 │   │   │   └── tutor.service.ts
 │   │   ├── utils
-│   │   │   ├── fechaChile.ts
-│   │   │   └── normalizarDiagnosticos.ts
+│   │   │   ├── aplanarDiagnosticos.ts
+│   │   │   └── fechaChile.ts
 │   │   └── index.ts
 │   ├── prisma
 │   │   ├── migrations
+│   │   ├── catalogoDiagnosticos.ts
 │   │   ├── schema.prisma
 │   │   └── seed.ts
 │   ├── scripts
