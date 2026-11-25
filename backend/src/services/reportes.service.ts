@@ -226,6 +226,7 @@ export const obtenerReporteDetalle = async (rut: string) => {
     return {
         rut: paciente.rut,
         nombre: `${paciente.nombre} ${paciente.apellido}`,
+        fecha_nacimiento: paciente.fecha_nacimiento,
         historial,
         alertaDetalle: alerta,
     };

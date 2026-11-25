@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { API_BASE_URL } from '../../service/api';
+import { calcularEdadCorta } from '../../utils/formatters';
 
 interface ControlHistorial {
     fecha: string;
@@ -23,6 +24,7 @@ interface AlertaDetalle {
 interface ReporteDetalleData {
     rut: string;
     nombre: string;
+    fecha_nacimiento: string;
     historial: ControlHistorial[];
     alertaDetalle: AlertaDetalle | null;
 }
@@ -172,7 +174,7 @@ export default function DetalleReportes() {
             </button>
 
             <h2 className="text-xl font-bold text-slate-900 capitalize mb-1">{reporte.nombre.toLowerCase()}</h2>
-            <p className="text-sm text-slate-900 font-medium mb-4">{reporte.rut} · {reporte.historial.length} control{reporte.historial.length !== 1 ? 'es' : ''} registrado{reporte.historial.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-slate-900 font-medium mb-4">{reporte.rut} · {reporte.fecha_nacimiento ? `${calcularEdadCorta(reporte.fecha_nacimiento)} · ` : ""}{reporte.historial.length} control{reporte.historial.length !== 1 ? 'es' : ''} registrado{reporte.historial.length !== 1 ? 's' : ''}</p>
 
             {resumenCambio && (
                 <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">

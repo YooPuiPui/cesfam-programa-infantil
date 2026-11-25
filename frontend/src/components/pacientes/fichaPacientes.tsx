@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FileText, Calendar, History, ArrowLeft, AlertTriangle, TriangleAlert, Loader2 } from 'lucide-react';
 import type { ControlClinico, Paciente } from '../../types';
 import { API_BASE_URL } from '../../service/api';
+import { calcularEdadCorta } from '../../utils/formatters';
 
 
 type RiesgoSocial = {
@@ -198,7 +199,7 @@ export default function FichaPaciente() {
                     ) : (
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente?.nombre} {paciente?.apellido}{etiquetaInactivo}</h1>
                     )}
-                    <p className="text-sm font-medium text-slate-900 mt-1">RUT: <span className="text-slate-900 font-bold">{paciente?.rut}</span></p>
+                    <p className="text-sm font-medium text-slate-900 mt-1">RUT: <span className="text-slate-900 font-bold">{paciente?.rut}</span>{paciente?.fecha_nacimiento && <span className="text-slate-900 font-bold"> · {calcularEdadCorta(paciente.fecha_nacimiento)}</span>}</p>
                 </div>
                 <div className="flex flex-col gap-3 md:items-end">
                     <div className="flex flex-col gap-3 sm:flex-row">
