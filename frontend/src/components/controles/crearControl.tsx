@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Save, Loader2, TriangleAlert } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { controlSchema, ControlFormValues } from '../../validation/controlClinicoSchema';
@@ -33,6 +33,7 @@ export default function NuevoControl() {
     const [paciente, setPaciente] = useState<any>(null);
     const [cargandoEntorno, setCargandoEntorno] = useState(true);
     const [guardando, setGuardando] = useState(false);
+    const [mensajeExito, setMensajeExito] = useState("");
     const [ultimoControl, setUltimoControl] = useState<any>(null);
 
     const {
@@ -87,6 +88,17 @@ export default function NuevoControl() {
         fetchContexto();
     }, [rutPaciente]);
 
+    //* tras guardar se muestra la alerta y se vuelve a la ficha a los ~1,2 segundos
+    useEffect(() => {
+        if (!mensajeExito) return;
+
+        const timeout = window.setTimeout(() => {
+            navigate(`/ficha/${rutPaciente}`);
+        }, 1200);
+
+        return () => window.clearTimeout(timeout);
+    }, [mensajeExito, navigate, rutPaciente]);
+
     const edadMesesActual = paciente?.fecha_nacimiento ? calcularEdadEnMeses(paciente.fecha_nacimiento) : null;
     const aplicaPerimetroCefalico = edadMesesActual !== null && edadMesesActual <= 36;
 
@@ -97,7 +109,8 @@ export default function NuevoControl() {
     const pacienteInactivo = paciente?.activo === false;
 
     const onSubmit = async (data: ControlFormValues) => {
-        if (pacienteInactivo) return;
+        //! con el control ya guardado se ignora el submit para no duplicarlo con un doble clic
+        if (pacienteInactivo || mensajeExito) return;
 
         setGuardando(true);
         try {
@@ -143,7 +156,7 @@ export default function NuevoControl() {
                 throw new Error(errorDelBackend.error || 'Error desconocido en el servidor');
             }
 
-            navigate(`/ficha/${rutPaciente}`);
+            setMensajeExito("Control registrado con éxito. Volviendo a la ficha...");
 
         } catch (error: any) {
             console.error("Falla en la petición:", error);
@@ -176,7 +189,7 @@ export default function NuevoControl() {
                     <button
                         type="button"
                         onClick={handleSubmit(onSubmit)}
-                        disabled={guardando || pacienteInactivo}
+                        disabled={guardando || pacienteInactivo || !!mensajeExito}
                         className="inline-flex items-center justify-center rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                     >
                         {guardando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -184,6 +197,16 @@ export default function NuevoControl() {
                     </button>
                 </div>
             </div>
+
+            {mensajeExito && (
+                <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800 shadow-sm">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div>
+                        <p className="font-bold">Cambios guardados</p>
+                        <p className="text-sm font-medium">{mensajeExito}</p>
+                    </div>
+                </div>
+            )}
 
             {pacienteInactivo && (
                 <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
