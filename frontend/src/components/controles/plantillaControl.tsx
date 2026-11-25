@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer, Loader2 } from 'lucide-react';
 import { calcularEdad } from '../../utils/formatters';
+import { compararDiagnosticos, nombreDiagnostico } from '../../utils/diagnosticos';
 import type { ControlClinicoDetalle } from '../../types';
 import { API_BASE_URL } from '../../service/api'
 export default function PlantillaControl() {
@@ -60,6 +61,9 @@ export default function PlantillaControl() {
     if (!controlData) return <div className="p-10 text-center text-red-600 font-bold bg-red-50 m-6 rounded-lg border border-red-200">No se encontraron datos del control clínico.</div>;
 
     const { paciente } = controlData;
+    const diagnosticos = (controlData.diagnosticos ?? []).map(nombreDiagnostico).sort(compararDiagnosticos);
+    const otroDiagnostico = controlData.problemas_diagnosticados?.trim();
+    const profesional = controlData.Profesional ?? controlData.profesional;
 
     return (
         <div className="min-h-screen bg-slate-000 p-6 md:p-8 font-sans print:min-h-0 print:p-0">
@@ -140,7 +144,7 @@ export default function PlantillaControl() {
                     </div>
 
                     {/* ANAMNESIS */}
-                    <div className="p-3 border-b-2 border-black min-h-[160px]">
+                    <div className="p-3 border-b-2 border-black min-h-[120px]">
                         <p className="font-bold mb-1 uppercase underline underline-offset-2">Anamnesis:</p>
 
                         <p className="uppercase whitespace-pre-wrap break-words">
@@ -149,7 +153,7 @@ export default function PlantillaControl() {
                     </div>
 
                     {/* EXPLORACIÓN FÍSICA Y MEDIDAS */}
-                    <div className="p-3 border-b-2 border-black min-h-[160px]">
+                    <div className="p-3 border-b-2 border-black min-h-[120px]">
                         <div className="flex justify-between items-start mb-2">
                             <p className="font-bold uppercase underline underline-offset-2">Exploración Física:</p>
                             <div className="text-xs font-bold bg-white px-3 py-1 border-2 border-black rounded shadow-sm">
@@ -167,13 +171,27 @@ export default function PlantillaControl() {
                     {/* DIAGNÓSTICO */}
                     <div className="p-3 border-b-2 border-black min-h-[120px]">
                         <p className="font-bold mb-1 uppercase underline underline-offset-2">Diagnóstico:</p>
-                        <p className="uppercase whitespace-pre-wrap">
-                            {controlData.problemas_diagnosticados || '---'}
-                        </p>
+                        {diagnosticos.length > 0 ? (
+                            <>
+                                <ul className="space-y-0.5 uppercase">
+                                    {diagnosticos.map((nombre) => (
+                                        <li key={nombre} className="flex gap-2"><span>•</span><span>{nombre}</span></li>
+                                    ))}
+                                </ul>
+                                {otroDiagnostico && (
+                                    <p className="mt-1.5 whitespace-pre-wrap uppercase"><span className="font-bold">Otro:</span> {otroDiagnostico}</p>
+                                )}
+                            </>
+                        ) : (
+                            //? control antiguo: solo tiene texto
+                            <p className="whitespace-pre-wrap uppercase">
+                                {controlData.problemas_diagnosticados || '---'}
+                            </p>
+                        )}
                     </div>
 
                     {/* ACTUACIÓN / PLAN */}
-                    <div className="p-3 min-h-[160px]">
+                    <div className="p-3 min-h-[140px]">
                         <div className="flex justify-between items-start mb-2">
                             <p className="font-bold uppercase underline underline-offset-2">Actuación / Plan / Indicaciones:</p>
                             <div className="text-xs font-bold bg-white px-3 py-1 border-2 border-black rounded shadow-sm whitespace-nowrap">
@@ -186,6 +204,13 @@ export default function PlantillaControl() {
                             {controlData.indicaciones_acuerdos || '---'}
                         </p>
                     </div>
+
+                    {/* PROFESIONAL */}
+                    {profesional && (
+                        <div className="border-t-2 border-black p-3">
+                            <p><span className="font-bold uppercase">Profesional:</span> <span className="uppercase">{profesional.nombre} {profesional.apellido}</span> <span className="uppercase">— {profesional.estamento}</span></p>
+                        </div>
+                    )}
                 </div>
 
             </div>
