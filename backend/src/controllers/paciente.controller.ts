@@ -5,6 +5,7 @@ import { normalizarTexto } from '../services/importacion.service';
 import { validarRut } from '../utils/validarRut';
 import { validarDiagnosticosIds } from '../services/diagnostico.service';
 import { aplanarDiagnosticos, incluirDiagnosticos } from '../utils/aplanarDiagnosticos';
+import { resolverEstadoPaciente } from '../utils/estadoPaciente';
 
 //? revisa que el id_comuna sea un entero y exista en la tabla Comuna
 const comunaExiste = async (idComuna: any): Promise<boolean> => {
@@ -76,6 +77,13 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
+        //! inscribir un paciente ya desactivado exige las mismas reglas que desactivarlo
+        const estado = resolverEstadoPaciente(paciente);
+        if ('error' in estado) {
+            res.status(400).json({ error: estado.error });
+            return;
+        }
+
         const pacienteLimpio = {
             rut: paciente.rut,
             nombre: paciente.nombre,
@@ -90,7 +98,8 @@ export const crearPaciente = async (req: Request, res: Response): Promise<void> 
             id_comuna: Number(paciente.id_comuna),
             nhc: paciente.nhc,
             prevision: paciente.prevision,
-            activo: paciente.activo !== undefined ? paciente.activo : true,
+            //? sin "activo" en el body queda activo
+            ...estado.datos,
             fecha_inscripcion: paciente.fecha_inscripcion ? new Date(paciente.fecha_inscripcion) : new Date(),
             es_sename: paciente.es_sename !== undefined ? paciente.es_sename : false,
             es_naneas_prematuro: paciente.es_naneas_prematuro !== undefined ? paciente.es_naneas_prematuro : false,
@@ -157,6 +166,27 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         const datos = req.body;
         const datosLimpios: any = {};
 
+        //! desactivar exige motivo y reactivar borra los datos de la desactivacion
+        const estado = resolverEstadoPaciente(datos);
+        if ('error' in estado) {
+            res.status(400).json({ error: estado.error });
+            return;
+        }
+
+        //! un paciente desactivado no se edita, lo unico que acepta es reactivarlo
+        //? asi tampoco se pisan el motivo y la fecha originales, si el paciente no existe el update responde 404
+        if (estado.datos.activo !== true) {
+            const actual = await prisma.paciente.findUnique({ where: { id_paciente: id }, select: { activo: true } });
+            if (actual && !actual.activo) {
+                res.status(400).json({
+                    error: estado.datos.activo === false
+                        ? 'El paciente ya está desactivado. Reactívalo si necesitas cambiar el motivo.'
+                        : 'El paciente está desactivado. Reactívalo para editar sus datos.',
+                });
+                return;
+            }
+        }
+
         if (datos.nombre) datosLimpios.nombre = datos.nombre;
         if (datos.apellido) datosLimpios.apellido = datos.apellido;
         if (datos.nombre_social) datosLimpios.nombre_social = datos.nombre_social;
@@ -176,7 +206,8 @@ export const editarPaciente = async (req: Request, res: Response): Promise<void>
         if (datos.nhc) datosLimpios.nhc = datos.nhc;
         if (datos.prevision) datosLimpios.prevision = datos.prevision;
         if (datos.fecha_inscripcion) datosLimpios.fecha_inscripcion = datos.fecha_inscripcion;
-        if (datos.activo !== undefined) datosLimpios.activo = datos.activo;
+
+        Object.assign(datosLimpios, estado.datos);
 
         //! flags de riesgo social: van con "!== undefined" porque si se desmarca una casilla (false) un if normal no lo guardaria
         if (datos.es_sename !== undefined) datosLimpios.es_sename = datos.es_sename;

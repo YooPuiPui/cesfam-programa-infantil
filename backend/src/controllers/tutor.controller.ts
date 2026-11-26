@@ -129,6 +129,13 @@ export const editarTutor: RequestHandler = async (req, res): Promise<void> => {
         const datos = req.body;
         const datosLimpios: any = {};
 
+        //! no se edita si todos sus pacientes estan desactivados, con un hermano activo sigue siendo editable
+        const pacientes = await prisma.paciente.findMany({ where: { id_tutor_principal: id }, select: { activo: true } });
+        if (pacientes.length > 0 && pacientes.every((p) => !p.activo)) {
+            res.status(400).json({ error: 'El tutor solo tiene pacientes desactivados. Reactiva al paciente para editar sus datos.' });
+            return;
+        }
+
         //* pasa solo los campos que vienen
         if (datos.rut) datosLimpios.rut = datos.rut;
         if (datos.nombre) datosLimpios.nombre = datos.nombre;
