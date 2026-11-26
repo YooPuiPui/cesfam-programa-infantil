@@ -168,7 +168,7 @@ await caso('API-15', 'Controles', 'Registrar un control para un RUT no registrad
 const rutInactivo = rutAleatorio();
 const pInactivo = await pedir('POST', '/pacientes', { cuerpo: pacienteDePrueba(rutInactivo) });
 const idInactivo = buscar(pInactivo.datos, ['id_paciente']);
-if (idInactivo) { creados.pacientes.push(idInactivo); await pedir('PUT', `/pacientes/${idInactivo}`, { cuerpo: { activo: false } }); }
+if (idInactivo) { creados.pacientes.push(idInactivo); await pedir('PUT', `/pacientes/${idInactivo}`, { cuerpo: { activo: false, motivo_desactivacion: 'TRASLADO' } }); }
 await caso('API-16', 'Controles', 'Registrar un control para un paciente desactivado', 400, () => pedir('POST', '/control', { cuerpo: { ...control(), paciente: { rut: rutInactivo } } }));
 
 // --- Diagnósticos (catálogo, pacientes y controles)
@@ -271,6 +271,67 @@ await caso('API-63', 'Diagnósticos', 'La caracterización cuenta los diagnósti
     if (!Array.isArray(lista) || lista.some((d) => Object.keys(d).sort().join(',') !== 'name,value' || typeof d.value !== 'number')) return 'formato distinto de {name, value}';
     return lista.some((d) => d.name === condC.nombre && d.value >= 1) ? '' : `no cuenta "${condC.nombre}"`;
   } });
+
+// --- Motivo de desactivación
+// compara los datos de desactivación devueltos; con motivo, la fecha debe ser la de recién
+function revisarEstado(p, activo, motivo = null, detalle = null) {
+  if (!p) return 'no devolvió el paciente';
+  const campos = ['motivo_desactivacion', 'detalle_desactivacion', 'fecha_desactivacion'];
+  if (campos.some((c) => !(c in p))) return 'faltan campos de desactivación';
+  if (p.activo !== activo) return `activo: ${p.activo}`;
+  if (p.motivo_desactivacion !== motivo) return `motivo: ${p.motivo_desactivacion}`;
+  if (p.detalle_desactivacion !== detalle) return `detalle: ${JSON.stringify(p.detalle_desactivacion)}`;
+  if (!motivo) return p.fecha_desactivacion === null ? '' : 'la fecha debía quedar vacía';
+  return Math.abs(Date.now() - Date.parse(p.fecha_desactivacion)) < 5 * 60 * 1000 ? '' : `fecha incorrecta: ${p.fecha_desactivacion}`;
+}
+const rutBaja = rutAleatorio();
+const pBaja = await pedir('POST', '/pacientes', { cuerpo: pacienteDePrueba(rutBaja) });
+const idBaja = buscar(pBaja.datos, ['id_paciente']);
+if (idBaja) creados.pacientes.push(idBaja);
+const editarBaja = (cuerpo) => () => pedir('PUT', `/pacientes/${idBaja}`, { cuerpo });
+const rechazos = [
+  ['API-64', 'Desactivar sin indicar el motivo', { activo: false }],
+  ['API-65', 'Desactivar con un motivo que no existe', { activo: false, motivo_desactivacion: 'VACACIONES' }],
+  ['API-66', 'Desactivar por «Otro» sin detalle', { activo: false, motivo_desactivacion: 'OTRO' }],
+  ['API-67', 'Desactivar por «Otro» con un detalle en blanco', { activo: false, motivo_desactivacion: 'OTRO', detalle_desactivacion: '   ' }],
+  ['API-68', 'Desactivar con un detalle de más de 200 caracteres', { activo: false, motivo_desactivacion: 'OTRO', detalle_desactivacion: 'x'.repeat(201) }],
+  ['API-69', 'Enviar un motivo junto con activo en true', { activo: true, motivo_desactivacion: 'TRASLADO' }],
+  ['API-70', 'Enviar un detalle junto con activo en true', { activo: true, detalle_desactivacion: 'Texto' }],
+  ['API-71', 'Enviar un motivo sin el campo activo', { motivo_desactivacion: 'TRASLADO' }],
+  ['API-72', 'Enviar activo como texto', { activo: 'false', motivo_desactivacion: 'TRASLADO' }],
+];
+for (const [id, descripcion, cuerpo] of rechazos) await caso(id, 'Desactivación', descripcion, 400, editarBaja(cuerpo), { extra: (r) => (r.datos?.error ? '' : 'sin mensaje de error') });
+await caso('API-73', 'Desactivación', 'Los intentos rechazados no cambian al paciente', 200, () => pedir('GET', `/pacientes/${idBaja}`),
+  { extra: (r) => revisarEstado(r.datos, true) });
+await caso('API-74', 'Desactivación', 'Desactivar con un motivo válido guarda el motivo y la fecha', 200,
+  editarBaja({ activo: false, motivo_desactivacion: 'EGRESO_POR_EDAD', fecha_desactivacion: '2000-01-01T00:00:00.000Z' }),
+  { extra: (r) => revisarEstado(r.datos?.datos, false, 'EGRESO_POR_EDAD') });
+await caso('API-75', 'Desactivación', 'Desactivar un paciente que ya está desactivado', 400, editarBaja({ activo: false, motivo_desactivacion: 'TRASLADO' }));
+await caso('API-76', 'Desactivación', 'La ficha por id muestra los datos de la desactivación', 200, () => pedir('GET', `/pacientes/${idBaja}`),
+  { extra: (r) => revisarEstado(r.datos, false, 'EGRESO_POR_EDAD') });
+await caso('API-77', 'Desactivación', 'La ficha por RUT muestra los datos de la desactivación', 200, () => pedir('GET', `/pacientes/rut/${rutBaja}`),
+  { extra: (r) => revisarEstado(r.datos, false, 'EGRESO_POR_EDAD') });
+await caso('API-78', 'Desactivación', 'El listado muestra los datos de la desactivación', 200, () => pedir('GET', `/pacientes?busqueda=${rutBaja}`),
+  { extra: (r) => revisarEstado(r.datos?.data?.[0], false, 'EGRESO_POR_EDAD') });
+await caso('API-79', 'Desactivación', 'Editar los datos de un paciente desactivado', 400, editarBaja({ nombre: 'Prueba baja' }),
+  { extra: (r) => (r.datos?.error ? '' : 'sin mensaje de error') });
+await caso('API-84', 'Desactivación', 'Editar los diagnósticos de un paciente desactivado', 400, editarBaja({ diagnosticos_ids: [condA.id_diagnostico] }));
+const idTutorBaja = buscar(pBaja.datos, ['id_tutor']);
+await caso('API-85', 'Desactivación', 'Editar el tutor de un paciente desactivado', 400, () => pedir('PUT', `/tutores/${idTutorBaja}`, { cuerpo: { nombre: 'Tutor editado' } }));
+await caso('API-86', 'Desactivación', 'Las ediciones rechazadas no cambian al paciente', 200, () => pedir('GET', `/pacientes/${idBaja}`),
+  { extra: (r) => revisarEstado(r.datos, false, 'EGRESO_POR_EDAD') || (r.datos?.nombre === 'Prueba' && r.datos?.tutor?.nombre === 'Tutor' && r.datos?.diagnosticos?.length === 0 ? '' : 'se modificaron sus datos') });
+await caso('API-80', 'Desactivación', 'Reactivar deja los tres campos vacíos', 200, editarBaja({ activo: true }),
+  { extra: (r) => revisarEstado(r.datos?.datos, true) });
+await caso('API-87', 'Desactivación', 'Editar un paciente reactivado', 200, editarBaja({ nombre: 'Prueba reactivada' }),
+  { extra: (r) => (r.datos?.datos?.nombre === 'Prueba reactivada' ? '' : 'no guardó el cambio') });
+await caso('API-88', 'Desactivación', 'Editar el tutor de un paciente reactivado', 200, () => pedir('PUT', `/tutores/${idTutorBaja}`, { cuerpo: { nombre: 'Tutor editado' } }));
+await caso('API-81', 'Desactivación', 'Desactivar por «Otro» guarda el detalle sin espacios sobrantes', 200,
+  editarBaja({ activo: false, motivo_desactivacion: 'OTRO', detalle_desactivacion: '  Cambio de centro  ' }),
+  { extra: (r) => revisarEstado(r.datos?.datos, false, 'OTRO', 'Cambio de centro') });
+const rutSinMotivo = rutAleatorio();
+const p82 = await caso('API-82', 'Desactivación', 'Inscribir un paciente desactivado sin motivo', 400, () => pedir('POST', '/pacientes', { cuerpo: pacienteDePrueba(rutSinMotivo, { activo: false }) }));
+if (p82?.status === 201) { const id = buscar(p82.datos, ['id_paciente']); if (id) creados.pacientes.push(id); }
+await caso('API-83', 'Desactivación', 'El paciente rechazado no quedó guardado', 404, () => pedir('GET', `/pacientes/rut/${rutSinMotivo}`));
 
 // --- Rendimiento de consultas (RNF_01 y RNF_06)
 await caso('API-17', 'Rendimiento', 'Consultar los conteos de la agenda de controles', 200, () => pedir('GET', '/control/agenda/conteos'), { limiteMs: 2000 });

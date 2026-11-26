@@ -141,6 +141,8 @@ const LARGO_MAXIMO_DIAGNOSTICO = 120;
 //! motivo que se reporta cuando una fila trae como condicion un diagnostico que es de control
 const MOTIVO_DIAGNOSTICO_DE_CONTROL = 'diagnóstico de control no válido como condición';
 
+const MOTIVO_PACIENTE_DESACTIVADO = 'El paciente está desactivado y no se actualizaron sus datos. Reactívalo si necesitas actualizarlo.';
+
 //? clave para comparar nombres sin importar mayusculas, tildes ni espacios repetidos
 function claveCatalogo(nombre: string): string {
     return normalizarTexto(nombre).replace(/\s+/g, ' ');
@@ -367,6 +369,12 @@ export const importarExcelNaneas = async (buffer: Buffer, dryRun: boolean): Prom
             const nombresCondiciones = Array.from(condiciones.values());
 
             const existente = await prisma.paciente.findUnique({ where: { rut: fila.rut } });
+
+            //! un paciente desactivado no se edita, va antes del dryRun para que la simulacion tambien lo informe
+            if (existente?.activo === false) {
+                resumen.errores.push({ rut: fila.rut, motivo: MOTIVO_PACIENTE_DESACTIVADO });
+                continue;
+            }
 
             if (existente) {
                 if (!dryRun) {

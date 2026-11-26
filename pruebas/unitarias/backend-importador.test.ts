@@ -7,6 +7,7 @@ const base = vi.hoisted(() => {
   type Tipo = 'CONDICION' | 'CONTROL';
   const catalogo: { nombre: string; tipo: Tipo }[] = [];
   const existentes = new Set<string>(); // rut de pacientes ya registrados
+  const desactivados = new Set<string>(); // rut de pacientes registrados que están desactivados
   const enlazados = new Map<string, string[]>(); // rut -> diagnósticos escritos
 
   // imita la escritura anidada diagnosticosRel.create con connectOrCreate
@@ -21,12 +22,12 @@ const base = vi.hoisted(() => {
   };
 
   return {
-    catalogo, existentes, enlazados,
+    catalogo, existentes, desactivados, enlazados,
     prisma: {
       diagnostico: { findMany: vi.fn(async () => catalogo.map((d) => ({ ...d }))) },
       comuna: { upsert: vi.fn(async () => ({ id_comuna: 1 })) },
       paciente: {
-        findUnique: vi.fn(async ({ where }: any) => (existentes.has(where.rut) ? { rut: where.rut, id_cuidador: null } : null)),
+        findUnique: vi.fn(async ({ where }: any) => (existentes.has(where.rut) ? { rut: where.rut, id_cuidador: null, activo: !desactivados.has(where.rut) } : null)),
         create: vi.fn(async ({ data }: any) => escribir(data.rut, data.diagnosticosRel)),
         update: vi.fn(async ({ where, data }: any) => escribir(where.rut, data.diagnosticosRel)),
       },
@@ -57,6 +58,7 @@ beforeEach(() => {
     { nombre: 'Asma', tipo: 'CONDICION' }, { nombre: 'Parálisis Cerebral', tipo: 'CONDICION' },
     { nombre: 'TEA', tipo: 'CONDICION' }, { nombre: 'Sobrepeso', tipo: 'CONTROL' });
   base.existentes.clear();
+  base.desactivados.clear();
   base.enlazados.clear();
   vi.clearAllMocks();
 });
@@ -112,5 +114,14 @@ describe('Importador: diagnósticos contra el catálogo', () => {
     expect(base.prisma.paciente.update).not.toHaveBeenCalled();
     expect(base.prisma.comuna.upsert).not.toHaveBeenCalled();
     expect(nombres()).toEqual(INICIAL);
+  });
+
+  it.each([['PU-49 al importar', false], ['PU-50 en la simulación', true]] as const)('%s un paciente desactivado no se actualiza y se informa en su fila', async (_, simulacion) => {
+    base.existentes.add('11111111-1');
+    base.desactivados.add('11111111-1');
+    const r = await importarExcelNaneas(planilla([['11111111-1', 'asma']]), simulacion);
+    expect(r.errores).toEqual([{ rut: '11111111-1', motivo: expect.stringContaining('desactivado') }]);
+    expect(r.actualizados).toBe(0);
+    expect(base.prisma.paciente.update).not.toHaveBeenCalled();
   });
 });
