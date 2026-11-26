@@ -34,6 +34,16 @@ enum EstadoCredencialDiscapacidad {
   en_tramite
 }
 
+enum MotivoDesactivacion {
+  TRASLADO
+  EGRESO_POR_EDAD
+  FALLECIMIENTO
+  NO_DESEA_CONTINUAR
+  INUBICABLE
+  ERROR_DE_REGISTRO
+  OTRO
+}
+
 // CONDICION = condicion de base del paciente, CONTROL = diagnostico de un control clinico
 enum TipoDiagnostico {
   CONDICION
@@ -113,7 +123,12 @@ model Paciente {
   fecha_inscripcion DateTime @default(now()) // en que se inscribio en el cesfam
   activo            Boolean  @default(true)
 
-  // Flags de riesgo social 
+  // se completan al desactivar y vuelven a null al reactivar
+  motivo_desactivacion  MotivoDesactivacion?
+  detalle_desactivacion String?              @db.VarChar(200)
+  fecha_desactivacion   DateTime?
+
+  // Flags de riesgo social
   es_sename           Boolean  @default(false)
   es_naneas_prematuro Boolean  @default(false)
   es_poblacion_trans  Boolean  @default(false)
