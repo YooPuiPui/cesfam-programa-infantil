@@ -1,20 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarCheck, CircleCheck, Loader2, Search, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CircleCheck, FileDown, Loader2, Search, TriangleAlert, X } from "lucide-react";
 import { API_BASE_URL } from "../../service/api";
 import { calcularEdad, formatearRUT } from "../../utils/formatters";
 import type { DatosDesactivacion } from "../../types";
 import EtiquetaInactivo from "../pacientes/etiquetaInactivo";
-
-type EstadoAsistencia = "pendiente" | "asiste" | "no_asiste";
-type EstadoConvocatoria =
-    | "no_contactado"
-    | "contactado"
-    | "confirma"
-    | "no_confirma"
-    | "no_contesta"
-    | "no_puede"
-    | "reconfirmar";
+import {
+    ETIQUETAS_ASISTENCIA,
+    ETIQUETAS_CONVOCATORIA,
+    generarPdfAsistencia,
+    responsableSesion,
+    type EstadoAsistencia,
+    type EstadoConvocatoria,
+} from "../../utils/pdfAsistencia";
 
 interface PacienteInscrito {
     rut: string;
@@ -28,6 +26,8 @@ interface Inscripcion {
     rut_paciente: string;
     estado_asistencia: EstadoAsistencia;
     estado_convocatoria: EstadoConvocatoria;
+    telefono_contacto: string | null;
+    observaciones: string | null;
     paciente: PacienteInscrito;
 }
 
@@ -51,12 +51,6 @@ interface PacienteBusqueda extends DatosDesactivacion {
     activo?: boolean;
 }
 
-const responsableSesion = (sesion: SesionDetalle): string => {
-    if (sesion.profesional) return `${sesion.profesional.nombre} ${sesion.profesional.apellido}`;
-    if (sesion.profesional_externo) return sesion.profesional_externo;
-    return "Sin asignar";
-};
-
 const iniciales = (nombre: string, apellido: string): string => {
     return `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
 };
@@ -72,20 +66,13 @@ const esSesionFutura = (fechaSesion: string): boolean => {
     return fechaSesionSoloDia > obtenerHoyChile();
 };
 
-const opcionesConvocatoria: { valor: EstadoConvocatoria; etiqueta: string }[] = [
-    { valor: "no_contactado", etiqueta: "No contactado" },
-    { valor: "contactado", etiqueta: "Contactado" },
-    { valor: "confirma", etiqueta: "Confirma" },
-    { valor: "no_confirma", etiqueta: "No confirma" },
-    { valor: "no_contesta", etiqueta: "No contesta" },
-    { valor: "no_puede", etiqueta: "No puede" },
-    { valor: "reconfirmar", etiqueta: "Reconfirmar" },
-];
+const opcionesConvocatoria = (Object.keys(ETIQUETAS_CONVOCATORIA) as EstadoConvocatoria[])
+    .map((valor) => ({ valor, etiqueta: ETIQUETAS_CONVOCATORIA[valor] }));
 
 const opcionesAsistencia: { valor: EstadoAsistencia; etiqueta: string; bg: string; fg: string }[] = [
-    { valor: "pendiente", etiqueta: "Pendiente", bg: "bg-amber-100", fg: "text-amber-800" },
-    { valor: "asiste", etiqueta: "Asistió", bg: "bg-green-100", fg: "text-green-800" },
-    { valor: "no_asiste", etiqueta: "No asistió", bg: "bg-red-100", fg: "text-red-700" },
+    { valor: "pendiente", etiqueta: ETIQUETAS_ASISTENCIA.pendiente, bg: "bg-amber-100", fg: "text-amber-800" },
+    { valor: "asiste", etiqueta: ETIQUETAS_ASISTENCIA.asiste, bg: "bg-green-100", fg: "text-green-800" },
+    { valor: "no_asiste", etiqueta: ETIQUETAS_ASISTENCIA.no_asiste, bg: "bg-red-100", fg: "text-red-700" },
 ];
 
 export default function DetalleSesion() {
@@ -106,6 +93,7 @@ export default function DetalleSesion() {
     const [quitando, setQuitando] = useState(false);
     const [confirmandoTermino, setConfirmandoTermino] = useState(false);
     const [terminando, setTerminando] = useState(false);
+    const [generandoPdf, setGenerandoPdf] = useState(false);
 
     useEffect(() => {
         const obtenerSesion = async () => {
@@ -186,6 +174,8 @@ export default function DetalleSesion() {
                 rut_paciente: paciente.rut,
                 estado_asistencia: "pendiente",
                 estado_convocatoria: "no_contactado",
+                telefono_contacto: data.datos.telefono_contacto ?? null,
+                observaciones: data.datos.observaciones ?? null,
                 paciente: {
                     rut: paciente.rut,
                     nombre: paciente.nombre,
@@ -316,6 +306,23 @@ export default function DetalleSesion() {
             setErrorAccion("No se pudo quitar al paciente, intenta de nuevo.");
         } finally {
             setQuitando(false);
+        }
+    };
+
+    //? usa las inscripciones en pantalla, con los cambios hechos despues de cargar la sesion
+    const descargarPdf = async () => {
+        if (!sesion) return;
+
+        setGenerandoPdf(true);
+        setErrorAccion("");
+        try {
+            const usuario = JSON.parse(localStorage.getItem("usuario") ?? "null");
+            await generarPdfAsistencia({ ...sesion, inscripciones }, usuario?.nombre ?? "");
+        } catch (err) {
+            console.error("Error al generar el PDF:", err);
+            setErrorAccion("No se pudo generar el PDF. Recarga la página e inténtalo de nuevo.");
+        } finally {
+            setGenerandoPdf(false);
         }
     };
 
@@ -471,23 +478,36 @@ export default function DetalleSesion() {
                                 </p>
                             </div>
 
-                            {sesion.terminada ? (
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-800">
-                                    <CircleCheck className="h-4 w-4" />
-                                    Sesión terminada
-                                </span>
-                            ) : (
+                            <div className="flex flex-wrap items-center gap-2">
                                 <button
                                     type="button"
-                                    disabled={esSesionFutura(sesion.fecha)}
-                                    title={esSesionFutura(sesion.fecha) ? "No se puede terminar una sesión antes de su fecha" : undefined}
-                                    onClick={() => setConfirmandoTermino(true)}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm transition-colors hover:border-green-600 hover:bg-green-50 hover:text-green-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-300 disabled:hover:bg-white disabled:hover:text-slate-800"
+                                    onClick={descargarPdf}
+                                    disabled={inscripciones.length === 0 || generandoPdf}
+                                    title={inscripciones.length === 0 ? "No hay niños inscritos en esta sesión" : undefined}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm transition-colors hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-300 disabled:hover:bg-white disabled:hover:text-slate-800"
                                 >
-                                    <CircleCheck className="h-4 w-4" />
-                                    Terminar sesión
+                                    {generandoPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                                    Descargar PDF
                                 </button>
-                            )}
+
+                                {sesion.terminada ? (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-800">
+                                        <CircleCheck className="h-4 w-4" />
+                                        Sesión terminada
+                                    </span>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        disabled={esSesionFutura(sesion.fecha)}
+                                        title={esSesionFutura(sesion.fecha) ? "No se puede terminar una sesión antes de su fecha" : undefined}
+                                        onClick={() => setConfirmandoTermino(true)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm transition-colors hover:border-green-600 hover:bg-green-50 hover:text-green-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-300 disabled:hover:bg-white disabled:hover:text-slate-800"
+                                    >
+                                        <CircleCheck className="h-4 w-4" />
+                                        Terminar sesión
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {inscripciones.length === 0 && (

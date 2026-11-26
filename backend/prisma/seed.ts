@@ -218,7 +218,7 @@ const TALLERES: TallerSeed[] = [
         afinidad: { tea: 10, naneas: 3, otro: 0.3 }, grupo: [14, 20], sesiones: [-35, 21],
     },
 ];
-const PROFESIONALES_EXTERNOS = ['Fundación Amanecer (externo)', 'Equipo CESFAM Tucapel (externo)', 'Voluntariado UBB Psicología (externo)'];
+const PROFESIONALES_EXTERNOS = ['Fundación Amanecer (externo)', 'CESFAM Santa Sabina (externo)', 'Voluntariado UBB Psicología (externo)'];
 
 //* fechas (hora Chile, guardadas a mediodia UTC para que no se corra el dia)
 const hoyChile = obtenerHoyChile();
