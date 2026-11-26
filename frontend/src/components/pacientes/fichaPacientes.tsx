@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText, Calendar, History, ArrowLeft, AlertTriangle, TriangleAlert, Loader2 } from 'lucide-react';
-import type { ControlClinico, Paciente } from '../../types';
+import type { ControlClinico, MotivoDesactivacion, Paciente } from '../../types';
 import { API_BASE_URL } from '../../service/api';
 import { compararDiagnosticos, nombreDiagnostico, textoDiagnosticoControl } from '../../utils/diagnosticos';
 import { calcularEdadCorta } from '../../utils/formatters';
+import { ETIQUETAS_MOTIVO, LARGO_MAXIMO_DETALLE, MOTIVOS_DESACTIVACION, errorDesactivacion } from '../../utils/desactivacion';
+import EtiquetaInactivo from './etiquetaInactivo';
+import DetalleDesactivacion from './detalleDesactivacion';
 
 
 type RiesgoSocial = {
@@ -29,8 +32,12 @@ export default function FichaPaciente() {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [confirmandoEstado, setConfirmandoEstado] = useState(false);
+    const [motivo, setMotivo] = useState<MotivoDesactivacion | ''>('');
+    const [detalle, setDetalle] = useState('');
+    const [errorMotivo, setErrorMotivo] = useState('');
     const [cambiandoEstado, setCambiandoEstado] = useState(false);
     const [errorEstado, setErrorEstado] = useState('');
+    const [viendoDetalle, setViendoDetalle] = useState(false);
 
     //* calculo de edad detallada
     const obtenerEdadDetallada = (fechaNac?: string) => {
@@ -123,11 +130,27 @@ export default function FichaPaciente() {
         cargarDatosFicha();
     }, [rut]);
 
-    //* activa o desactiva al paciente, solo se manda "activo"
+    //? se abre siempre con el formulario de motivo en blanco
+    const abrirCambioEstado = () => {
+        setMotivo('');
+        setDetalle('');
+        setErrorMotivo('');
+        setConfirmandoEstado(true);
+    };
+
+    //* activa o desactiva al paciente, al desactivar se manda tambien el motivo
     const cambiarEstado = async () => {
         if (!paciente) return;
 
         const reactivar = paciente.activo === false;
+
+        if (!reactivar) {
+            const faltante = errorDesactivacion(motivo, detalle);
+            if (faltante) {
+                setErrorMotivo(faltante);
+                return;
+            }
+        }
 
         setErrorEstado('');
         setCambiandoEstado(true);
@@ -140,13 +163,17 @@ export default function FichaPaciente() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({ activo: reactivar }),
+                body: JSON.stringify(reactivar
+                    ? { activo: true }
+                    : { activo: false, motivo_desactivacion: motivo, detalle_desactivacion: detalle.trim() || null }),
             });
 
             const data = await respuesta.json().catch(() => ({}));
             if (!respuesta.ok) throw new Error(data?.error || `No fue posible ${reactivar ? 'reactivar' : 'desactivar'} al paciente.`);
 
-            setPaciente({ ...paciente, activo: reactivar });
+            //? el motivo y la fecha los devuelve el backend
+            const { activo, motivo_desactivacion, detalle_desactivacion, fecha_desactivacion }: Paciente = data.datos;
+            setPaciente({ ...paciente, activo, motivo_desactivacion, detalle_desactivacion, fecha_desactivacion });
         } catch (err) {
             setErrorEstado(err instanceof Error ? err.message : 'No se pudo conectar con el servidor.');
         } finally {
@@ -161,11 +188,6 @@ export default function FichaPaciente() {
     const riesgos = obtenerRiesgosSociales(paciente);
     //? activo es true por defecto, solo un false cuenta como inactivo
     const inactivo = paciente?.activo === false;
-    const etiquetaInactivo = inactivo && (
-        <span className="ml-3 inline-block rounded-full border border-slate-300 bg-slate-100 px-3 py-1 align-middle text-xs font-bold uppercase tracking-wide text-slate-600">
-            Inactivo
-        </span>
-    );
     //? pacientes antiguos o importados pueden traer estos campos vacios
     const diagnosticos = Array.isArray(paciente?.diagnosticos)
         ? paciente.diagnosticos
@@ -192,7 +214,7 @@ export default function FichaPaciente() {
                     </button>
                     {paciente?.es_poblacion_trans && paciente?.nombre_social ? (
                         <>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente.nombre} {paciente.apellido}{etiquetaInactivo}</h1>
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente.nombre} {paciente.apellido}</h1>
                             <p className="mt-1 flex items-center gap-2 text-lg font-bold text-purple-700">
                                 <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-purple-700">
                                     Nombre social
@@ -201,7 +223,21 @@ export default function FichaPaciente() {
                             </p>
                         </>
                     ) : (
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente?.nombre} {paciente?.apellido}{etiquetaInactivo}</h1>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">{paciente?.nombre} {paciente?.apellido}</h1>
+                    )}
+                    {/* en su propia linea para no angostar los botones */}
+                    {inactivo && paciente && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <EtiquetaInactivo paciente={paciente} />
+                            <button
+                                type="button"
+                                onClick={() => setViendoDetalle(true)}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100 hover:text-blue-900"
+                            >
+                                <FileText className="h-4 w-4" />
+                                Ver detalle
+                            </button>
+                        </div>
                     )}
                     <p className="text-sm font-medium text-slate-900 mt-1">RUT: <span className="text-slate-900 font-bold">{paciente?.rut}</span>{paciente?.fecha_nacimiento && <span className="text-slate-900 font-bold"> · {calcularEdadCorta(paciente.fecha_nacimiento)}</span>}</p>
                 </div>
@@ -209,13 +245,14 @@ export default function FichaPaciente() {
                     <div className="flex flex-col gap-3 sm:flex-row">
                         <button
                             onClick={() => navigate(`/editar-paciente/${rut}`)}
-                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+                            disabled={inactivo}
+                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none disabled:active:scale-100"
                         >
                             Editar paciente
                         </button>
                         <button
                             type="button"
-                            onClick={() => setConfirmandoEstado(true)}
+                            onClick={abrirCambioEstado}
                             disabled={!paciente}
                             className={`inline-flex items-center justify-center rounded-xl border bg-white px-5 py-3 text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-50 ${inactivo ? "border-green-300 text-green-700 hover:border-green-600 hover:bg-green-50" : "border-red-300 text-red-700 hover:border-red-600 hover:bg-red-50"}`}
                         >
@@ -232,7 +269,7 @@ export default function FichaPaciente() {
                     {inactivo && (
                         <p className="flex items-center gap-2 text-sm font-bold text-amber-800">
                             <TriangleAlert className="h-4 w-4 shrink-0" />
-                            Este paciente está inactivo. Reactívalo para registrar controles.
+                            Este paciente está inactivo. Reactívalo para editar sus datos o registrar controles.
                         </p>
                     )}
                     {errorEstado && (
@@ -451,6 +488,10 @@ export default function FichaPaciente() {
                 </div>
             </div>
 
+            {viendoDetalle && inactivo && paciente && (
+                <DetalleDesactivacion paciente={paciente} onCerrar={() => setViendoDetalle(false)} />
+            )}
+
             {confirmandoEstado && paciente && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
                     <div className="w-full max-w-95 rounded-2xl bg-white p-7 shadow-xl">
@@ -465,10 +506,40 @@ export default function FichaPaciente() {
                                 <p className="mt-1.5 text-sm font-medium text-slate-600">
                                     {inactivo
                                         ? <><span className="font-bold text-slate-900">{paciente.nombre} {paciente.apellido}</span> volverá a aparecer en la agenda y podrá registrar controles e inscribirse en sesiones de taller.</>
-                                        : <><span className="font-bold text-slate-900">{paciente.nombre} {paciente.apellido}</span> dejará de aparecer en la agenda. No se podrán registrar ni editar controles, ni inscribirlo en sesiones de taller. Su historial y sus inscripciones actuales se conservan, y podrás reactivarlo cuando quieras.</>}
+                                        : <><span className="font-bold text-slate-900">{paciente.nombre} {paciente.apellido}</span> dejará de aparecer en la agenda. No se podrán editar sus datos, registrar ni editar controles, ni inscribirlo en sesiones de taller. Su historial y sus inscripciones actuales se conservan, y podrás reactivarlo cuando quieras.</>}
                                 </p>
                             </div>
                         </div>
+                        {!inactivo && (
+                            <div className="mt-5 space-y-4">
+                                <div>
+                                    <label htmlFor="motivo-desactivacion" className="mb-1.5 block text-sm font-bold text-slate-700">Motivo *</label>
+                                    <select
+                                        id="motivo-desactivacion"
+                                        value={motivo}
+                                        onChange={(e) => { setMotivo(e.target.value as MotivoDesactivacion | ''); setErrorMotivo(''); }}
+                                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {MOTIVOS_DESACTIVACION.map((m) => (
+                                            <option key={m} value={m}>{ETIQUETAS_MOTIVO[m]}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="detalle-desactivacion" className="mb-1.5 block text-sm font-bold text-slate-700">{motivo === 'OTRO' ? 'Detalle *' : 'Detalle (opcional)'}</label>
+                                    <textarea
+                                        id="detalle-desactivacion"
+                                        value={detalle}
+                                        onChange={(e) => { setDetalle(e.target.value); setErrorMotivo(''); }}
+                                        rows={2}
+                                        maxLength={LARGO_MAXIMO_DETALLE}
+                                        className="w-full resize-none rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                                    />
+                                </div>
+                                {errorMotivo && <p className="text-sm font-bold text-red-500">{errorMotivo}</p>}
+                            </div>
+                        )}
                         <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
                             <button
                                 type="button"

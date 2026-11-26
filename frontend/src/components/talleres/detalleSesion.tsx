@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CalendarCheck, CircleCheck, Loader2, Search, TriangleAlert, X } from "lucide-react";
 import { API_BASE_URL } from "../../service/api";
 import { calcularEdad, formatearRUT } from "../../utils/formatters";
+import type { DatosDesactivacion } from "../../types";
+import EtiquetaInactivo from "../pacientes/etiquetaInactivo";
 
 type EstadoAsistencia = "pendiente" | "asiste" | "no_asiste";
 type EstadoConvocatoria =
@@ -41,7 +43,7 @@ interface SesionDetalle {
     inscripciones: Inscripcion[];
 }
 
-interface PacienteBusqueda {
+interface PacienteBusqueda extends DatosDesactivacion {
     rut: string;
     nombre: string;
     apellido: string;
@@ -439,10 +441,9 @@ export default function DetalleSesion() {
                                                     <p className="text-xs font-medium text-slate-700">
                                                         {formatearRUT(p.rut)} · {calcularEdad(p.fecha_nacimiento)}
                                                     </p>
+                                                    {inactivo && <EtiquetaInactivo paciente={p} className="mt-1" />}
                                                 </div>
-                                                {inactivo ? (
-                                                    <span className="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600">Inactivo</span>
-                                                ) : (
+                                                {!inactivo && (
                                                     <span className="shrink-0 text-xs font-bold text-blue-700">Agregar</span>
                                                 )}
                                             </button>

@@ -37,7 +37,23 @@ export interface Diagnostico {
     codigo_cie10?: string | null;     // de referencia, no se muestra en la interfaz
 }
 
-export interface Paciente {
+export type MotivoDesactivacion =
+    | 'TRASLADO'
+    | 'EGRESO_POR_EDAD'
+    | 'FALLECIMIENTO'
+    | 'NO_DESEA_CONTINUAR'
+    | 'INUBICABLE'
+    | 'ERROR_DE_REGISTRO'
+    | 'OTRO';
+
+//* datos de la desactivacion, en null si el paciente esta activo o se desactivo antes de registrarlos
+export interface DatosDesactivacion {
+    motivo_desactivacion?: MotivoDesactivacion | null;
+    detalle_desactivacion?: string | null;
+    fecha_desactivacion?: string | null;
+}
+
+export interface Paciente extends DatosDesactivacion {
     id_paciente: number;
     rut: string;
     nombre: string;

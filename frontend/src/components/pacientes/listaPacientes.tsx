@@ -3,8 +3,10 @@ import { Search, Plus, FolderOpen, Loader2, Filter, ArrowLeft } from "lucide-rea
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from '../../service/api';
 import Paginacion from '../layout/paginacion';
+import type { DatosDesactivacion } from '../../types';
+import EtiquetaInactivo from './etiquetaInactivo';
 
-interface Paciente {
+interface Paciente extends DatosDesactivacion {
     id_paciente: number;
     rut: string;
     nombre: string;
@@ -208,7 +210,7 @@ export default function PatientList() {
                                         <td className="px-5 py-3 font-medium text-slate-900 capitalize">
                                             {paciente.nombre.toLowerCase()} {paciente.apellido.toLowerCase()}
                                             {paciente.activo === false && (
-                                                <span className="ml-2 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-bold normal-case text-slate-600">Inactivo</span>
+                                                <div className="mt-1"><EtiquetaInactivo paciente={paciente} /></div>
                                             )}
                                         </td>
                                         <td className="px-5 py-3 text-blue-800 font-semibold">{calcularEdadPediatrica(paciente.fecha_nacimiento)}</td>

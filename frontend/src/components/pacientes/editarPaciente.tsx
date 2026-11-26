@@ -108,6 +108,7 @@ export default function EditarPaciente() {
     const [guardando, setGuardando] = useState(false);
     const [errorGeneral, setErrorGeneral] = useState("");
     const [errorCarga, setErrorCarga] = useState("");
+    const [inactivo, setInactivo] = useState(false);
     const [mensajeExito, setMensajeExito] = useState("");
     const [comunas, setComunas] = useState<Comuna[]>([]);
     const catalogo = useDiagnosticos('CONDICION');
@@ -153,6 +154,7 @@ export default function EditarPaciente() {
 
                 if (!response.ok) throw new Error("No se pudo cargar la ficha del paciente.");
                 const p = await response.json();
+                setInactivo(p.activo === false);
 
                 //? el backend devuelve nombres e ids en el mismo orden
                 const idsPaciente: number[] = p.diagnosticos_ids ?? [];
@@ -383,6 +385,29 @@ export default function EditarPaciente() {
         return (
             <div className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
                 {errorCarga}
+            </div>
+        );
+    }
+
+    //! se puede llegar aca escribiendo la url, un paciente desactivado no muestra el formulario
+    if (inactivo) {
+        return (
+            <div className="mx-auto max-w-2xl rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
+                <div className="flex items-start gap-3">
+                    <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div>
+                        <p className="font-bold">Este paciente está inactivo</p>
+                        <p className="text-sm font-medium">Reactívalo desde su ficha para editar sus datos.</p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => navigate(`/ficha/${rut}`)}
+                    className="mt-4 inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
+                >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver a la ficha
+                </button>
             </div>
         );
     }
